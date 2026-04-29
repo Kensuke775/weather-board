@@ -21,8 +21,8 @@ export default function RoomCreate() {
 
       if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
       const roomId = Crypto.randomUUID();
-      const { error: roomError } = await supabase.from('rooms').insert({ id: roomId, name: roomName, invite_code: generateInviteCode(), created_by: user.id });
-
+      const { data: roomData, error: roomError } = await supabase.from('rooms').insert({ id: roomId, name: roomName, invite_code: generateInviteCode(), created_by: user.id });
+      console.log('roomData:', roomData, 'roomError:', roomError);
       if (roomError) return Alert.alert(roomError.message);
       const { error: memberError } = await supabase.from('room_members').insert({ room_id: roomId, user_id: user.id });
 

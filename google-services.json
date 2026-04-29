@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "197792176142",
+    "project_id": "weather-board-3d422",
+    "storage_bucket": "weather-board-3d422.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:197792176142:android:5ca2cff5467c6daa56045f",
+        "android_client_info": {
+          "package_name": "com.kensuke0225.weatherboard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTLBVfyasTt4VlEYK02BWQ59FHHqk3GlU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

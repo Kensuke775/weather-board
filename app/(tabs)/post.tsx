@@ -39,7 +39,7 @@ export default function Post() {
 
         <View className="mb-12">
           <Text className="mb-2">メモを入力出来ます(AIの判断材料になります。)</Text>
-          <TextInput value={note} onChangeText={setNote} />
+          <TextInput value={note} onChangeText={setNote} autoCapitalize="none"/>
         </View>
         <View className="mb-12">
           <Pressable onPress={handlePost} className="mb-12">
