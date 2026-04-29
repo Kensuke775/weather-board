@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 
+import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG } from '@/lib/types';
 import { useRouter } from 'expo-router';
@@ -9,6 +10,8 @@ export default function Post() {
   const [weather, setWeather] = useState('');
   const [note, setNote] = useState('');
   const router = useRouter();
+
+  const [selectedId, setSelectedId] = useState<ActivityTag[]>([]);
   const handlePost = async () => {
     const {
       data: { user },
@@ -23,7 +26,17 @@ export default function Post() {
     if (logError) return Alert.alert(logError.message);
     const { error: historyError } = await supabase.from('weather_log_history').insert({ weather_log_id: logData.id, weather, note, recorded_at: new Date().toISOString().split('T')[0] });
     if (historyError) return Alert.alert(historyError.message);
-    else router.replace('/(tabs)');
+
+    const activityData = selectedId.map((tag) => ({
+      weather_log_id: logData.id,
+      activity_tag_id: tag.id,
+    }));
+
+    if (selectedId.length > 0) {
+      const { error: activityError } = await supabase.from('weather_log_activities').insert(activityData);
+      if (activityError) return Alert.alert(activityError.message);
+    }
+    router.replace('/(tabs)');
   };
   return (
     <View className="flex justify-center w-full h-full">
@@ -37,9 +50,26 @@ export default function Post() {
           ))}
         </View>
 
+        <View>
+          <View>
+            <Text>選択中:</Text>
+          </View>
+          <View>
+            {selectedId.map((tag) => (
+              <View key={tag.id}>
+                <Text>{tag.tag_name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View>
+          <ActivityTagPicker selectedId={selectedId} setSelectedId={setSelectedId} />
+        </View>
+
         <View className="mb-12">
           <Text className="mb-2">メモを入力出来ます(AIの判断材料になります。)</Text>
-          <TextInput value={note} onChangeText={setNote} autoCapitalize="none"/>
+          <TextInput value={note} onChangeText={setNote} autoCapitalize="none" />
         </View>
         <View className="mb-12">
           <Pressable onPress={handlePost} className="mb-12">
