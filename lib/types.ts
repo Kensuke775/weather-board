@@ -42,13 +42,13 @@ export type WeatherLogHistory = {
 };
 
 export const WEATHER_CONFIG = {
-  sunny: { label: '晴れ', emoji: '☀️', color: '#FCD34D' },
-  partly_cloudy: { label: '晴れ時々曇り', emoji: '🌤️', color: '#93C5FD' },
-  cloudy: { label: '曇り・どんより', emoji: '☁️', color: '#94A3B8' },
-  rainy: { label: '雨', emoji: '☔️', color: '#60A5FA' },
-  stormy: { label: '嵐', emoji: '⛈️', color: '#6366F1' },
-  snowy: { label: '雪', emoji: '❄️', color: '#BAE6FD' },
-  foggy: { label: '霧', emoji: '🌫️', color: '#D1D5DB' },
+  sunny: { label: '晴れ', emoji: '☀️', color: 'rgba(251, 146, 60, 0.3)' },
+  partly_cloudy: { label: '晴れ時々曇り', emoji: '🌤️', color: 'rgba(252, 211, 77, 0.3)' },
+  cloudy: { label: '曇り・どんより', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)' },
+  rainy: { label: '雨', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)' },
+  stormy: { label: '嵐', emoji: '⛈️', color: 'rgba(99, 102, 241, 0.3)' },
+  snowy: { label: '雪', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)' },
+  foggy: { label: '霧', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)' },
 };
 
 export type WeatherBoardItem = {
@@ -56,8 +56,9 @@ export type WeatherBoardItem = {
   id: string;
   weather: WeatherType;
   note: string | null;
-  logged_date: string;
   user_id: string;
+  updated_at: string;
+  tags: { id: string; name: string; }[]
 };
 
 export type CommentItem = {
@@ -101,3 +102,6 @@ export type HistoryLog = {
   logged_date: string;
   profiles: { avatar_emoji: string };
 };
+
+export type CommentsStatus =
+  Record<string, {commenters: {user_id: string; emoji: string }[]; count: number}>

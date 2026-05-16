@@ -1,15 +1,26 @@
+import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { Notification } from '@/lib/types';
+import { BlurView } from 'expo-blur';
+import { useFonts } from 'expo-font';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, ImageBackground, Text, View } from 'react-native';
+
+const backgroundImage = require('@/assets/images/weather/notifications.png');
 
 const fetchNotifications = async (setter: (data: Notification[]) => void) => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-  const { data: notificationsData, error: notificationsError } = await supabase.from('notifications').select('*, profiles!from_user_id(nickname, avatar_emoji)').eq('to_user_id', user.id);
+  const { data: notificationsData, error: notificationsError } = await supabase
+    .from('notifications')
+    .select('*, profiles!from_user_id(nickname, avatar_emoji)')
+    .eq('to_user_id', user.id)
+    .neq('from_user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
   if (notificationsError) return Alert.alert(notificationsError.message);
 
   setter(notificationsData);
@@ -48,24 +59,42 @@ export default function Notifications() {
       fetchIsRead();
     }, []),
   );
+
+  const [fontsLoaded] = useFonts({
+    DancingScript_400Regular: Fonts.titleFont,
+  }) as [boolean, Error | null];
+
+  if (!fontsLoaded) return null;
   return (
-    <View className="flex justify-center w-full h-full">
-      <View>
-        <Text>リスト</Text>
-        <FlatList
-          data={dataNotifications}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View>
-              <Text>{item.profiles?.avatar_emoji}</Text>
-              <Text>{item.profiles?.nickname}</Text>
-              <Text>{item.type}</Text>
-              <Text>{new Date(item.created_at).toLocaleString('ja-JP')}</Text>
-              <Text>{item.is_read ? '既読' : '未読'}</Text>
+    <ImageBackground source={backgroundImage} className="flex-1 pt-40 gap-10 px-10">
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
+      <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
+        Mail Box
+      </Text>
+      <FlatList
+        data={dataNotifications}
+        keyExtractor={(item) => item.id}
+        ItemSeparatorComponent={() => <View className="h-4" />}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
+        renderItem={({ item }) => (
+          <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: WeatherBoardColors.glassBackground, opacity: item.is_read ? 1 : 0.3 }}>
+            <View className="flex flex-row items-center gap-1 mb-2">
+              <Text className="text-xl">{item.profiles?.avatar_emoji}</Text>
+              <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                {item.profiles?.nickname} から
+              </Text>
             </View>
-          )}
-        />
-      </View>
-    </View>
+            <View className="flex-row items-center justify-between gap-1 mb-2">
+              <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                {item.type === 'comment' ? 'コメントが届きました。' : '「少し話したいです」が届きました。'}
+              </Text>
+              <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+          </BlurView>
+        )}
+      />
+    </ImageBackground>
   );
 }

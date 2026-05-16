@@ -81,8 +81,12 @@ export default function TabLayout() {
 
       //リアルタイム設定
       fetchUnreadCount(setIsReadCount);
+
+      const channelName = `notification-${sessionData.session!.user.id}`;
+      const existing = supabase.getChannels().find((channel) => channel.subTopic === channelName);
+      if (existing) await supabase.removeChannel(existing);
       channel = supabase
-        .channel('notification')
+        .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
           fetchUnreadCount(setIsReadCount);
         })
@@ -113,13 +117,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="post"
         options={{
           title: 'Post',
@@ -139,6 +136,20 @@ export default function TabLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="analysis"
+        options={{
+          title: 'Analysis',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="wand.and.stars" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />
     </Tabs>

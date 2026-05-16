@@ -1,17 +1,36 @@
-import { WeatherBoardItem } from '@/lib/types';
-import { View } from 'react-native';
+import { CommentsStatus, WeatherBoardItem } from '@/lib/types';
+import { FlatList } from 'react-native';
 import WeatherCard from './WeatherCard';
 
 type WeatherBoardProps = {
   weatherLogs: WeatherBoardItem[];
+  unreadCounts: Record<string, number>;
+  commentStatus: CommentsStatus;
 };
 
-export default function WeatherBoard({ weatherLogs }: WeatherBoardProps){
-    return(
-        <View className="flex flex-row flex-wrap">
-            {weatherLogs.map((w) => (
-                <WeatherCard key={w.id} nickname={w.profiles.nickname} avatar_emoji={w.profiles.avatar_emoji} weather={w.weather} note={w.note} logged_date={w.logged_date} weather_log_id={w.id} user_id={w.user_id}/>
-            ))}
-        </View>
-    );
+export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus }: WeatherBoardProps) {
+  return (
+    <FlatList
+      data={weatherLogs}
+      keyExtractor={(item) => item.id}
+      numColumns={2}
+      columnWrapperStyle={{ gap: 12, justifyContent: 'flex-start' }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingRight: 16,paddingLeft: 16, paddingBottom: 40, paddingTop: 100 }}
+      showsVerticalScrollIndicator={false}
+      renderItem={({ item }) => (
+        <WeatherCard
+          nickname={item.profiles.nickname}
+          avatar_emoji={item.profiles.avatar_emoji}
+          weather={item.weather}
+          note={item.note}
+          updated_at={item.updated_at}
+          weather_log_id={item.id}
+          user_id={item.user_id}
+          unreadCount={unreadCounts[item.id] ?? 0}
+          tags={item.tags}
+          commentStatus={commentStatus}
+        />
+      )}
+    />
+  );
 }

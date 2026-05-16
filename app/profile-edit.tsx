@@ -2,8 +2,13 @@ import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ImageBackground, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+
+type ProfileEdit = {
+  nickname: string;
+  avatar_emoji: string;
+};
 
 const backgroundImage = require('@/assets/images/weather/profile-setup.png');
 const AVATARS = [
@@ -65,21 +70,35 @@ const AVATARS = [
 ];
 
 export default function ProfileSetUp() {
-  const [nickname, setNickname] = useState('');
-  const [avatar, setAvatar] = useState('');
+  const [profileData, setProfileData] = useState<ProfileEdit | null>();
+  const [inputText, setInputText] = useState(profileData?.nickname);
+  const [selectedAvatar, setSelectedAvatar] = useState(profileData?.avatar_emoji);
   const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(false);
+
+  const fetchProfileData = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return Alert.alert('ユーザーが取得できませんでした。');
+
+    const { data: profileData, error: profileError } = await supabase.from('profiles').select('nickname, avatar_emoji').eq('user_id', user.id).single();
+    if (profileError) Alert.alert(profileError.message);
+    setProfileData(profileData);
+    setSelectedAvatar(profileData?.avatar_emoji);
+    setInputText(profileData?.nickname);
+  };
+
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
 
   const handleSaveProfile = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return Alert.alert('ユーザーが取得できませんでした。');
-    if (nickname === '') return Alert.alert('ニックネームの入力欄が空になっています。');
-    if (avatar === '') return Alert.alert('アバターを選んでください。');
-    const { error } = await supabase.from('profiles').insert({ user_id: user.id, nickname, avatar_emoji: avatar });
-    if (error) Alert.alert(error.message);
-    else router.replace('/(tabs)');
+    const { error: profileUpsertError } = await supabase.from('profiles').update({ nickname: inputText, avatar_emoji: selectedAvatar }).eq('user_id', user.id);
+    if (profileUpsertError) return Alert.alert(profileUpsertError.message);
   };
 
   const [fontsLoaded] = useFonts({
@@ -90,48 +109,43 @@ export default function ProfileSetUp() {
   return (
     <ImageBackground source={backgroundImage} className="flex-1 px-10">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 100 }}>
         <View className="justify-center flex-1 gap-10">
           <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-            Sign Up
+            Profile Edit
           </Text>
 
           <View>
             <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              ニックネームを考えてください。
+              ニックネームを変更してください。
             </Text>
-            <TextInput value={nickname} onChangeText={setNickname} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+            <TextInput value={inputText} onChangeText={setInputText} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
           </View>
 
           <View>
             <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              アバターを選んでください。
+              アバターを変更してください。
             </Text>
 
             <View className="relative flex items-center p-4 overflow-hidden" style={{ borderRadius: 16 }}>
               <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}></View>
               <View className="flex-row gap-3 flex-wrap justify-center mb-4">
-                {isExpanded
-                  ? AVATARS.map((item) => (
-                      <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6 }}>
-                        <Text className="text-4xl">{item}</Text>
-                      </Pressable>
-                    ))
-                  : AVATARS.slice(0, 10).map((item) => (
-                      <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6 }}>
-                        <Text className="text-4xl">{item}</Text>
-                      </Pressable>
-                    ))}
+                {AVATARS.map((item) => (
+                  <Pressable key={item} onPress={() => setSelectedAvatar(item)} style={{ opacity: selectedAvatar === item ? 1 : 0.6 }}>
+                    <Text className="text-4xl">{item}</Text>
+                  </Pressable>
+                ))}
               </View>
-              <Pressable onPress={() => setIsExpanded(!isExpanded)}>
-                <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                  さらに表示
-                </Text>
-              </Pressable>
             </View>
           </View>
 
-          <Pressable onPress={handleSaveProfile} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
+          <Pressable
+            onPress={() => {
+              handleSaveProfile();
+              router.replace('/(tabs)/settings');
+            }}
+            className="py-6 px-2 rounded-xl flex justify-center items-center border"
+            style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
             <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
               保存する
             </Text>
@@ -139,10 +153,10 @@ export default function ProfileSetUp() {
 
           <Pressable
             className="py-6 px-2 rounded-xl flex justify-center items-center border"
-            onPress={() => router.replace('/(auth)/login')}
+            onPress={() => router.replace('/(tabs)/settings')}
             style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
             <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              ログイン画面に戻る
+              設定画面に戻る
             </Text>
           </Pressable>
         </View>

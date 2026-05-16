@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, ImageBackground, Text, View } from 'react-native';
 
 import WeatherCalendar from '@/components/WeatherCalendar';
+import { WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WEATHER_CONFIG, WeatherType } from '@/lib/types';
+import { BlurView } from 'expo-blur';
+
+const backgroundImage = require('@/assets/images/weather/history.png');
 
 function initialMonthStart() {
   const now = new Date();
@@ -48,24 +52,31 @@ export default function History() {
     fetchHistory();
   }, [currentMonth, initialMonthEnd]);
   return (
-    <View className="w-full h-full flex justify-center">
+    <ImageBackground source={backgroundImage} className="flex-1 justify-center gap-5 px-5">
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
+      <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
+        History
+      </Text>
       <View>
-        <View>
-          <Text>履歴</Text>
-          <WeatherCalendar historyData={historyData} currentUserId={currentUserId} setDisplayMonth={setCurrentMonth} />
-          <View className="flex flex-row">
-            {Object.entries(weatherHistgram).map(([key, value]) => (
-              <View key={key}>
-                <Text>{WEATHER_CONFIG[key as WeatherType].emoji}</Text>
-                <Text>{value === 0 ? null : value}</Text>
-              </View>
-            ))}
-          </View>
-          <View>
-            <Text>{currentUserData.length > 0 ? `${month}月は${WEATHER_CONFIG[mostWeather as WeatherType].emoji}が多いですね` : null}</Text>
-          </View>
-        </View>
+        <WeatherCalendar historyData={historyData} currentUserId={currentUserId} setDisplayMonth={setCurrentMonth} />
       </View>
-    </View>
+      <BlurView intensity={40} tint="dark" className="overflow-hidden border px-5 py-4" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+        <View className="flex flex-row justify-between items-center">
+          {Object.entries(weatherHistgram).map(([key, value]) => (
+            <View key={key} className="flex flex-row items-center gap-1">
+              <Text className="text-xl font-bold">{WEATHER_CONFIG[key as WeatherType].emoji}</Text>
+              <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                {value === 0 ? null : value}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </BlurView>
+      <View>
+        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+          {currentUserData.length > 0 ? `${month}月は${WEATHER_CONFIG[mostWeather as WeatherType].emoji}が多いですね` : '記録がないです。'}
+        </Text>
+      </View>
+    </ImageBackground>
   );
 }

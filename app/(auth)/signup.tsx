@@ -1,8 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
 
+import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
+import { useFonts } from 'expo-font';
+
+const backgroundImage = require('@/assets/images/weather/signup.png');
 
 export default function AuthSignUp() {
   const [email, setEmail] = useState('');
@@ -18,20 +22,49 @@ export default function AuthSignUp() {
       router.replace('/(auth)/profile-setup');
     }
   };
+
+  const [fontsLoaded] = useFonts({
+    'DancingScript_400Regular': Fonts.titleFont
+  }) as [boolean, Error | null];
+
+  if (!fontsLoaded) return null;
+
   return (
-    <View className="w-full h-full flex justify-center">
-      <View>
-        <Text className="mb-2">メールアドレス</Text>
-        <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" autoCapitalize="none" keyboardType="email-address" className="mb-12" />
-        <Text className="mb-2">パスワード</Text>
-        <TextInput value={password} onChangeText={setPassword} secureTextEntry className="mb-12" />
-        <Pressable onPress={handleSignUp} className="mb-12">
-          <Text>新規登録</Text>
-        </Pressable>
+    <ImageBackground source={backgroundImage} className="flex-1 justify-center gap-10 px-10">
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
+      <Text className="text-4xl text-center" style={{ color:WeatherBoardColors.textPrimary , fontFamily: 'DancingScript_400Regular' }}>
+        Sign Up
+      </Text>
+      <View className="w-full">
+        <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+          メールアドレス
+        </Text>
+        <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
       </View>
-      <Pressable className="mb-12" onPress={() => router.replace('/(auth)/login')}>
-        <Text>戻る</Text>
+
+      <View className="w-full">
+        <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+          パスワード
+        </Text>
+        <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
+        <Text className="text-sm" style={{ color: WeatherBoardColors.textPrimary }}>
+          ※6文字以上で設定してください
+        </Text>
+      </View>
+
+      <Pressable onPress={handleSignUp} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
+        <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+          新規登録
+        </Text>
       </Pressable>
-    </View>
+      <Pressable
+        className="py-6 px-2 rounded-xl flex justify-center items-center border"
+        onPress={() => router.replace('/(auth)/login')}
+        style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
+        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+          戻る
+        </Text>
+      </Pressable>
+    </ImageBackground>
   );
 }

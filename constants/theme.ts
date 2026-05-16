@@ -3,7 +3,23 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-import { Platform } from 'react-native';
+import { DancingScript_400Regular } from '@expo-google-fonts/dancing-script';
+
+export const WeatherBoardColors = {
+  textPrimary: 'rgba(255,255,255,0.95)',
+  textMuted: 'rgba(255,255,255,0.7)',
+  accentBackground: 'rgba(96, 165, 250)',
+  secondaryBackground: 'rgba(120, 120, 120)',
+  tertiaryBackground:'rgba(34, 197, 94)',
+  glassBorder: 'rgba(255,255,255,0.5)',
+  glassBackground: 'rgba(255,255,255,0.15)',
+}
+
+export const Fonts = {
+  title: 'DancingScript_400Regular',
+  titleFont: DancingScript_400Regular
+}
+
 
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
@@ -26,28 +42,3 @@ export const Colors = {
     tabIconSelected: tintColorDark,
   },
 };
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});

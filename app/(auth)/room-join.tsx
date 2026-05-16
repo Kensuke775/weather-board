@@ -1,8 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
 
+import { WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
+
+const backgroundImage = require('@/assets/images/weather/room-join.png');
 
 export default function RoomJoin() {
   const [inviteCode, setInviteCode] = useState('');
@@ -30,17 +33,29 @@ export default function RoomJoin() {
     }
   };
   return (
-    <View className="flex justify-center w-full h-full">
+    <ImageBackground source={backgroundImage} className="flex-1 justify-center px-10">
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
       <View>
-        <Text className="mb-2">招待コードを入力出来ます。</Text>
-        <TextInput className="mb-12" value={inviteCode} onChangeText={setInviteCode} autoCapitalize="none" />
-        <Pressable onPress={handleJoinRoom} className="mb-12">
-          <Text>参加する</Text>
-        </Pressable>
-        <Pressable onPress={() => router.replace('/(tabs)')} className="mb-12">
-          <Text>ホーム画面へ戻る</Text>
-        </Pressable>
+        <View className="w-full mb-12">
+          <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+            招待コードを入力出来ます。
+          </Text>
+          <TextInput value={inviteCode} onChangeText={setInviteCode} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+        </View>
+
+        <View className="w-full pb-12">
+          <Pressable className="mb-12 py-6 px-2 rounded-xl flex justify-center items-center border" onPress={handleJoinRoom} style={{ backgroundColor: WeatherBoardColors.tertiaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
+            <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+              参加する
+            </Text>
+          </Pressable>
+          <Pressable className="py-6 px-2 rounded-xl flex justify-center items-center border" onPress={() => router.replace('/(tabs)')} style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
+            <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+              ホーム画面へ戻る
+            </Text>
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </ImageBackground>
   );
 }
