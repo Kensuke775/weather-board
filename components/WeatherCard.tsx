@@ -33,7 +33,7 @@ const markAsRead = async (weather_log_id: string) => {
 
 export default function WeatherCard({ nickname, avatar_emoji, weather, note, updated_at, weather_log_id, user_id, unreadCount, tags, commentStatus }: WeatherCardProps): JSX.Element {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const formattedDate = new Date(updated_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  const formattedDate = new Date(updated_at).toLocaleTimeString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   const backgroundColor = WEATHER_CONFIG[weather].color;
   return (

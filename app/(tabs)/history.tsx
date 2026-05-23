@@ -43,9 +43,10 @@ export default function History() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-      const { data: historyData, error: historyError } = await supabase.from('weather_logs').select('id, user_id, weather, logged_date, profiles(avatar_emoji)').gte('logged_date', currentMonth).lte('logged_date', initialMonthEnd);
+      const { data: historyData, error: historyError } = await supabase.from('weather_logs').select('id, user_id, weather, logged_date, profiles(avatar_emoji)').gte('logged_date', currentMonth).lte('logged_date', initialMonthEnd).eq('user_id', user.id);
       if (historyError) return Alert.alert(historyError.message);
-      // Supabaseの型推論が配列と判定するためキャスト（実際はオブジェクトで返る）
+
+      
       setHistoryData(historyData as unknown as HistoryLog[]);
       setCurrentUserId(user.id);
     };

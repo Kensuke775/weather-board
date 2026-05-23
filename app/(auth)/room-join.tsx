@@ -11,6 +11,7 @@ export default function RoomJoin() {
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const router = useRouter();
+
   const handleJoinRoom = async () => {
     if (isJoining) return;
     try {
@@ -23,11 +24,13 @@ export default function RoomJoin() {
 
       const { data: roomData, error: roomError } = await supabase.from('rooms').select('id').eq('invite_code', inviteCode).single();
       if (roomError) return Alert.alert(roomError.message);
-      if (!roomData) return;
+      const { data: roomMembersData, error: roomMembersError } = await supabase.from('room_members').select('user_id').eq('room_id', roomData.id).eq('user_id', user.id);
+      if (roomMembersError) return Alert.alert(roomMembersError.message);
+      if (roomMembersData.length > 0) return Alert.alert('すでに所属しているルームです。');
 
       const { error: memberError } = await supabase.from('room_members').insert({ room_id: roomData.id, user_id: user.id });
       if (memberError) return Alert.alert(memberError.message);
-      else router.replace('/(tabs)');
+      router.replace('/(tabs)');
     } finally {
       setIsJoining(false);
     }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
 import { WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
 import { CommentItem } from '@/lib/types';
 import { BlurView } from 'expo-blur';
@@ -15,6 +16,7 @@ export default function CommentSection({ weather_log_id, to_user_id }: CommentSe
   const [inputText, setInputText] = useState('');
   const [comments, setComments] = useState<CommentItem[]>([]);
   const flatListRef = useRef<FlatList>(null);
+  const { currentRoomId } = useRoom();
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -50,7 +52,7 @@ export default function CommentSection({ weather_log_id, to_user_id }: CommentSe
     if (commentError) return Alert.alert(commentError.message);
 
     if (user.id !== to_user_id) {
-      const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, from_user_id: user.id, is_read: false });
+      const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, from_user_id: user.id, room_id: currentRoomId, is_read: false });
       if (notificationError) Alert.alert(notificationError.message);
     }
     setInputText('');

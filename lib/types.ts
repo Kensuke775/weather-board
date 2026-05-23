@@ -42,13 +42,13 @@ export type WeatherLogHistory = {
 };
 
 export const WEATHER_CONFIG = {
-  sunny: { label: '晴れ', emoji: '☀️', color: 'rgba(251, 146, 60, 0.3)' },
-  partly_cloudy: { label: '晴れ時々曇り', emoji: '🌤️', color: 'rgba(252, 211, 77, 0.3)' },
-  cloudy: { label: '曇り・どんより', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)' },
-  rainy: { label: '雨', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)' },
-  stormy: { label: '嵐', emoji: '⛈️', color: 'rgba(99, 102, 241, 0.3)' },
-  snowy: { label: '雪', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)' },
-  foggy: { label: '霧', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)' },
+  sunny: { label: '最高の気分', emoji: '☀️', color: 'rgba(251, 146, 60, 0.3)' },
+  partly_cloudy: { label: 'まあまあかな', emoji: '🌤️', color: 'rgba(252, 211, 77, 0.3)' },
+  cloudy: { label: 'どんよりしている', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)' },
+  rainy: { label: '少し落ち込み気味', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)' },
+  stormy: { label: '嫌なことがあった', emoji: '⛈️', color: 'rgba(99, 102, 241, 0.3)' },
+  snowy: { label: '風邪かも...', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)' },
+  foggy: { label: 'ぼんやり・ねむい', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)' },
 };
 
 export type WeatherBoardItem = {
@@ -105,3 +105,16 @@ export type HistoryLog = {
 
 export type CommentsStatus =
   Record<string, {commenters: {user_id: string; emoji: string }[]; count: number}>
+
+  export type RoomItem = {
+    rooms: { id: string; name: string; invite_code?: string };
+  };
+
+export type ActivityFeedItem = {
+  id: string;
+  from_user_id:string;
+  to_user_id: string;
+  created_at: string;
+  from: {  avatar_emoji: string; nickname: string;}
+  to: {  avatar_emoji: string; nickname: string;}
+}

@@ -8,6 +8,8 @@ import { DancingScript_400Regular } from '@expo-google-fonts/dancing-script';
 export const WeatherBoardColors = {
   textPrimary: 'rgba(255,255,255,0.95)',
   textMuted: 'rgba(255,255,255,0.7)',
+  textMutedGlay: 'rgba(255,255,255,0.5)',
+  textMutedDark: 'rgba(0,0,0,0.7)',
   accentBackground: 'rgba(96, 165, 250)',
   secondaryBackground: 'rgba(120, 120, 120)',
   tertiaryBackground:'rgba(34, 197, 94)',

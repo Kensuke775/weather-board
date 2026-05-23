@@ -2,15 +2,16 @@ import { Session } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Redirect, Tabs, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Colors, WeatherBoardColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import { BlurView } from 'expo-blur';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -108,48 +109,69 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: WeatherBoardColors.glassBackground,
+          borderTopColor: WeatherBoardColors.glassBorder,
+          borderTopWidth: 1,
+          position: 'absolute',
+          paddingTop: 4,
+          paddingHorizontal: 10,
+        },
+        tabBarBackground: () => <BlurView intensity={40} tint="light" style={{ flex: 1 }} />,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'ホーム',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarActiveTintColor: WeatherBoardColors.textPrimary,
+          tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}
       />
       <Tabs.Screen
         name="post"
         options={{
-          title: 'Post',
+          title: 'ポスト',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
+          tabBarActiveTintColor: WeatherBoardColors.textPrimary,
+          tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Notifications',
+          title: '通知',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
           tabBarBadge: isReadCount ? isReadCount : undefined,
+          tabBarActiveTintColor: WeatherBoardColors.textPrimary,
+          tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: 'カレンダー',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
+          tabBarActiveTintColor: WeatherBoardColors.textPrimary,
+          tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}
       />
       <Tabs.Screen
         name="analysis"
         options={{
-          title: 'Analysis',
+          title: '分析',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="wand.and.stars" color={color} />,
+          tabBarActiveTintColor: WeatherBoardColors.textPrimary,
+          tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: '設定',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          tabBarActiveTintColor: WeatherBoardColors.textPrimary,
+          tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}
       />
     </Tabs>

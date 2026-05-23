@@ -1,22 +1,46 @@
-import React, { useState } from 'react';
-import { Alert, ImageBackground, Pressable, ScrollView, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import React, { useEffect, useState } from 'react';
+import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, ScrollView, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
-import { WeatherBoardColors } from '@/constants/theme';
+import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
-import { WEATHER_CONFIG } from '@/lib/types';
+import { RoomItem, WEATHER_CONFIG } from '@/lib/types';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 
-const backgroundImage = require('@/assets/images/weather/cork_board.png');
+const backgroundImage = require('@/assets/images/weather/post.png');
 
 export default function Post() {
   const [weather, setWeather] = useState('');
   const [note, setNote] = useState('');
   const router = useRouter();
   const [isInputVisible, setIsInputVisible] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<ActivityTag[]>([]);
+  const { currentRoomId, setCurrentRoomId } = useRoom();
+  const [rooms, setRooms] = useState<RoomItem[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const { width } = Dimensions.get('window');
+  const ITEM_WIDTH = 80;
+  const PADDING = (width - ITEM_WIDTH) / 2;
 
-  const [selectedId, setSelectedId] = useState<ActivityTag[]>([]);
+  useEffect(() => {
+    const fetchRoomsData = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return Alert.alert('ユーザーの取得がでいませんでした。');
+      const { data: roomsData, error: roomsError } = await supabase.from('room_members').select('rooms(id, name)').eq('user_id', user.id);
+      if (roomsError) return Alert.alert(roomsError.message);
+      setRooms(roomsData as unknown as RoomItem[]);
+    };
+    fetchRoomsData();
+  }, []);
+
   const handlePost = async () => {
     const {
       data: { user },
@@ -25,10 +49,12 @@ export default function Post() {
     if (!weather) return Alert.alert('今の気分を選んでください。');
     const { data: logData, error: logError } = await supabase
       .from('weather_logs')
-      .upsert({ user_id: user.id, weather, note, logged_date: new Date().toISOString().split('T')[0] }, { onConflict: 'user_id,logged_date' })
+      .upsert({ user_id: user.id, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0] }, { onConflict: 'user_id,room_id' })
       .select('id')
       .single();
     if (logError) return Alert.alert(logError.message);
+    const { error: commentsError } = await supabase.from('comments').delete().eq('weather_log_id', logData.id);
+    if (commentsError) return Alert.alert(commentsError.message);
     const { data: historyData, error: historyError } = await supabase
       .from('weather_log_history')
       .insert({ weather_log_id: logData.id, weather, note, recorded_at: new Date().toISOString().split('T')[0] })
@@ -36,86 +62,171 @@ export default function Post() {
       .single();
     if (historyError) return Alert.alert(historyError.message);
 
-    const activityData = selectedId.map((tag) => ({
+    const activityData = selectedTags.map((tag) => ({
       weather_log_id: logData.id,
       activity_tag_id: tag.id,
     }));
 
-    if (selectedId.length > 0) {
-      const { error: deleteActivityTagError } = await supabase.from('weather_log_activities').delete().eq('weather_log_id', logData.id);
-      if (deleteActivityTagError) return Alert.alert(deleteActivityTagError.message);
+    const { error: deleteActivityTagError } = await supabase.from('weather_log_activities').delete().eq('weather_log_id', logData.id);
+    if (deleteActivityTagError) return Alert.alert(deleteActivityTagError.message);
+    if (selectedTags.length > 0) {
       const { error: insertActivityTagError } = await supabase.from('weather_log_activities').insert(activityData);
       if (insertActivityTagError) return Alert.alert(insertActivityTagError.message);
     }
 
-    const historyActivitiesData = selectedId.map((tag) => ({
+    const historyActivitiesData = selectedTags.map((tag) => ({
       weather_log_history_id: historyData.id,
       tag_name: tag.tag_name,
     }));
 
-    if (selectedId.length > 0) {
+    if (selectedTags.length > 0) {
       await supabase.from('weather_log_history_activities').insert(historyActivitiesData);
     }
 
     setWeather('');
     setNote('');
-    setSelectedId([]);
+    setSelectedTags([]);
     router.replace('/(tabs)');
   };
+
+  const [fontsLoaded] = useFonts({
+    DancingScript_400Regular: Fonts.titleFont,
+  }) as [boolean, Error | null];
+
+  if (!fontsLoaded) return null;
+
+  const now = new Date().toLocaleString('ja-JP', { month: '2-digit', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} className="px-10" contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: 120, paddingBottom: 60 }}>
-        <TouchableWithoutFeedback onPress={() => setIsInputVisible(false)}>
-          <View>
-            <View className="mb-12">
-              <Text className="text-ms font-bold mb-2" style={{ color: WeatherBoardColors.textPrimary }}>
-                今の気分を選んでください
-              </Text>
-              <BlurView intensity={40} tint="light" className="flex-row justify-between gap-2 p-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
-                {Object.entries(WEATHER_CONFIG).map(([key, value]) => (
-                  <Pressable key={key} onPress={() => setWeather(key)} style={{ opacity: weather === key ? 1 : 0.3 }}>
-                    <Text className="text-xl">{value.emoji}</Text>
-                  </Pressable>
-                ))}
-              </BlurView>
-            </View>
+      <View className="flex-1 pb-8">
+        <BlurView intensity={10} tint="light" className="pt-20 pb-4 overflow-visible" style={{ borderBottomWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+          <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
+            {`How's your weather today?`}
+          </Text>
+          <FlatList
+            data={Object.entries(WEATHER_CONFIG)}
+            keyExtractor={([key]) => key}
+            snapToInterval={ITEM_WIDTH + 32}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / (ITEM_WIDTH + 32));
+              setSelectedIndex(index);
+              setWeather(Object.keys(WEATHER_CONFIG)[index]);
+            }}
+            decelerationRate="fast"
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 32, paddingHorizontal: PADDING, alignItems: 'center' }}
+            style={{ height: 100 }}
+            renderItem={({ item: [key, value], index }) => (
+              <View style={{ width: ITEM_WIDTH, opacity: index === selectedIndex ? 1 : 0.4, transform: [{ scale: index === selectedIndex ? 1.3 : 0.8 }], justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 50, lineHeight: 60 }}>{value.emoji}</Text>
 
-            <View className="mb-10">
-              <Text className="text-ms font-bold mb-2" style={{ color: WeatherBoardColors.textPrimary }}>
-                選択中:
-              </Text>
-              <BlurView intensity={40} tint="light" className="flex-row flex-wrap items-center gap-2 p-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
-                {selectedId.map((tag) => (
-                  <View key={tag.id}>
-                    <Text className="text-ms font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-                      #{tag.tag_name}
-                    </Text>
-                  </View>
-                ))}
-              </BlurView>
-            </View>
-
-            <View className="mb-10">
-              <ActivityTagPicker selectedId={selectedId} setSelectedId={setSelectedId} isInputVisible={isInputVisible} setIsInputVisible={setIsInputVisible} />
-            </View>
-
-            <View className="mb-12">
-              <Text className="text-ms font-bold mb-2" style={{ color: WeatherBoardColors.textPrimary }}>
-                メモを残す
-              </Text>
-              <TextInput value={note} onChangeText={setNote} autoCapitalize="none" placeholder="テキストを入力してください。" className="py-4 px-2 rounded-xl bg-white border" style={{ borderColor: WeatherBoardColors.glassBorder }} />
-            </View>
-            <View className="mb-12">
-              <Pressable onPress={handlePost} className="mb-12 py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-                <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-                  天気を投稿する
+                <Text className="text-[8px]" style={{ color: WeatherBoardColors.textMuted }}>
+                  {value.label}
                 </Text>
-              </Pressable>
-            </View>
+              </View>
+            )}></FlatList>
+          <View>
+            <Text className="text-right pr-4 text-[10px]" style={{ color: WeatherBoardColors.textMuted, letterSpacing: 0.5 }}>
+              {now}
+            </Text>
           </View>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+        </BlurView>
+
+        <ScrollView keyboardShouldPersistTaps="handled" className="px-10" contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: 60, paddingBottom: 30 }}>
+          <TouchableWithoutFeedback onPress={() => setIsInputVisible(false)}>
+            <View>
+              <View className="mb-12">
+                <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+                  投稿する部屋を選んでください。
+                </Text>
+
+                <View>
+                  <Pressable onPress={() => setIsModalVisible(true)}>
+                    <BlurView intensity={40} tint="light" className="flex-row items-center justify-between gap-2 p-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+                      <Text className="text-xl font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                        {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
+                      </Text>
+
+                      <Ionicons name="chevron-down" size={20} color="white" />
+                    </BlurView>
+                  </Pressable>
+                  <Modal visible={isModalVisible} transparent={true} animationType="slide">
+                    <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
+                      <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
+                        <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
+
+                        <Picker
+                          selectedValue={currentRoomId}
+                          onValueChange={(value) => {
+                            setCurrentRoomId(value);
+                          }}>
+                          {rooms.map((room) => (
+                            <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
+                          ))}
+                        </Picker>
+                      </View>
+                    </Pressable>
+                  </Modal>
+                </View>
+              </View>
+
+              <View className="mb-10">
+                <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+                  選択中:
+                </Text>
+                <BlurView intensity={40} tint="light" className="flex-row flex-wrap items-center gap-2 p-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+                  {selectedTags.length === 0 ? (
+                    <Text className="text-ms font-bold " style={{ color: WeatherBoardColors.textMuted }}>
+                      選択中のタグはありません。
+                    </Text>
+                  ) : (
+                    selectedTags.map((tag) => (
+                      <View key={tag.id}>
+                        <Text className="text-ms font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+                          #{tag.tag_name}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+                </BlurView>
+              </View>
+
+              <View className="mb-10">
+                <ActivityTagPicker selectedTags={selectedTags} setSelectedTags={setSelectedTags} isInputVisible={isInputVisible} setIsInputVisible={setIsInputVisible} />
+              </View>
+
+              <View className="mb-12">
+                <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+                  メモを残す
+                </Text>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  autoCapitalize="none"
+                  multiline
+                  numberOfLines={4}
+                  placeholder="テキストを入力してください。"
+                  className="py-4 px-2 rounded-xl bg-white border"
+                  style={{ borderColor: WeatherBoardColors.glassBorder }}
+                />
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+        <View className="mb-24 px-10">
+          <Pressable onPress={handlePost} className="mt-4 py-6 rounded-xl flex justify-center items-center border mb-4" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
+            <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+              天気を投稿する
+            </Text>
+          </Pressable>
+
+          <Text className="text-center text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+            天気・タグ・メモはAI分析に反映されます
+          </Text>
+        </View>
+      </View>
     </ImageBackground>
   );
 }

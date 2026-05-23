@@ -5,8 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 
 export type ActivityTagPickerProps = {
-  setSelectedId: (tag: ActivityTag[]) => void;
-  selectedId: ActivityTag[];
+  setSelectedTags: (tag: ActivityTag[]) => void;
+  selectedTags: ActivityTag[];
   isInputVisible: boolean;
   setIsInputVisible: (value: boolean) => void;
 };
@@ -27,7 +27,7 @@ const fetchUserTags = async (setter: (data: ActivityTag[]) => void) => {
   setter(userTagsData);
 };
 
-export default function ActivityTagPicker({ selectedId, setSelectedId, isInputVisible, setIsInputVisible }: ActivityTagPickerProps) {
+export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInputVisible, setIsInputVisible }: ActivityTagPickerProps) {
   const [userCreatedTags, setUserCreatedTags] = useState<ActivityTag[]>([]);
   const [inputText, setInputText] = useState('');
 
@@ -45,11 +45,11 @@ export default function ActivityTagPicker({ selectedId, setSelectedId, isInputVi
   };
 
   const handleToggleTag = (tag: ActivityTag) => {
-    const isSelected = selectedId.some((item) => item.id === tag.id);
+    const isSelected = selectedTags.some((item) => item.id === tag.id);
     if (isSelected) {
-      const filteredId = [...selectedId].filter((item) => item.id !== tag.id);
-      setSelectedId(filteredId);
-    } else setSelectedId([...selectedId, tag]);
+      const filteredId = [...selectedTags].filter((item) => item.id !== tag.id);
+      setSelectedTags(filteredId);
+    } else setSelectedTags([...selectedTags, tag]);
   };
 
   const handleDeleteTag = async (tag: ActivityTag) => {
@@ -61,10 +61,10 @@ export default function ActivityTagPicker({ selectedId, setSelectedId, isInputVi
     if (userTagsError) return Alert.alert(userTagsError.message);
 
     const deleteUserTag = userCreatedTags.filter((userTag) => userTag.id !== tag.id);
-    const deleteUserTagId = selectedId.filter((item) => item.id !== tag.id);
+    const deleteUserTagId = selectedTags.filter((item) => item.id !== tag.id);
 
     setUserCreatedTags(deleteUserTag);
-    setSelectedId(deleteUserTagId);
+    setSelectedTags(deleteUserTagId);
   };
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export default function ActivityTagPicker({ selectedId, setSelectedId, isInputVi
   return (
     <View>
       <View className="mb-10">
-        <Text className="text-ms font-bold mb-2" style={{ color: WeatherBoardColors.textPrimary }}>
+        <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
           自分のタグ
         </Text>
         <View className="flex-wrap flex-row gap-3">
@@ -85,7 +85,7 @@ export default function ActivityTagPicker({ selectedId, setSelectedId, isInputVi
                 }}
                 onPress={() => handleToggleTag(tag)}
                 key={tag.id}
-                style={selectedId.some((item) => item.id === tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
+                style={selectedTags.some((item) => item.id === tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
                 <Text className="text-ms font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                   #{tag.tag_name}
                 </Text>

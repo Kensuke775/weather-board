@@ -38,19 +38,26 @@ const fetchIsRead = async () => {
 export default function Notifications() {
   const [dataNotifications, setDataNotifications] = useState<Notification[]>([]);
   useEffect(() => {
-    const initialize = async () => {
+    let channel: ReturnType<typeof supabase.channel>;
+    const setUp = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
+      const channelName = `notifications-list-${user.id}`;
+      const existing = supabase.getChannels().find((ch) => ch.subTopic === channelName);
+      if (existing) supabase.removeChannel(existing);
       await fetchNotifications(setDataNotifications);
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
+          await fetchNotifications(setDataNotifications);
+        })
+        .subscribe();
     };
-
-    initialize();
-    const channel = supabase
-      .channel('notifications-list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
-        await fetchNotifications(setDataNotifications);
-      })
-      .subscribe();
+    setUp();
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 

@@ -6,9 +6,12 @@ import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { RoomProvider } from '@/context/RoomContext';
 import '@/global.css';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
+import Toast from 'react-native-toast-message';
+
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -38,12 +41,16 @@ export default function RootLayout() {
   return (
     <GluestackUIProvider mode="light">
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
-        </Stack>
+        <RoomProvider>
+          <Stack>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
+          </Stack>
+        <Toast position="bottom" bottomOffset={40} />
+
+        </RoomProvider>
         <StatusBar style="auto" />
       </ThemeProvider>
     </GluestackUIProvider>

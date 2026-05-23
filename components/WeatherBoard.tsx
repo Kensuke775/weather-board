@@ -15,7 +15,7 @@ export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus 
       keyExtractor={(item) => item.id}
       numColumns={2}
       columnWrapperStyle={{ gap: 12, justifyContent: 'flex-start' }}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingRight: 16,paddingLeft: 16, paddingBottom: 40, paddingTop: 100 }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center'}}
       showsVerticalScrollIndicator={false}
       renderItem={({ item }) => (
         <WeatherCard
