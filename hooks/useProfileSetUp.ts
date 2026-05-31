@@ -1,20 +1,19 @@
-import { supabase } from '@/lib/supabase';
-
-import { useState } from 'react';
 import { Alert } from 'react-native';
+import { useState } from 'react';
+
+import { supabase } from '@/lib/supabase';
+import { useUser } from '@/context/UserContext';
 
 
 export default function useProfileSetUp(onSuccess: () => Promise<void>) {
+  const { user } = useUser();
   const [nickname, setNickname] = useState('');
-  const [avatar, setAvatar] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatar, setAvatar] = useState('');
 
   const handleSaveProfile = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       setIsSubmitting(false);
       Alert.alert('ユーザーが取得できませんでした。');

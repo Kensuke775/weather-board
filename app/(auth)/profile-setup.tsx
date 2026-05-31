@@ -1,9 +1,12 @@
-import { Fonts, WeatherBoardColors } from '@/constants/theme';
-import { supabase } from '@/lib/supabase';
-import { useFonts } from 'expo-font';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ImageBackground, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+
+import { useRouter } from 'expo-router';
+import { useFonts } from 'expo-font';
+
+import { useUser } from '@/context/UserContext';
+import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { supabase } from '@/lib/supabase';
 
 const backgroundImage = require('@/assets/images/weather/profile-setup.png');
 const AVATARS = [
@@ -65,18 +68,21 @@ const AVATARS = [
 ];
 
 export default function ProfileSetUp() {
+  const { user } = useUser();
+  const router = useRouter();
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState('');
-  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    DancingScript_400Regular: Fonts.titleFont,
+  }) as [boolean, Error | null];
 
   const handleSaveProfile = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+
     if (!user) {
       setIsSubmitting(false);
       Alert.alert('ユーザーが取得できませんでした。');
@@ -92,7 +98,6 @@ export default function ProfileSetUp() {
       Alert.alert('アバターを選んでください。');
       return;
     }
-
     const { error } = await supabase.from('profiles').upsert({ user_id: user.id, nickname, avatar_emoji: avatar }, { onConflict: 'user_id' });
     if (error) {
       setIsSubmitting(false);
@@ -100,15 +105,11 @@ export default function ProfileSetUp() {
       Alert.alert('プロフィール作成に失敗しました。');
       return;
     }
-
     router.replace('/(auth)/room-setup');
   };
 
-  const [fontsLoaded] = useFonts({
-    DancingScript_400Regular: Fonts.titleFont,
-  }) as [boolean, Error | null];
-
   if (!fontsLoaded) return null;
+
   return (
     <ImageBackground source={backgroundImage} className="flex-1 px-10">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}/>

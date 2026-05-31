@@ -1,11 +1,14 @@
-import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
+import * as Crypto from 'expo-crypto';
+
+import { useUser } from '@/context/UserContext';
 import { generateInviteCode } from '@/lib/generateInviteCode';
 import { supabase } from '@/lib/supabase';
 
 export default function useRoomCreate(onSuccess?: () => Promise<void>) {
+  const { user } = useUser();
   const [roomName, setRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
@@ -18,9 +21,7 @@ export default function useRoomCreate(onSuccess?: () => Promise<void>) {
       Alert.alert('ルーム名が空になってます。');
       return;
     }
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+
     if (!user) {
       setIsCreating(false);
       Alert.alert('ユーザーが取得出来ませんでした。');

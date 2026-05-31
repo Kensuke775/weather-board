@@ -1,16 +1,18 @@
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, WeatherBoardColors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { supabase } from '@/lib/supabase';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ImageBackground, View } from 'react-native';
+
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { Session } from '@supabase/supabase-js';
 import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Redirect, Tabs, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, View } from 'react-native';
+
+import { HapticTab } from '@/components/haptic-tab';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors, WeatherBoardColors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { supabase } from '@/lib/supabase';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,27 +26,31 @@ Notifications.setNotificationHandler({
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 const backgroundImage = require('@/assets/images/weather/sunny.png');
 
+const fetchUnreadCount = async (userId: string, setter: (count: number | null) => void) => {
+  const { count, error: isReadError } = await supabase.from('notifications').select('id', { count: 'exact' }).eq('to_user_id', userId).eq('is_read', false);
+  if (isReadError) {
+    console.error('[_layout(tabs)] fetchUnreadCount', isReadError.message);
+    Alert.alert('通知の取得に失敗しました。');
+    return;
+  }
+  setter(count);
+};
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setLoading] = useState(true);
-  const router = useRouter();
-  const [isReadCount, setIsReadCount] = useState<number | null>(0);
+  const [unreadCount, setUnreadCount] = useState<number | null>(0);
 
   useEffect(() => {
-    const fetchUnreadCount = async (setter: (count: number | null) => void) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return Alert.alert('ユーザの取得に失敗しました。');
-      const { count, error: isReadError } = await supabase.from('notifications').select('id', { count: 'exact' }).eq('to_user_id', user.id).eq('is_read', false);
-      if (isReadError) return Alert.alert(isReadError.message);
-      setter(count);
-    };
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
     let channel: ReturnType<typeof supabase.channel>;
-
-    //Android端末にapp開いている間通知が来る設定
     let unsubscribeForegroundMessage: (() => void) | undefined;
     if (!isExpoGo) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -62,30 +68,49 @@ export default function TabLayout() {
 
     const fetchSession = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('[_layout(tabs)] fetchSession', sessionError.message);
+          Alert.alert('セッションの取得に失敗しました。');
+          return;
+        }
+        if(!sessionData.session) return;
         setSession(sessionData.session);
-        const { data: profileData } = await supabase.from('profiles').select('user_id').eq('user_id', sessionData.session?.user.id).single();
+        const { data: profileData, error: profileError } = await supabase.from('profiles').select('user_id').eq('user_id', sessionData.session.user.id).maybeSingle();
+        if (profileError) {
+          console.error('[_layout(tabs)] fetchSession', profileError.message);
+          Alert.alert('プロフィールの取得に失敗しました。');
+          return;
+        }
         if (!profileData) return router.replace('/(auth)/profile-setup');
-        const { data: roomData } = await supabase.from('room_members').select('user_id').eq('user_id', sessionData.session?.user.id);
+        const { data: roomData, error: roomError } = await supabase.from('room_members').select('user_id').eq('user_id', sessionData.session.user.id);
+        if (roomError) {
+          console.error('[_layout(tabs)] fetchSession', roomError.message);
+          Alert.alert('ルームの取得に失敗しました。');
+          return;
+        }
         if (!roomData || roomData.length === 0) return router.replace('/(auth)/room-setup');
         const { status: notificationsStatus } = await Notifications.requestPermissionsAsync();
-        if (notificationsStatus !== 'granted') return setLoading(false);
-
+        if (notificationsStatus !== 'granted') return;
         try {
           const { data: pushToken } = await Notifications.getExpoPushTokenAsync({ projectId: Constants.expoConfig?.extra?.eas?.projectId });
-          const { error: tokenError } = await supabase.from('profiles').update({ push_token: pushToken }).eq('user_id', sessionData.session?.user.id);
-          if (tokenError) return Alert.alert(tokenError.message);
-        } catch (e) {
+          const { error: tokenError } = await supabase.from('profiles').update({ push_token: pushToken }).eq('user_id', sessionData.session.user.id);
+          if (tokenError) {
+            console.error('[_layout(tabs)] fetchSession', tokenError.message);
+            Alert.alert('プッシュトークンのアップデートに失敗しました。');
+            return;
+          }
+        } catch {
           // プッシュトークン取得失敗は無視
         }
-        fetchUnreadCount(setIsReadCount);
-        const channelName = `notification-${sessionData.session!.user.id}`;
+        fetchUnreadCount(sessionData.session.user.id, setUnreadCount);
+        const channelName = `notification-${sessionData.session.user.id}`;
         const existing = supabase.getChannels().find((channel) => channel.subTopic === channelName);
         if (existing) await supabase.removeChannel(existing);
         channel = supabase
           .channel(channelName)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-            fetchUnreadCount(setIsReadCount);
+            fetchUnreadCount(sessionData.session.user.id, setUnreadCount);
           })
           .subscribe();
       } finally {
@@ -94,6 +119,7 @@ export default function TabLayout() {
     };
     fetchSession();
     return () => {
+      subscription.unsubscribe();
       unsubscribeForegroundMessage?.();
       if (channel) supabase.removeChannel(channel);
     };
@@ -102,8 +128,7 @@ export default function TabLayout() {
   if (isLoading)
     return (
       <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center">
-        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}/>
-
+        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }} />
         <ActivityIndicator size="large" color="white" />
       </ImageBackground>
     );
@@ -148,7 +173,7 @@ export default function TabLayout() {
         options={{
           title: '通知',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
-          tabBarBadge: isReadCount ? isReadCount : undefined,
+          tabBarBadge: unreadCount ? unreadCount : undefined,
           tabBarActiveTintColor: WeatherBoardColors.textPrimary,
           tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}

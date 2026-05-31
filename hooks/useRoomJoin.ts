@@ -2,23 +2,23 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { useUser } from '@/context/UserContext';
 
 
 export default function useRoomJoin(onSuccess?: (roomName: string ) => Promise<void>) {
+  const { user } = useUser();
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
-  const handleJoinRoom = async () => {
-    if (isJoining) return;
 
+  const handleJoinRoom = async () => {
+
+    if (isJoining) return;
     setIsJoining(true);
     if (inviteCode === '') {
       setIsJoining(false);
       Alert.alert('招待コードを入力してください。');
       return;
     }
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       setIsJoining(false);
       Alert.alert('ユーザーが取得出来ませんでした。');

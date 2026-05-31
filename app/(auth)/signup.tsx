@@ -1,10 +1,11 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { Fonts, WeatherBoardColors } from '@/constants/theme';
-import { supabase } from '@/lib/supabase';
 import { useFonts } from 'expo-font';
+
+import { supabase } from '@/lib/supabase';
+import { Fonts, WeatherBoardColors } from '@/constants/theme';
 
 const backgroundImage = require('@/assets/images/weather/signup.png');
 
