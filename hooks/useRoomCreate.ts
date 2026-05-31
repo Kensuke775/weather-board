@@ -4,7 +4,6 @@ import { Alert } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
 import { useUser } from '@/context/UserContext';
-import { generateInviteCode } from '@/lib/generateInviteCode';
 import { supabase } from '@/lib/supabase';
 
 export default function useRoomCreate(onSuccess?: () => Promise<void>) {
@@ -28,7 +27,7 @@ export default function useRoomCreate(onSuccess?: () => Promise<void>) {
       return;
     }
     const roomId = Crypto.randomUUID();
-    const { error: roomError } = await supabase.from('rooms').insert({ id: roomId, name: roomName, invite_code: generateInviteCode(), created_by: user.id });
+    const { error: roomError } = await supabase.from('rooms').insert({ id: roomId, name: roomName, invite_code: Math.random().toString(36).slice(2, 8), created_by: user.id });
     if (roomError) {
       setIsCreating(false);
       console.error('[useRoomCreate] handleCreateRoom', roomError.message)
