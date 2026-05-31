@@ -2,11 +2,11 @@ import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
-import { ActivityFeedItem, CommentsStatus, RoomItem, WeatherBoardItem } from '@/lib/types';
+import { ActivityFeedItem, CommentsStatus, WeatherBoardItem } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import * as Clipboard from 'expo-clipboard';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
@@ -110,59 +110,48 @@ export default function HomeScreen() {
   const [userData, setUserData] = useState<WeatherBoardItem | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [commentStatus, setCommentStatus] = useState<CommentsStatus>({});
-  const { currentRoomId, setCurrentRoomId } = useRoom();
-  const [rooms, setRooms] = useState<RoomItem[]>([]);
+  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>();
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useFocusEffect(
     useCallback(() => {
-      const fetchRoomsData = async () => {
+      const fetchCurrentRoom = async () => {
         const {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-        const { data: roomsData, error: roomsError } = await supabase.from('room_members').select('rooms(id, name, invite_code)').eq('user_id', user.id);
-        if (roomsError) return Alert.alert(roomsError?.message);
-        setRooms(roomsData as unknown as RoomItem[]);
+        const { data: roomData, error: roomError } = await supabase.from('room_members').select('room_id').eq('user_id', user.id);
+        if (roomError) return Alert.alert(roomError?.message);
+        if (roomData.length === 0) return router.replace('/(auth)/room-setup');
+        setCurrentRoomId(roomData[0]?.room_id);
       };
-
-      fetchRoomsData();
-    }, [setRooms]),
+      fetchCurrentRoom();
+    }, [setCurrentRoomId, router]),
   );
 
-  useEffect(() => {
-    const fetchCurrentRoom = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-      const { data: roomData, error: roomError } = await supabase.from('room_members').select('room_id').eq('user_id', user.id);
-      if (roomError) return Alert.alert(roomError?.message);
-      setCurrentRoomId(roomData[0].room_id);
-    };
-    fetchCurrentRoom();
-  }, [setCurrentRoomId]);
-
   // ボードデータ取得 + weather_logsのリアルタイム監視
-  useEffect(() => {
-    if (!currentRoomId) return;
-    const channelName = `board-${currentRoomId}`;
-    const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-    if (existing) supabase.removeChannel(existing);
-    fetchBoardData(currentRoomId, setBoardData, setIsLoading);
-    const channel: ReturnType<typeof supabase.channel> = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'weather_logs' }, () => {
-        fetchBoardData(currentRoomId, setBoardData, setIsLoading);
-      })
-      .subscribe();
+  useFocusEffect(
+    useCallback(() => {
+      if (!currentRoomId) return;
+      const channelName = `board-${currentRoomId}`;
+      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
+      if (existing) supabase.removeChannel(existing);
+      fetchBoardData(currentRoomId, setBoardData, setIsLoading);
+      const channel: ReturnType<typeof supabase.channel> = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'weather_logs' }, () => {
+          fetchBoardData(currentRoomId, setBoardData, setIsLoading);
+        })
+        .subscribe();
 
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [currentRoomId]);
+      return () => {
+        if (channel) supabase.removeChannel(channel);
+      };
+    }, [currentRoomId]),
+  );
 
   // 未読通知数取得 + notificationsのリアルタイム監視
   useEffect(() => {
@@ -218,23 +207,26 @@ export default function HomeScreen() {
   }, []);
 
   // boardDataからログインユーザーのデータを抽出（背景画像の天気を決めるため）
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const userData = boardData.filter((data) => data.user_id === user.id);
-      if (userData.length > 0) setUserData(userData[0]);
-    };
-    fetchUserData();
-  }, [boardData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserData = async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        const userData = boardData.filter((data) => data.user_id === user.id);
+        if (userData.length > 0) setUserData(userData[0]);
+      };
+      fetchUserData();
+    }, [boardData]),
+  );
 
   const backgroundImage = userData ? WEATHER_IMAGES[userData.weather] : WEATHER_IMAGES.sunny;
   const inviteCode = rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code;
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}></View>
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }} />
       <View className="pt-20 flex-1">
         <View>
           <View className="flex-row justify-center mb-4">
@@ -246,7 +238,7 @@ export default function HomeScreen() {
                       {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
                     </Text>
                   ) : (
-                    <View className="w-20 h-4 rounded-full bg-white/20"></View>
+                    <View className="w-20 h-4 rounded-full bg-white/20" />
                   )}
                   <Ionicons name="chevron-down" size={16} color="white" />
                 </View>
@@ -268,7 +260,7 @@ export default function HomeScreen() {
                       {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code}
                     </Text>
                   ) : (
-                    <View className="w-20 h-4 rounded-full bg-white/20"></View>
+                    <View className="w-20 h-4 rounded-full bg-white/20"/>
                   )}
                   <Ionicons name="copy-outline" size={16} color="white" />
                 </View>

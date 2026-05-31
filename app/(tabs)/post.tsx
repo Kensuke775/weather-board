@@ -1,12 +1,12 @@
 import { Picker } from '@react-native-picker/picker';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, ScrollView, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
-import { RoomItem, WEATHER_CONFIG } from '@/lib/types';
+import { WEATHER_CONFIG } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
@@ -15,31 +15,17 @@ import { useRouter } from 'expo-router';
 const backgroundImage = require('@/assets/images/weather/post.png');
 
 export default function Post() {
-  const [weather, setWeather] = useState('');
+  const [weather, setWeather] = useState('sunny');
   const [note, setNote] = useState('');
   const router = useRouter();
   const [isInputVisible, setIsInputVisible] = useState(false);
   const [selectedTags, setSelectedTags] = useState<ActivityTag[]>([]);
-  const { currentRoomId, setCurrentRoomId } = useRoom();
-  const [rooms, setRooms] = useState<RoomItem[]>([]);
+  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { width } = Dimensions.get('window');
   const ITEM_WIDTH = 80;
   const PADDING = (width - ITEM_WIDTH) / 2;
-
-  useEffect(() => {
-    const fetchRoomsData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return Alert.alert('ユーザーの取得がでいませんでした。');
-      const { data: roomsData, error: roomsError } = await supabase.from('room_members').select('rooms(id, name)').eq('user_id', user.id);
-      if (roomsError) return Alert.alert(roomsError.message);
-      setRooms(roomsData as unknown as RoomItem[]);
-    };
-    fetchRoomsData();
-  }, []);
 
   const handlePost = async () => {
     const {
@@ -49,7 +35,7 @@ export default function Post() {
     if (!weather) return Alert.alert('今の気分を選んでください。');
     const { data: logData, error: logError } = await supabase
       .from('weather_logs')
-      .upsert({ user_id: user.id, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0] }, { onConflict: 'user_id,room_id' })
+      .upsert({ user_id: user.id, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,room_id' })
       .select('id')
       .single();
     if (logError) return Alert.alert(logError.message);

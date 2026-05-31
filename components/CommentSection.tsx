@@ -4,19 +4,15 @@ import { Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native'
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
-import { CommentItem } from '@/lib/types';
+import { CommentItem, CommentSectionProps } from '@/lib/types';
 import { BlurView } from 'expo-blur';
 
-type CommentSectionProps = {
-  weather_log_id: string;
-  to_user_id: string;
-};
-
-export default function CommentSection({ weather_log_id, to_user_id }: CommentSectionProps) {
+export default function CommentSection({ weather_log_id, to_user_id, readOnly }: CommentSectionProps) {
   const [inputText, setInputText] = useState('');
   const [comments, setComments] = useState<CommentItem[]>([]);
   const flatListRef = useRef<FlatList>(null);
   const { currentRoomId } = useRoom();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -28,6 +24,7 @@ export default function CommentSection({ weather_log_id, to_user_id }: CommentSe
       if (commentsError) return Alert.alert(commentsError.message);
       const formattedData = commentsData.map((log) => ({ ...log, profiles: Array.isArray(log.profiles) ? log.profiles[0] : log.profiles }));
       setComments(formattedData);
+      setIsLoading(false);
     };
     fetchComments();
     const channel = supabase
@@ -68,6 +65,13 @@ export default function CommentSection({ weather_log_id, to_user_id }: CommentSe
         contentContainerStyle={{ paddingTop: 12, paddingBottom: 12 }}
         style={{ flex: 1 }}
         ref={flatListRef}
+        ListEmptyComponent={
+          !isLoading ? (
+            <Text className="text-base" style={{ color: WeatherBoardColors.textMuted }}>
+              コメントがありません。
+            </Text>
+          ) : null
+        }
         onContentSizeChange={() => flatListRef?.current?.scrollToOffset({ offset: 0, animated: true })}
         renderItem={({ item }) => (
           <View key={item.id}>
@@ -93,26 +97,28 @@ export default function CommentSection({ weather_log_id, to_user_id }: CommentSe
         )}
       />
 
-      <BlurView
-        intensity={40}
-        tint="light"
-        className="flex-row justify-between items-center w-full mb-12"
-        style={{ borderRadius: 16, overflow: 'hidden', borderColor: WeatherBoardColors.glassBorder, borderWidth: 1, backgroundColor: WeatherBoardColors.glassBackground }}>
-        <TextInput
-          value={inputText}
-          onChangeText={setInputText}
-          autoCapitalize="none"
-          placeholder="コメントできます。"
-          className="py-4 px-4 mr-2"
-          placeholderTextColor={WeatherBoardColors.textPrimary}
-          style={{ color: WeatherBoardColors.textPrimary, flex: 1 }}
-        />
-        <Pressable onPress={handleSendComment} className="py-4 px-4 flex justify-center" style={{ backgroundColor: WeatherBoardColors.accentBackground }}>
-          <Text className="text-base font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
-            送信する
-          </Text>
-        </Pressable>
-      </BlurView>
+      {!readOnly && (
+        <BlurView
+          intensity={40}
+          tint="light"
+          className="flex-row justify-between items-center w-full mb-12"
+          style={{ borderRadius: 16, overflow: 'hidden', borderColor: WeatherBoardColors.glassBorder, borderWidth: 1, backgroundColor: WeatherBoardColors.glassBackground }}>
+          <TextInput
+            value={inputText}
+            onChangeText={setInputText}
+            autoCapitalize="none"
+            placeholder="コメントできます。"
+            className="py-4 px-4 mr-2"
+            placeholderTextColor={WeatherBoardColors.textPrimary}
+            style={{ color: WeatherBoardColors.textPrimary, flex: 1 }}
+          />
+          <Pressable onPress={handleSendComment} className="py-4 px-4 flex justify-center" style={{ backgroundColor: WeatherBoardColors.accentBackground }}>
+            <Text className="text-base font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+              送信する
+            </Text>
+          </Pressable>
+        </BlurView>
+      )}
     </View>
   );
 }

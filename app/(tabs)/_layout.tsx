@@ -1,17 +1,16 @@
-import { Session } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
-import { Redirect, Tabs, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
-
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, WeatherBoardColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import { Session } from '@supabase/supabase-js';
 import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
+import * as Notifications from 'expo-notifications';
+import { Redirect, Tabs, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ImageBackground, View } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,6 +22,7 @@ Notifications.setNotificationHandler({
 });
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
+const backgroundImage = require('@/assets/images/weather/sunny.png');
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -33,15 +33,15 @@ export default function TabLayout() {
 
   useEffect(() => {
     const fetchUnreadCount = async (setter: (count: number | null) => void) => {
-      //通知の未読をカウント
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return Alert.alert('ユーザの取得に失敗しました。');
       const { count, error: isReadError } = await supabase.from('notifications').select('id', { count: 'exact' }).eq('to_user_id', user.id).eq('is_read', false);
       if (isReadError) return Alert.alert(isReadError.message);
-      else setter(count);
+      setter(count);
     };
+
     let channel: ReturnType<typeof supabase.channel>;
 
     //Android端末にapp開いている間通知が来る設定
@@ -61,38 +61,36 @@ export default function TabLayout() {
     }
 
     const fetchSession = async () => {
-      // ログイン情報を確認
-      const { data: sessionData } = await supabase.auth.getSession();
-      setSession(sessionData.session);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        setSession(sessionData.session);
+        const { data: profileData } = await supabase.from('profiles').select('user_id').eq('user_id', sessionData.session?.user.id).single();
+        if (!profileData) return router.replace('/(auth)/profile-setup');
+        const { data: roomData } = await supabase.from('room_members').select('user_id').eq('user_id', sessionData.session?.user.id);
+        if (!roomData || roomData.length === 0) return router.replace('/(auth)/room-setup');
+        const { status: notificationsStatus } = await Notifications.requestPermissionsAsync();
+        if (notificationsStatus !== 'granted') return setLoading(false);
 
-      // プロフィール未作成ならプロフィール設定へ
-      const { data: profileData } = await supabase.from('profiles').select('user_id').eq('user_id', sessionData.session?.user.id).single();
-      if (!profileData) return router.replace('/(auth)/profile-setup');
-
-      // ルーム未参加ならルーム選択へ
-      const { data: roomData } = await supabase.from('room_members').select('user_id').eq('user_id', sessionData.session?.user.id);
-      if (!roomData || roomData.length === 0) return router.replace('/(auth)/room-select');
-
-      // プッシュ通知トークンを取得してSupabaseに保存
-      const { status: notificationsStatus } = await Notifications.requestPermissionsAsync();
-      if (notificationsStatus !== 'granted') return setLoading(false);
-      const { data: pushToken } = await Notifications.getExpoPushTokenAsync({ projectId: Constants.expoConfig?.extra?.eas?.projectId });
-      const { error: tokenError } = await supabase.from('profiles').update({ push_token: pushToken }).eq('user_id', sessionData.session?.user.id);
-      if (tokenError) return Alert.alert(tokenError.message);
-
-      //リアルタイム設定
-      fetchUnreadCount(setIsReadCount);
-
-      const channelName = `notification-${sessionData.session!.user.id}`;
-      const existing = supabase.getChannels().find((channel) => channel.subTopic === channelName);
-      if (existing) await supabase.removeChannel(existing);
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-          fetchUnreadCount(setIsReadCount);
-        })
-        .subscribe();
-      setLoading(false);
+        try {
+          const { data: pushToken } = await Notifications.getExpoPushTokenAsync({ projectId: Constants.expoConfig?.extra?.eas?.projectId });
+          const { error: tokenError } = await supabase.from('profiles').update({ push_token: pushToken }).eq('user_id', sessionData.session?.user.id);
+          if (tokenError) return Alert.alert(tokenError.message);
+        } catch (e) {
+          // プッシュトークン取得失敗は無視
+        }
+        fetchUnreadCount(setIsReadCount);
+        const channelName = `notification-${sessionData.session!.user.id}`;
+        const existing = supabase.getChannels().find((channel) => channel.subTopic === channelName);
+        if (existing) await supabase.removeChannel(existing);
+        channel = supabase
+          .channel(channelName)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+            fetchUnreadCount(setIsReadCount);
+          })
+          .subscribe();
+      } finally {
+        setLoading(false);
+      }
     };
     fetchSession();
     return () => {
@@ -100,7 +98,15 @@ export default function TabLayout() {
       if (channel) supabase.removeChannel(channel);
     };
   }, [router]);
-  if (isLoading) return null;
+
+  if (isLoading)
+    return (
+      <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center">
+        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}/>
+
+        <ActivityIndicator size="large" color="white" />
+      </ImageBackground>
+    );
   if (!isLoading && session === null) return <Redirect href="/(auth)/login" />;
 
   return (

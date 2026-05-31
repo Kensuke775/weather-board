@@ -69,17 +69,39 @@ export default function ProfileSetUp() {
   const [avatar, setAvatar] = useState('');
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSaveProfile = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return Alert.alert('ユーザーが取得できませんでした。');
-    if (nickname === '') return Alert.alert('ニックネームの入力欄が空になっています。');
-    if (avatar === '') return Alert.alert('アバターを選んでください。');
-    const { error } = await supabase.from('profiles').insert({ user_id: user.id, nickname, avatar_emoji: avatar });
-    if (error) Alert.alert(error.message);
-    else router.replace('/(tabs)');
+    if (!user) {
+      setIsSubmitting(false);
+      Alert.alert('ユーザーが取得できませんでした。');
+      return;
+    }
+    if (nickname === '') {
+      setIsSubmitting(false);
+      Alert.alert('ニックネームの入力欄が空になっています。');
+      return;
+    }
+    if (avatar === '') {
+      setIsSubmitting(false);
+      Alert.alert('アバターを選んでください。');
+      return;
+    }
+
+    const { error } = await supabase.from('profiles').upsert({ user_id: user.id, nickname, avatar_emoji: avatar }, { onConflict: 'user_id' });
+    if (error) {
+      setIsSubmitting(false);
+      console.error('[profile-setup] handleSaveProfile', error.message);
+      Alert.alert('プロフィール作成に失敗しました。');
+      return;
+    }
+
+    router.replace('/(auth)/room-setup');
   };
 
   const [fontsLoaded] = useFonts({
@@ -89,11 +111,11 @@ export default function ProfileSetUp() {
   if (!fontsLoaded) return null;
   return (
     <ImageBackground source={backgroundImage} className="flex-1 px-10">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}/>
       <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
         <View className="justify-center flex-1 gap-10">
           <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-            Sign Up
+            Profile SetUp
           </Text>
 
           <View>
@@ -109,7 +131,7 @@ export default function ProfileSetUp() {
             </Text>
 
             <View className="relative flex items-center p-4 overflow-hidden" style={{ borderRadius: 16 }}>
-              <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}></View>
+              <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}/>
               <View className="flex-row gap-3 flex-wrap justify-center mb-4">
                 {isExpanded
                   ? AVATARS.map((item) => (

@@ -12,7 +12,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 import Toast from 'react-native-toast-message';
 
-
 export const unstable_settings = {
   anchor: '(tabs)',
 };
@@ -44,12 +43,11 @@ export default function RootLayout() {
         <RoomProvider>
           <Stack>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
           </Stack>
-        <Toast position="bottom" bottomOffset={40} />
-
+          <Toast position="bottom" bottomOffset={40} />
         </RoomProvider>
         <StatusBar style="auto" />
       </ThemeProvider>

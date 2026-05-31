@@ -118,3 +118,9 @@ export type ActivityFeedItem = {
   from: {  avatar_emoji: string; nickname: string;}
   to: {  avatar_emoji: string; nickname: string;}
 }
+
+export type CommentSectionProps = {
+  weather_log_id: string;
+  to_user_id: string;
+  readOnly?: boolean;
+};

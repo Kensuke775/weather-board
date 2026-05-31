@@ -1,4 +1,5 @@
 import { WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
 import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
@@ -11,6 +12,7 @@ type TalkButtonProps = {
 
 export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonProps) {
   const [isActiveButton, setIsActiveButton] = useState(false);
+  const { currentRoomId } = useRoom();
   useEffect(() => {
     const fetchReactionData = async () => {
       const {
@@ -33,7 +35,7 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
     if (reactionError) return Alert.alert(reactionError.message);
 
     if (user.id !== to_user_id) {
-      const { error: notificationError } = await supabase.from('notifications').insert({ type: 'talk', from_user_id: user.id, to_user_id, weather_log_id, is_read: false });
+      const { error: notificationError } = await supabase.from('notifications').insert({ type: 'talk', from_user_id: user.id, to_user_id, weather_log_id, is_read: false, room_id: currentRoomId });
       if (notificationError) return Alert.alert(notificationError.message);
     }
     setIsActiveButton(true);

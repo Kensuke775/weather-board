@@ -87,41 +87,42 @@ export default function Analysis() {
 
   if (!fontsLoaded) return null;
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 justify-center px-5 gap-10">
+    <ImageBackground source={backgroundImage} className="flex-1 justify-center px-5">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
       <View style={{ flex: 1, maxHeight: MARKDOWN_MAX_HEIGHT }}>
-        <Text className="text-4xl text-center pb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
+        <Text className="text-4xl text-center pb-8" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
           Analisis
         </Text>
-        <View className="flex-row">
-          <BlurView intensity={20} tint="dark" className="overflow-hidden p-3 border-top" style={{ borderTopLeftRadius: 4, borderColor: WeatherBoardColors.glassBorder }}>
+        <View className="flex-row items-center gap-2 mb-2">
+          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder }}>
             <Pressable
               onPress={() => {
                 setSelectedHistory(null);
                 setIsHistory(false);
               }}>
-              <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary, opacity: isHistory ? 0.3 : 1 }}>
+              <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary, opacity: isHistory ? 0.5 : 1 }}>
                 Weekly
               </Text>
             </Pressable>
           </BlurView>
-          <BlurView intensity={20} tint="dark" className="overflow-hidden p-3 border-top" style={{ borderTopLeftRadius: 4, borderColor: WeatherBoardColors.glassBorder }}>
+
+          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder }}>
             <Pressable onPress={() => setIsHistory(true)}>
-              <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary, opacity: isHistory ? 1 : 0.3 }}>
+              <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary, opacity: isHistory ? 1 : 0.5 }}>
                 History
               </Text>
             </Pressable>
           </BlurView>
         </View>
 
-        <BlurView intensity={40} tint="dark" className="overflow-hidden p-3 flex-1 mb-5" style={{ borderTopRightRadius: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: WeatherBoardColors.glassBorder }}>
+        <BlurView intensity={50} tint={'dark'} className="overflow-hidden p-3 flex-1 mb-8 border" style={{ borderTopRightRadius: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: WeatherBoardColors.glassBorder }}>
           {isHistory ? (
             <View className="flex-1">
               {selectedHistory ? (
                 <View className="flex-1 gap-2">
                   <View className="flex-row justify-between items-center mb-6">
-                    <Pressable onPress={() => setSelectedHistory(null)} className="py-2">
-                      <Text className="text-center text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                    <Pressable onPress={() => setSelectedHistory(null)} className="py-2 pl-2">
+                      <Text className="text-center text-base font-bold border-b" style={{ color: WeatherBoardColors.textPrimary, borderBottomColor: WeatherBoardColors.textPrimary }}>
                         戻る
                       </Text>
                     </Pressable>
@@ -129,7 +130,9 @@ export default function Analysis() {
                       {new Date(selectedHistory.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </Text>
                   </View>
-                  <AnalysisMarkdown content={selectedHistory.content} />
+                  <View style={{ maxHeight: MARKDOWN_MAX_HEIGHT }}>
+                    <AnalysisMarkdown content={selectedHistory.content} />
+                  </View>
                 </View>
               ) : (
                 <FlatList
@@ -138,12 +141,9 @@ export default function Analysis() {
                   ItemSeparatorComponent={() => <View className="h-4" />}
                   contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
                   renderItem={({ item }) => (
-                    <Pressable onPress={() => setSelectedHistory(item)} className="p-4 border flex-row justify-between items-center" style={{ borderColor: WeatherBoardColors.glassBorder }}>
+                    <Pressable onPress={() => setSelectedHistory(item)} className="p-4 border flex-row items-center" style={{ borderColor: WeatherBoardColors.glassBorder }}>
                       <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
-                        週次分析
-                      </Text>
-                      <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
-                        {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(item.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     </Pressable>
                   )}
@@ -159,20 +159,17 @@ export default function Analysis() {
           )}
         </BlurView>
         {isHistory ? null : canAnalyze ? (
-          <Pressable onPress={handleAnalysis} className="border py-6 border-white rounded-xl">
+          <Pressable onPress={handleAnalysis} className="border py-6 rounded-xl" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
             <Text className="text-center text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
               1週間分の分析する
             </Text>
           </Pressable>
         ) : (
           <View>
-            <Text className="text-center text-base font-bold py-4" style={{ color: WeatherBoardColors.textPrimary }}>
+            <Text className="text-center text-base font-bold py-6 rounded-xl mb-2 border" style={{ color: WeatherBoardColors.textPrimary, backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
               1週間分の分析は終わってます。
             </Text>
-            <Text className="text-[10px] text-center mb-2" style={{ color: WeatherBoardColors.textMuted }}>
-              ※1週間たたないと分析できません。
-            </Text>
-            <Text className="text-[10px] text-center " style={{ color: WeatherBoardColors.textMuted }}>
+            <Text className="text-sm text-center " style={{ color: WeatherBoardColors.textPrimary }}>
               {`あと ${days}日${hours}時間${minutes}分${secs}秒`}
             </Text>
           </View>
