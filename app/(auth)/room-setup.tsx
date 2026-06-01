@@ -2,22 +2,23 @@ import { useState } from 'react';
 import { Alert, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
 import { BlurView } from 'expo-blur';
-import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
-import useRoomJoin from '@/hooks/useRoomJoin';
-import useRoomCreate from '@/hooks/useRoomCreate';
-import { useRoom } from '@/context/RoomContext';
-import { supabase } from '@/lib/supabase';
 import { WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
+import useRoomCreate from '@/hooks/useRoomCreate';
+import useRoomJoin from '@/hooks/useRoomJoin';
+import { supabase } from '@/lib/supabase';
 
+const backgroundImage = require('@/assets/images/weather/explore.png');
 
-export default function RoomSelect() {
+export default function RoomSetup() {
   const router = useRouter();
+  const { refreshRooms } = useRoom();
   const [isJoinVisible, setIsJoinVisible] = useState(false);
   const [isCreateVisible, setIsCreateVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { refreshRooms } = useRoom();
 
   const { handleCreateRoom, setRoomName, roomName, isCreating } = useRoomCreate(async () => {
     await refreshRooms();
@@ -34,16 +35,18 @@ export default function RoomSelect() {
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[room-setup] handleLogout', error.message);
+        Alert.alert('ログアウトに失敗しました。');
+        return;
+      }
+      router.replace('/(auth)/login');
+    } finally {
       setIsLoggingOut(false);
-      Alert.alert('ログアウトに失敗しました。');
-      return;
     }
-    router.replace('/(auth)/login');
   };
-
-  const backgroundImage = require('@/assets/images/weather/explore.png');
 
   return (
     <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center px-10">

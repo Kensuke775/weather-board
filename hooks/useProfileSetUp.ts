@@ -1,8 +1,8 @@
-import { Alert } from 'react-native';
 import { useState } from 'react';
+import { Alert } from 'react-native';
 
-import { supabase } from '@/lib/supabase';
 import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
 
 
 export default function useProfileSetUp(onSuccess: () => Promise<void>) {
@@ -10,33 +10,33 @@ export default function useProfileSetUp(onSuccess: () => Promise<void>) {
   const [nickname, setNickname] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatar, setAvatar] = useState('');
-
+  const userId = user?.id;
   const handleSaveProfile = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    if (!user) {
+    try {
+      if (!userId) {
+        Alert.alert('ユーザーが取得できませんでした。');
+        return;
+      }
+      if (nickname === '') {
+        Alert.alert('ニックネームの入力欄が空になっています。');
+        return;
+      }
+      if (avatar === '') {
+        Alert.alert('アバターを選んでください。');
+        return;
+      }
+      const { error } = await supabase.from('profiles').upsert({ user_id: userId, nickname, avatar_emoji: avatar }, { onConflict: 'user_id' });
+      if (error) {
+        console.error('[profile-setup] handleSaveProfile', error.message);
+        Alert.alert('プロフィール作成に失敗しました。');
+        return;
+      }
+      await onSuccess?.()
+    } finally {
       setIsSubmitting(false);
-      Alert.alert('ユーザーが取得できませんでした。');
-      return;
     }
-    if (nickname === ''){
-      setIsSubmitting(false);
-      Alert.alert('ニックネームの入力欄が空になっています。');
-      return;
-    }
-    if (avatar === '') {
-      setIsSubmitting(false);
-      Alert.alert('アバターを選んでください。');
-      return;
-    }
-    const { error } = await supabase.from('profiles').upsert({ user_id: user.id, nickname, avatar_emoji: avatar }, {onConflict: 'user_id'});
-    if (error){
-      setIsSubmitting(false);
-      console.error('[profile-setup] handleSaveProfile', error.message);
-      Alert.alert('プロフィール作成に失敗しました。');
-      return;
-    }
-    await onSuccess?.()
   };
 
 

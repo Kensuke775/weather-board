@@ -131,12 +131,13 @@ export default function HomeScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>();
   const [isLoading, setIsLoading] = useState(true);
+  const userId = user?.id;
 
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
+      if (!userId) return;
       const fetchCurrentRoom = async () => {
-        const { data: roomData, error: roomError } = await supabase.from('room_members').select('room_id').eq('user_id', user.id);
+        const { data: roomData, error: roomError } = await supabase.from('room_members').select('room_id').eq('user_id', userId);
         if (roomError) {
           console.error('[index(tab)] fetchCurrentRoom', roomError.message);
           Alert.alert('ルームの取得に失敗しました。');
@@ -146,7 +147,7 @@ export default function HomeScreen() {
         setCurrentRoomId(roomData[0]?.room_id);
       };
       fetchCurrentRoom();
-    }, [setCurrentRoomId, router, user]),
+    }, [setCurrentRoomId, router, userId]),
   );
 
   useFocusEffect(
@@ -162,7 +163,6 @@ export default function HomeScreen() {
           fetchBoardData(currentRoomId, setBoardData, setIsLoading);
         })
         .subscribe();
-
       return () => {
         if (channel) supabase.removeChannel(channel);
       };
@@ -170,18 +170,18 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
+    if (!userId) return;
     let channel: ReturnType<typeof supabase.channel>;
     const setUp = async () => {
-      if (!user) return;
-      const channelName = `unreadCounts-${user.id}`;
+      const channelName = `unreadCounts-${userId}`;
       const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
       if (existing) await supabase.removeChannel(existing);
-      fetchNotificationsData(user.id, setUnreadCounts);
+      fetchNotificationsData(userId, setUnreadCounts);
       fetchActivityFeed(currentRoomId, setActivityFeed);
       channel = supabase
         .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-          fetchNotificationsData(user.id, setUnreadCounts);
+          fetchNotificationsData(userId, setUnreadCounts);
           fetchActivityFeed(currentRoomId, setActivityFeed);
         })
         .subscribe();
@@ -190,16 +190,15 @@ export default function HomeScreen() {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [currentRoomId, user]);
+  }, [currentRoomId, userId]);
 
   useEffect(() => {
+    if (!userId) return;
     let channel: ReturnType<typeof supabase.channel>;
-    if (!user) return;
-    const setUp = async (userId: string) => {
+    const setUp = async () => {
       const channelName = `comment-status-${userId}`;
       const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
       if (existing) await supabase.removeChannel(existing);
-
       fetchCommentsData(setCommentStatus);
       channel = supabase
         .channel(channelName)
@@ -208,21 +207,21 @@ export default function HomeScreen() {
         })
         .subscribe();
     };
-    setUp(user.id);
+    setUp();
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
+      if (!userId) return;
       const fetchUserData = () => {
-        const userData = boardData.filter((data) => data.user_id === user.id);
-        if (userData.length > 0) setUserData(userData[0]);
+        const userLogs = boardData.filter((data) => data.user_id === userId);
+        if (userLogs.length > 0) setUserData(userLogs[0]);
       };
       fetchUserData();
-    }, [boardData, user]),
+    }, [boardData, userId]),
   );
 
   const backgroundImage = userData ? WEATHER_IMAGES[userData.weather] : WEATHER_IMAGES.sunny;
@@ -248,8 +247,7 @@ export default function HomeScreen() {
               </Pressable>
               <Pressable
                 onPress={async () => {
-                  const code = rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code;
-                  if (code) await Clipboard.setStringAsync(code);
+                  if (inviteCode) await Clipboard.setStringAsync(inviteCode);
                   Toast.show({
                     type: 'success',
                     text1: 'コピーしました。',
@@ -260,7 +258,7 @@ export default function HomeScreen() {
                 <View className="flex-row items-center gap-2 justify-between" style={{ minWidth: 100 }}>
                   {inviteCode ? (
                     <Text className="font-sm font-bold" style={{ color: WeatherBoardColors.textPrimary, minWidth: 80 }}>
-                      {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code}
+                      {inviteCode}
                     </Text>
                   ) : (
                     <View className="w-20 h-4 rounded-full bg-white/20" />

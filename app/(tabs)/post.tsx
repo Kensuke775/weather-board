@@ -1,90 +1,119 @@
-import { Picker } from '@react-native-picker/picker';
 import React, { useState } from 'react';
 import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, ScrollView, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 
-import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
-import { Fonts, WeatherBoardColors } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
-import { supabase } from '@/lib/supabase';
-import { WEATHER_CONFIG } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 
+import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
+import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
+import { WEATHER_CONFIG } from '@/lib/types';
+
 const backgroundImage = require('@/assets/images/weather/post.png');
 
 export default function Post() {
+  const router = useRouter();
+  const { user } = useUser();
+  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
+  const [fontsLoaded] = useFonts({
+    DancingScript_400Regular: Fonts.titleFont,
+  }) as [boolean, Error | null];
   const [weather, setWeather] = useState('sunny');
   const [note, setNote] = useState('');
-  const router = useRouter();
   const [isInputVisible, setIsInputVisible] = useState(false);
   const [selectedTags, setSelectedTags] = useState<ActivityTag[]>([]);
-  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isPosting, setIsPosting] = useState(false);
+  const userId = user?.id;
   const { width } = Dimensions.get('window');
   const ITEM_WIDTH = 80;
   const PADDING = (width - ITEM_WIDTH) / 2;
 
   const handlePost = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return Alert.alert('ユーザーの取得がでいませんでした。');
-    if (!weather) return Alert.alert('今の気分を選んでください。');
-    const { data: logData, error: logError } = await supabase
-      .from('weather_logs')
-      .upsert({ user_id: user.id, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,room_id' })
-      .select('id')
-      .single();
-    if (logError) return Alert.alert(logError.message);
-    const { error: commentsError } = await supabase.from('comments').delete().eq('weather_log_id', logData.id);
-    if (commentsError) return Alert.alert(commentsError.message);
-    const { data: historyData, error: historyError } = await supabase
-      .from('weather_log_history')
-      .insert({ weather_log_id: logData.id, weather, note, recorded_at: new Date().toISOString().split('T')[0] })
-      .select('id')
-      .single();
-    if (historyError) return Alert.alert(historyError.message);
+    if (isPosting) return;
+    setIsPosting(true);
+    try {
+      if (!userId) return;
+      if (!weather) {
+        Alert.alert('今の気分を選んでください。');
+        return;
+      }
+      const { data: logData, error: logError } = await supabase
+        .from('weather_logs')
+        .upsert({ user_id: userId, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,room_id' })
+        .select('id')
+        .single();
+      if (logError) {
+        console.error('[post] handlePost', logError.message);
+        Alert.alert('ログの更新に失敗しました。');
+        return;
+      }
+      const { error: commentsError } = await supabase.from('comments').delete().eq('weather_log_id', logData.id);
+      if (commentsError) {
+        console.error('[post] handlePost', commentsError.message);
+        Alert.alert('コメントの削除に失敗しました。');
+        return;
+      }
+      const { data: historyData, error: historyError } = await supabase
+        .from('weather_log_history')
+        .insert({ weather_log_id: logData.id, weather, note, recorded_at: new Date().toISOString().split('T')[0] })
+        .select('id')
+        .single();
+      if (historyError) {
+        console.error('[post] handlePost', historyError.message);
+        Alert.alert('投稿に失敗しました。');
+        return;
+      }
+      const activityData = selectedTags.map((tag) => ({
+        weather_log_id: logData.id,
+        activity_tag_id: tag.id,
+      }));
 
-    const activityData = selectedTags.map((tag) => ({
-      weather_log_id: logData.id,
-      activity_tag_id: tag.id,
-    }));
+      const { error: deleteActivityTagError } = await supabase.from('weather_log_activities').delete().eq('weather_log_id', logData.id);
+      if (deleteActivityTagError) {
+        console.error('[post] handlePost', deleteActivityTagError.message);
+        Alert.alert('タグの削除に失敗しました。');
+        return;
+      }
+      if (selectedTags.length > 0) {
+        const { error: insertActivityTagError } = await supabase.from('weather_log_activities').insert(activityData);
+        if (insertActivityTagError) {
+          console.error('[post] handlePost', insertActivityTagError.message);
+          Alert.alert('タグの追加に失敗しました。');
+          return;
+        }
+      }
 
-    const { error: deleteActivityTagError } = await supabase.from('weather_log_activities').delete().eq('weather_log_id', logData.id);
-    if (deleteActivityTagError) return Alert.alert(deleteActivityTagError.message);
-    if (selectedTags.length > 0) {
-      const { error: insertActivityTagError } = await supabase.from('weather_log_activities').insert(activityData);
-      if (insertActivityTagError) return Alert.alert(insertActivityTagError.message);
+      const historyActivitiesData = selectedTags.map((tag) => ({
+        weather_log_history_id: historyData.id,
+        tag_name: tag.tag_name,
+      }));
+
+      if (selectedTags.length > 0) {
+        await supabase.from('weather_log_history_activities').insert(historyActivitiesData);
+      }
+
+      setWeather('');
+      setNote('');
+      setSelectedTags([]);
+      router.replace('/(tabs)');
+    } finally {
+      setIsPosting(false);
     }
-
-    const historyActivitiesData = selectedTags.map((tag) => ({
-      weather_log_history_id: historyData.id,
-      tag_name: tag.tag_name,
-    }));
-
-    if (selectedTags.length > 0) {
-      await supabase.from('weather_log_history_activities').insert(historyActivitiesData);
-    }
-
-    setWeather('');
-    setNote('');
-    setSelectedTags([]);
-    router.replace('/(tabs)');
   };
-
-  const [fontsLoaded] = useFonts({
-    DancingScript_400Regular: Fonts.titleFont,
-  }) as [boolean, Error | null];
 
   if (!fontsLoaded) return null;
 
   const now = new Date().toLocaleString('ja-JP', { month: '2-digit', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}/>
       <View className="flex-1 pb-8">
         <BlurView intensity={10} tint="light" className="pt-20 pb-4 overflow-visible" style={{ borderBottomWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
           <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>

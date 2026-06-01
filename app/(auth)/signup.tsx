@@ -1,54 +1,50 @@
 import { useState } from 'react';
 import { Alert, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
 
+import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 
-import { supabase } from '@/lib/supabase';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { supabase } from '@/lib/supabase';
 
 const backgroundImage = require('@/assets/images/weather/signup.png');
 
 export default function AuthSignUp() {
+  const router = useRouter();
+  const [fontsLoaded] = useFonts({
+    DancingScript_400Regular: Fonts.titleFont,
+  }) as [boolean, Error | null];
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignUp = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-
-    if (email.length === 0) {
-      Alert.alert('メールアドレスが空です。');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (password.length === 0) {
-      Alert.alert('パスワードが空です。');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      setIsSubmitting(false);
-      console.error('[signup] handleSignUp', error.message);
-      if (error.message === 'Network request failed') {
-        Alert.alert('通信エラーが発生しました。ネットワークを確認してください。');
-      } else {
-        Alert.alert('メールアドレスまたはパスワードが正しくありません。');
+    try {
+      if (email.length === 0) {
+        Alert.alert('メールアドレスが空です。');
+        return;
       }
-      return;
+      if (password.length === 0) {
+        Alert.alert('パスワードが空です。');
+        return;
+      }
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        console.error('[signup] handleSignUp', error.message);
+        if (error.message === 'Network request failed') {
+          Alert.alert('通信エラーが発生しました。ネットワークを確認してください。');
+        } else {
+          Alert.alert('メールアドレスまたはパスワードが正しくありません。');
+        }
+        return;
+      }
+      router.replace('/(auth)/profile-setup');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-    router.replace('/(auth)/profile-setup');
   };
-
-  const [fontsLoaded] = useFonts({
-    DancingScript_400Regular: Fonts.titleFont,
-  }) as [boolean, Error | null];
 
   if (!fontsLoaded) return null;
 
