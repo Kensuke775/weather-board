@@ -1,14 +1,20 @@
 import { useCallback, useState } from 'react';
 import { Alert, ImageBackground, Modal, Pressable, Text, View } from 'react-native';
 
-import WeatherCalendar from '@/components/WeatherCalendar';
-import { WeatherBoardColors } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
-import { supabase } from '@/lib/supabase';
-import { HistoryLog } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router';
+
+import WeatherCalendar from '@/components/WeatherCalendar';
+import { WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
+import { HistoryLog } from '@/lib/types';
+
+type RawHistoryLog = Omit<HistoryLog, 'profiles'> & {
+  profiles: { avatar_emoji: string } | { avatar_emoji: string }[] | null;
+};
 
 const backgroundImage = require('@/assets/images/weather/history.png');
 
@@ -20,9 +26,11 @@ function initialMonthStart() {
 }
 
 export default function History() {
+  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
+  const { user } = useUser();
+  const userId = user?.id;
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<HistoryLog[]>([]);
-  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(initialMonthStart());
   const [year, month] = currentMonth.split('-').map(Number);
@@ -33,10 +41,7 @@ export default function History() {
   useFocusEffect(
     useCallback(() => {
       const fetchHistory = async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
+        if (!userId) return;
         const { data: historyData, error: historyError } = await supabase
           .from('weather_logs')
           .select('id, user_id, weather, logged_date, profiles(avatar_emoji)')
@@ -44,21 +49,29 @@ export default function History() {
           .lte('logged_date', initialMonthEnd)
           .eq('room_id', currentRoomId)
           .order('updated_at', { ascending: false });
-        if (historyError) return Alert.alert(historyError.message);
-
-        const filteredHistoryData = historyData.filter((record, idx, self) => idx === self.findIndex((r) => r.logged_date === record.logged_date && r.user_id === record.user_id));
-
-        setHistoryData(filteredHistoryData as unknown as HistoryLog[]);
-        setCurrentUserId(user.id);
+        if (historyError) {
+          console.error('[history] fetchHistory', historyError.message);
+          Alert.alert('ヒストリーの取得に失敗しました。');
+          return;
+        }
+        const filteredHistoryData = (historyData as RawHistoryLog[])
+          .filter((record, idx, self) => idx === self.findIndex((r) => r.logged_date === record.logged_date && r.user_id === record.user_id))
+          .map((data) => ({
+            ...data,
+            profiles: {
+              avatar_emoji: Array.isArray(data.profiles) ? (data.profiles[0]?.avatar_emoji ?? '') : (data.profiles?.avatar_emoji ?? ''),
+            },
+          }));
+        setHistoryData(filteredHistoryData);
+        setCurrentUserId(userId);
       };
       fetchHistory();
-    }, [currentMonth, initialMonthEnd, currentRoomId]),
+    }, [currentMonth, initialMonthEnd, currentRoomId, userId]),
   );
   const currentRoomName = rooms?.find((item) => item?.rooms.id === currentRoomId)?.rooms.name;
   return (
     <ImageBackground source={backgroundImage} className="flex-1 justify-center px-5">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
-
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
       <View className="pt-24 pb-40">
         <Text className="text-4xl text-center mb-8" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
           History
@@ -68,10 +81,8 @@ export default function History() {
             <Text className="text-sm text-white font-bold">{`部屋: ${currentRoomName}`}</Text>
             <Ionicons name="chevron-down" size={16} color="white" />
           </Pressable>
-
           <WeatherCalendar historyData={historyData} currentUserId={currentUserId} setDisplayMonth={setCurrentMonth} />
         </View>
-
         <Modal visible={isModalVisible} transparent={true} animationType="slide">
           <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
             <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>

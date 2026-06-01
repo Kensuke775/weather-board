@@ -1,58 +1,80 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
-import { WeatherBoardColors } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
-import { supabase } from '@/lib/supabase';
-import { CommentItem, CommentSectionProps } from '@/lib/types';
 import { BlurView } from 'expo-blur';
 
+import { WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
+import { CommentItem, CommentSectionProps } from '@/lib/types';
+
+const fetchComments = async (weatherLogId: string, setter: (data: CommentItem[]) => void, loadingSetter: (loading: boolean) => void) => {
+  const { data: commentsData, error: commentsError } = await supabase
+    .from('comments')
+    .select('id, weather_log_id, user_id, body, created_at, profiles(nickname, avatar_emoji)')
+    .eq('weather_log_id', weatherLogId)
+    .order('created_at', { ascending: false });
+  if (commentsError) {
+    console.error('[CommentSection] fetchComments', commentsError.message);
+    Alert.alert('コメントの取得に失敗しました。');
+    return;
+  }
+  const formattedData = commentsData.map((log) => ({ ...log, profiles: Array.isArray(log.profiles) ? log.profiles[0] : log.profiles }));
+  setter(formattedData);
+  loadingSetter(false);
+};
+
 export default function CommentSection({ weather_log_id, to_user_id, readOnly }: CommentSectionProps) {
+  const { currentRoomId } = useRoom();
+  const { user } = useUser();
+  const userId = user?.id;
   const [inputText, setInputText] = useState('');
   const [comments, setComments] = useState<CommentItem[]>([]);
-  const flatListRef = useRef<FlatList>(null);
-  const { currentRoomId } = useRoom();
   const [isLoading, setIsLoading] = useState(true);
+  const [isComenting, setIsCommenting] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    const fetchComments = async () => {
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('comments')
-        .select('id, weather_log_id, user_id, body, created_at, profiles(nickname, avatar_emoji)')
-        .eq('weather_log_id', weather_log_id)
-        .order('created_at', { ascending: false });
-      if (commentsError) return Alert.alert(commentsError.message);
-      const formattedData = commentsData.map((log) => ({ ...log, profiles: Array.isArray(log.profiles) ? log.profiles[0] : log.profiles }));
-      setComments(formattedData);
-      setIsLoading(false);
+    let channel: ReturnType<typeof supabase.channel>;
+    const setUp = async () => {
+      await fetchComments(weather_log_id, setComments, setIsLoading);
+      channel = supabase
+        .channel('comments')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async () => {
+          await fetchComments(weather_log_id, setComments, setIsLoading);
+        })
+        .subscribe();
     };
-    fetchComments();
-    const channel = supabase
-      .channel('comments')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
-        fetchComments();
-      })
-      .subscribe();
-
+    setUp();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [weather_log_id]);
+
   const handleSendComment = async () => {
-    if (inputText === '') return Alert.alert('入力欄が空です。');
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-
-    const { error: commentError } = await supabase.from('comments').insert({ weather_log_id, user_id: user.id, body: inputText });
-    if (commentError) return Alert.alert(commentError.message);
-
-    if (user.id !== to_user_id) {
-      const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, from_user_id: user.id, room_id: currentRoomId, is_read: false });
-      if (notificationError) Alert.alert(notificationError.message);
+    if (isComenting) return;
+    setIsCommenting(true);
+    try {
+      if (inputText === '') return Alert.alert('入力欄が空です。');
+      const { error: commentError } = await supabase.from('comments').insert({ weather_log_id, user_id: userId, body: inputText });
+      if (commentError) {
+        console.error('[CommentSection] handleSendComment', commentError.message);
+        Alert.alert('コメントの書き込みに失敗しました。');
+        return;
+      }
+      if (userId !== to_user_id) {
+        const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, from_user_id: userId, room_id: currentRoomId, is_read: false });
+        if (notificationError) {
+          console.error('[CommentSection] handleSendComment', notificationError.message);
+          Alert.alert('コメントの書き込みに失敗しました。');
+          return;
+        }
+      }
+      setInputText('');
+    } finally {
+      setIsCommenting(false);
     }
-    setInputText('');
   };
 
   return (

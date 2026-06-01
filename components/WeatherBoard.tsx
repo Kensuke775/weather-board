@@ -1,6 +1,7 @@
-import { CommentsStatus, WeatherBoardItem } from '@/lib/types';
 import { FlatList } from 'react-native';
-import WeatherCard from './WeatherCard';
+
+import { CommentsStatus, WeatherBoardItem } from '@/lib/types';
+import WeatherCard from '@/components/WeatherCard';
 
 type WeatherBoardProps = {
   weatherLogs: WeatherBoardItem[];

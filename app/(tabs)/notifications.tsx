@@ -1,4 +1,5 @@
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { Notification } from '@/lib/types';
 import { BlurView } from 'expo-blur';
@@ -9,49 +10,51 @@ import { Alert, FlatList, ImageBackground, Text, View } from 'react-native';
 
 const backgroundImage = require('@/assets/images/weather/notifications.png');
 
-const fetchNotifications = async (setter: (data: Notification[]) => void) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
+const fetchNotifications = async (userId: string, setter: (data: Notification[]) => void) => {
   const { data: notificationsData, error: notificationsError } = await supabase
     .from('notifications')
     .select('*, profiles!from_user_id(nickname, avatar_emoji)')
-    .eq('to_user_id', user.id)
-    .neq('from_user_id', user.id)
+    .eq('to_user_id', userId)
+    .neq('from_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(20);
-  if (notificationsError) return Alert.alert(notificationsError.message);
-
+  if (notificationsError) {
+    console.error('[notifications] fetchNotifications', notificationsError.message);
+    Alert.alert('通知取得に失敗しました。');
+    return;
+  }
   setter(notificationsData);
 };
 
-const fetchIsRead = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-  const { error: isReadError } = await supabase.from('notifications').update({ is_read: true }).eq('to_user_id', user.id).eq('is_read', false);
-  if (isReadError) return Alert.alert(isReadError.message);
+const fetchIsRead = async (userId: string) => {
+  const { error: isReadError } = await supabase.from('notifications').update({ is_read: true }).eq('to_user_id', userId).eq('is_read', false);
+  if (isReadError) {
+    console.error('[notifications] fetchIsRead', isReadError.message);
+    Alert.alert('通知取得に失敗しました。');
+    return;
+  }
 };
 
 export default function Notifications() {
+  const { user } = useUser();
+  const userId = user?.id;
+  const [fontsLoaded] = useFonts({
+    DancingScript_400Regular: Fonts.titleFont,
+  }) as [boolean, Error | null];
   const [dataNotifications, setDataNotifications] = useState<Notification[]>([]);
+
   useEffect(() => {
+    if (!userId) return;
     let channel: ReturnType<typeof supabase.channel>;
     const setUp = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-      const channelName = `notifications-list-${user.id}`;
+      const channelName = `notifications-list-${userId}`;
       const existing = supabase.getChannels().find((ch) => ch.subTopic === channelName);
       if (existing) supabase.removeChannel(existing);
-      await fetchNotifications(setDataNotifications);
+      await fetchNotifications(userId, setDataNotifications);
       channel = supabase
         .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
-          await fetchNotifications(setDataNotifications);
+          await fetchNotifications(userId, setDataNotifications);
         })
         .subscribe();
     };
@@ -59,19 +62,17 @@ export default function Notifications() {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchIsRead();
-    }, []),
+      if (!userId) return;
+      fetchIsRead(userId);
+    }, [userId]),
   );
 
-  const [fontsLoaded] = useFonts({
-    DancingScript_400Regular: Fonts.titleFont,
-  }) as [boolean, Error | null];
-
   if (!fontsLoaded) return null;
+
   return (
     <ImageBackground source={backgroundImage} className="flex-1 pt-40 pb-40 gap-10 overflow-visible">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>

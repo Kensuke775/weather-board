@@ -103,6 +103,7 @@ export type HistoryLog = {
   profiles: { avatar_emoji: string };
 };
 
+
 export type CommentsStatus =
   Record<string, {commenters: {user_id: string; emoji: string }[]; count: number}>
 

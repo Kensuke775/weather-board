@@ -129,7 +129,7 @@ export default function HomeScreen() {
   const [commentStatus, setCommentStatus] = useState<CommentsStatus>({});
   const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>();
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const userId = user?.id;
 
@@ -153,16 +153,20 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!currentRoomId) return;
-      const channelName = `board-${currentRoomId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) supabase.removeChannel(existing);
-      fetchBoardData(currentRoomId, setBoardData, setIsLoading);
-      const channel: ReturnType<typeof supabase.channel> = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'weather_logs' }, () => {
-          fetchBoardData(currentRoomId, setBoardData, setIsLoading);
-        })
-        .subscribe();
+      let channel: ReturnType<typeof supabase.channel>;
+      const setUp = async () => {
+        const channelName = `board-${currentRoomId}`;
+        const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
+        if (existing) supabase.removeChannel(existing);
+        await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
+        channel = supabase
+          .channel(channelName)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'weather_logs' }, async () => {
+            await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
+          })
+          .subscribe();
+      };
+      setUp();
       return () => {
         if (channel) supabase.removeChannel(channel);
       };
@@ -176,13 +180,13 @@ export default function HomeScreen() {
       const channelName = `unreadCounts-${userId}`;
       const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
       if (existing) await supabase.removeChannel(existing);
-      fetchNotificationsData(userId, setUnreadCounts);
-      fetchActivityFeed(currentRoomId, setActivityFeed);
+      await fetchNotificationsData(userId, setUnreadCounts);
+      await fetchActivityFeed(currentRoomId, setActivityFeed);
       channel = supabase
         .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-          fetchNotificationsData(userId, setUnreadCounts);
-          fetchActivityFeed(currentRoomId, setActivityFeed);
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
+          await fetchNotificationsData(userId, setUnreadCounts);
+          await fetchActivityFeed(currentRoomId, setActivityFeed);
         })
         .subscribe();
     };
@@ -199,11 +203,11 @@ export default function HomeScreen() {
       const channelName = `comment-status-${userId}`;
       const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
       if (existing) await supabase.removeChannel(existing);
-      fetchCommentsData(setCommentStatus);
+      await fetchCommentsData(setCommentStatus);
       channel = supabase
         .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
-          fetchCommentsData(setCommentStatus);
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async() => {
+          await fetchCommentsData(setCommentStatus);
         })
         .subscribe();
     };
