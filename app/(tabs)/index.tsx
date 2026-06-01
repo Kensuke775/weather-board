@@ -1,15 +1,18 @@
-import WeatherBoard from '@/components/WeatherBoard';
-import { WeatherBoardColors } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
-import { supabase } from '@/lib/supabase';
-import { ActivityFeedItem, CommentsStatus, WeatherBoardItem } from '@/lib/types';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, View } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
+
+import WeatherBoard from '@/components/WeatherBoard';
+import { WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
+import { ActivityFeedItem, CommentsStatus, WeatherBoardItem } from '@/lib/types';
 
 const { height } = Dimensions.get('window');
 const WEATHER_IMAGES = {
@@ -22,17 +25,16 @@ const WEATHER_IMAGES = {
   foggy: require('@/assets/images/weather/foggy.png'),
 };
 
-// 未読通知数をweather_log_idごとに集計
-const fetchNotificationsData = async (setter: (data: Record<string, number>) => void) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-  const { data: notificationsData, error: notificationsError } = await supabase.from('notifications').select('weather_log_id').eq('type', 'comment').eq('to_user_id', user.id).eq('is_read', false);
-  if (notificationsError) return Alert.alert(notificationsError.message);
+const fetchNotificationsData = async (userId: string, setter: (data: Record<string, number>) => void) => {
+  const { data: notificationsData, error: notificationsError } = await supabase.from('notifications').select('weather_log_id').eq('type', 'comment').eq('to_user_id', userId).eq('is_read', false);
+  if (notificationsError) {
+    console.error('[index(tab)] fetchNotificationsData', notificationsError.message);
+    Alert.alert('通知取得に失敗しました。');
+    return;
+  }
   const unreadCountMap = notificationsData.reduce(
-    (acc, notigication) => {
-      acc[notigication.weather_log_id] = (acc[notigication.weather_log_id] ?? 0) + 1;
+    (acc, notification) => {
+      acc[notification.weather_log_id] = (acc[notification.weather_log_id] ?? 0) + 1;
       return acc;
     },
     {} as Record<string, number>,
@@ -41,15 +43,14 @@ const fetchNotificationsData = async (setter: (data: Record<string, number>) => 
 };
 
 const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
   const { data: commentsData, error: commentsError } = await supabase.from('comments').select('weather_log_id, user_id, profiles(avatar_emoji)');
-  if (commentsError) return Alert.alert(commentsError.message);
-
+  if (commentsError) {
+    console.error('[index(tab)] fetchCommentsData', commentsError.message);
+    Alert.alert('コメントの取得に失敗しました。');
+    return;
+  }
   const commentersMap = commentsData.reduce((acc, status) => {
-    const profiles = status.profiles as any;
+    const profiles = status.profiles as { avatar_emoji: string } | { avatar_emoji: string }[];
     const avatars = Array.isArray(profiles) ? profiles[0].avatar_emoji : profiles?.avatar_emoji;
     const isIncludes = acc[status.weather_log_id]?.commenters.some((commenter) => commenter.user_id === status.user_id);
     acc[status.weather_log_id] = { commenters: [...(acc[status.weather_log_id]?.commenters ?? []), ...(isIncludes ? [] : [{ user_id: status.user_id, emoji: avatars }])], count: (acc[status.weather_log_id]?.count ?? 0) + 1 };
@@ -59,30 +60,35 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
   setter(commentersMap);
 };
 
-// 今日のボードデータ（天気・タグ・プロフィール）を取得
 const fetchBoardData = async (roomId: string | null, setter: (data: WeatherBoardItem[]) => void, loadingSetter: (loading: boolean) => void) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
   const { data: roomMembersData, error: roomMembersError } = await supabase.from('room_members').select('user_id').eq('room_id', roomId);
-  if (roomMembersError) return Alert.alert(roomMembersError.message);
+  if (roomMembersError) {
+    console.error('[index(tab)] fetchBoardData', roomMembersError.message);
+    Alert.alert('天気・タグ・プロフィールの取得に失敗しました。');
+    return;
+  }
   const userIds = roomMembersData.map((data) => data.user_id);
   const { data: weatherLogsData, error: weatherLogsError } = await supabase
     .from('weather_logs')
     .select('id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
     .in('user_id', userIds)
     .eq('room_id', roomId);
-  if (weatherLogsError) return Alert.alert(weatherLogsError.message);
+
+  if (weatherLogsError) {
+    console.error('[index(tab)] fetchBoardData', weatherLogsError.message);
+    Alert.alert('ログの取得に失敗しました。');
+    return;
+  }
   const formattedData = weatherLogsData.map((log) => ({
     ...log,
     profiles: Array.isArray(log.profiles) ? log.profiles[0] : log.profiles,
     tags: log.weather_log_activities
       .filter((tag) => tag.activity_tags !== null)
       .map((tag) => {
+        const activityTag = Array.isArray(tag.activity_tags) ? tag.activity_tags[0] : tag.activity_tags;
         return {
           id: tag.activity_tag_id,
-          name: (tag.activity_tags as unknown as { tag_name: string }).tag_name,
+          name: activityTag.tag_name,
         };
       }),
     weather_log_activities: undefined,
@@ -100,12 +106,23 @@ const fetchActivityFeed = async (roomId: string | null, setter: (data: ActivityF
     .eq('type', 'comment')
     .eq('room_id', roomId)
     .limit(10);
-  if (activityFeedError) return Alert.alert(activityFeedError.message);
+  if (activityFeedError) {
+    console.error('[index(tab)] fetchActivityFeed', activityFeedError.message);
+    Alert.alert('アクティビティフィードの取得に失敗しました。');
+    return;
+  }
+  const formattedData = activityFeedData.map((data) => ({
+    ...data,
+    from: Array.isArray(data.from) ? data.from[0] : data.from,
+    to: Array.isArray(data.to) ? data.to[0] : data.to,
+  }));
 
-  setter(activityFeedData as unknown as ActivityFeedItem[]);
+  setter(formattedData);
 };
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { user } = useUser();
   const [boardData, setBoardData] = useState<WeatherBoardItem[]>([]);
   const [userData, setUserData] = useState<WeatherBoardItem | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
@@ -114,25 +131,24 @@ export default function HomeScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>();
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useFocusEffect(
     useCallback(() => {
+      if (!user) return;
       const fetchCurrentRoom = async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
         const { data: roomData, error: roomError } = await supabase.from('room_members').select('room_id').eq('user_id', user.id);
-        if (roomError) return Alert.alert(roomError?.message);
+        if (roomError) {
+          console.error('[index(tab)] fetchCurrentRoom', roomError.message);
+          Alert.alert('ルームの取得に失敗しました。');
+          return;
+        }
         if (roomData.length === 0) return router.replace('/(auth)/room-setup');
         setCurrentRoomId(roomData[0]?.room_id);
       };
       fetchCurrentRoom();
-    }, [setCurrentRoomId, router]),
+    }, [setCurrentRoomId, router, user]),
   );
 
-  // ボードデータ取得 + weather_logsのリアルタイム監視
   useFocusEffect(
     useCallback(() => {
       if (!currentRoomId) return;
@@ -153,24 +169,19 @@ export default function HomeScreen() {
     }, [currentRoomId]),
   );
 
-  // 未読通知数取得 + notificationsのリアルタイム監視
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
     const setUp = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
+      if (!user) return;
       const channelName = `unreadCounts-${user.id}`;
       const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
       if (existing) await supabase.removeChannel(existing);
-
-      fetchNotificationsData(setUnreadCounts);
+      fetchNotificationsData(user.id, setUnreadCounts);
       fetchActivityFeed(currentRoomId, setActivityFeed);
       channel = supabase
         .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-          fetchNotificationsData(setUnreadCounts);
+          fetchNotificationsData(user.id, setUnreadCounts);
           fetchActivityFeed(currentRoomId, setActivityFeed);
         })
         .subscribe();
@@ -179,16 +190,13 @@ export default function HomeScreen() {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [currentRoomId]);
+  }, [currentRoomId, user]);
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
-    const setUp = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return Alert.alert('ユーザーが取得出来ませんでした。');
-      const channelName = `comment-status-${user.id}`;
+    if (!user) return;
+    const setUp = async (userId: string) => {
+      const channelName = `comment-status-${userId}`;
       const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
       if (existing) await supabase.removeChannel(existing);
 
@@ -200,26 +208,21 @@ export default function HomeScreen() {
         })
         .subscribe();
     };
-    setUp();
+    setUp(user.id);
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
-
-  // boardDataからログインユーザーのデータを抽出（背景画像の天気を決めるため）
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
-      const fetchUserData = async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
+      if (!user) return;
+      const fetchUserData = () => {
         const userData = boardData.filter((data) => data.user_id === user.id);
         if (userData.length > 0) setUserData(userData[0]);
       };
       fetchUserData();
-    }, [boardData]),
+    }, [boardData, user]),
   );
 
   const backgroundImage = userData ? WEATHER_IMAGES[userData.weather] : WEATHER_IMAGES.sunny;
@@ -260,7 +263,7 @@ export default function HomeScreen() {
                       {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code}
                     </Text>
                   ) : (
-                    <View className="w-20 h-4 rounded-full bg-white/20"/>
+                    <View className="w-20 h-4 rounded-full bg-white/20" />
                   )}
                   <Ionicons name="copy-outline" size={16} color="white" />
                 </View>
