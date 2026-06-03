@@ -1,16 +1,18 @@
 import * as Clipboard from 'expo-clipboard';
+import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, ImageBackground, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { BlurView } from 'expo-blur';
+import { useFocusEffect, useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
+
 import { WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
+import { useUser } from '@/context/UserContext';
 import useProfileSetUp from '@/hooks/useProfileSetUp';
 import useRoomCreate from '@/hooks/useRoomCreate';
 import useRoomJoin from '@/hooks/useRoomJoin';
 import { supabase } from '@/lib/supabase';
-
-import { BlurView } from 'expo-blur';
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import Toast from 'react-native-toast-message';
 
 type RoomData = {
   rooms: { id: string; name: string; invite_code: string }[];
@@ -74,81 +76,111 @@ const AVATARS = [
   '🎃',
 ];
 
-const fetchInviteData = async (setter: (data: RoomData[]) => void) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Alert.alert('ユーザーの取得がでいませんでした。');
-  const { data: roomData, error: roomError } = await supabase.from('room_members').select('rooms(id, name, invite_code)').eq('user_id', user.id);
-  if (roomError) return Alert.alert(roomError.message);
-  setter(roomData ?? []);
-};
-
-const fetchProfileData = async (avatarSetter: (avatar: string) => void, nicknameSetter: (name: string) => void) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Alert.alert('ユーザーの取得がでいませんでした。');
-  const { data: profileData, error: profileError } = await supabase.from('profiles').select('nickname, avatar_emoji').eq('user_id', user.id);
-  if (profileError) return Alert.alert(profileError.message);
-  avatarSetter(profileData[0]?.avatar_emoji);
-  nicknameSetter(profileData[0]?.nickname);
-};
+const backgroundImage = require('@/assets/images/weather/settings.png');
 
 export default function Settings() {
+  const { user } = useUser();
+  const userId = user?.id;
   const router = useRouter();
   const [roomData, setRoomData] = useState<RoomData[]>([]);
+  const { setCurrentRoomId, refreshRooms } = useRoom();
   const [isInviteVisible, setIsInviteVisible] = useState(false);
   const [isJoinVisible, setIsJoinVisible] = useState(false);
   const [isCreateVisible, setIsCreateVisible] = useState(false);
   const [isProfileSetUpVisible, setIsProfileSetUpVisible] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const { handleCreateRoom, setRoomName, roomName } = useRoomCreate(async() => {
+  const { handleCreateRoom, setRoomName, roomName } = useRoomCreate(async (roomId) => {
     setIsCreateVisible(false);
     Toast.show({ type: 'success', text1: `ルーム[${roomName}]を作成しました`, visibilityTime: 1500 });
     setRoomName('');
-    await fetchInviteData(setRoomData);
+    await fetchInviteData();
+    await refreshRooms();
+    setCurrentRoomId(roomId);
+    router.replace('/(tabs)');
   });
 
-  const { inviteCode, setInviteCode, isJoining, handleJoinRoom } = useRoomJoin(async (roomName) => {
+  const { inviteCode, setInviteCode, isJoining, handleJoinRoom } = useRoomJoin(async (roomName, roomId) => {
     setIsJoinVisible(false);
     Toast.show({ type: 'success', text1: `${roomName}に参加しました。`, visibilityTime: 1500 });
     setInviteCode('');
-    await fetchInviteData(setRoomData);
+    await fetchInviteData();
+    await refreshRooms();
+    setCurrentRoomId(roomId);
+    router.replace('/(tabs)');
   });
 
-  const { handleSaveProfile, setNickname, setAvatar, avatar, nickname } = useProfileSetUp(async() => {
+  const { handleSaveProfile, setNickname, setAvatar, avatar, nickname } = useProfileSetUp(async () => {
     setIsProfileSetUpVisible(false);
     Toast.show({ type: 'success', text1: `プロフィールを変更しました。`, visibilityTime: 1500 });
-    await fetchProfileData(setAvatar, setNickname);
+    await fetchProfileData();
   });
 
-  const handleLeaveRoom = async (roomId: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return Alert.alert('ユーザーの取得がでいませんでした。');
-    const { error: roomMembersError } = await supabase.from('room_members').delete().eq('user_id', user.id).eq('room_id', roomId);
-    if (roomMembersError) Alert.alert(roomMembersError.message);
-    await fetchInviteData(setRoomData);
+  const fetchInviteData = useCallback(async () => {
+    const { data: roomData, error: roomError } = await supabase.from('room_members').select('rooms(id, name, invite_code)').eq('user_id', userId);
+    if (roomError) {
+      console.error('[settings] fetchInviteData', roomError.message);
+      Alert.alert('ルームメンバーの取得に失敗しました。');
+      return;
+    }
+    setRoomData(roomData ?? []);
+  }, [userId]);
 
-    Toast.show({ type: 'success', text1: `ルームを削除しました`, visibilityTime: 1500 });
+  const fetchProfileData = useCallback(async () => {
+    const { data: profileData, error: profileError } = await supabase.from('profiles').select('nickname, avatar_emoji').eq('user_id', userId);
+    if (profileError) {
+      console.error('[settings] fetchProfileData', profileError.message);
+      Alert.alert('プロフィールの取得に失敗しました。');
+      return;
+    }
+    setAvatar(profileData[0]?.avatar_emoji);
+    setNickname(profileData[0]?.nickname);
+  }, [userId, setNickname, setAvatar]);
+
+  const handleLeaveRoom = async (roomId: string) => {
+    if (isLeaving) return;
+    setIsLeaving(true);
+    try {
+      const { error: roomMembersError } = await supabase.from('room_members').delete().eq('user_id', userId).eq('room_id', roomId);
+      if (roomMembersError) {
+        console.error('[settings] handleLeaveRoom', roomMembersError.message);
+        Alert.alert('削除に失敗しました。');
+        return;
+      }
+      const remaining = roomData.flatMap((d) => d.rooms).filter((d) => d.id !== roomId);
+      setCurrentRoomId(remaining[0]?.id ?? null);
+      await fetchInviteData();
+      await refreshRooms();
+      Toast.show({ type: 'success', text1: `ルームを削除しました`, visibilityTime: 1500 });
+    } finally {
+      setIsLeaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[settings] handleLeaveRoom', error.message);
+        Alert.alert('ログアウトに失敗しました。');
+        return;
+      }
+      router.replace('/(auth)/login');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   useFocusEffect(
     useCallback(() => {
-      fetchInviteData(setRoomData);
-      fetchProfileData(setAvatar, setNickname);
-    }, [setAvatar, setNickname]),
+      fetchInviteData();
+      fetchProfileData();
+    }, [fetchProfileData, fetchInviteData]),
   );
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) Alert.alert('ログアウトに失敗しました。');
-    else router.replace('/(auth)/login');
-  };
-
-  const backgroundImage = require('@/assets/images/weather/explore.png');
   return (
     <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center gap-12 px-10">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
@@ -170,18 +202,18 @@ export default function Settings() {
         </Text>
       </Pressable>
 
-      <Pressable onPress={handleLogout} className="w-full py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
-        <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-          ログアウト
-        </Text>
-      </Pressable>
-
       <Pressable
         onPress={() => setIsProfileSetUpVisible(true)}
         className="w-full py-6 px-2 rounded-xl flex justify-center items-center border"
         style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
         <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
           プロフィール編集
+        </Text>
+      </Pressable>
+
+      <Pressable onPress={handleLogout} className="w-full py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
+        <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+          ログアウト
         </Text>
       </Pressable>
 

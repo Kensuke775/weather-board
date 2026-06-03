@@ -6,7 +6,7 @@ import * as Crypto from 'expo-crypto';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
-export default function useRoomCreate(onSuccess?: () => Promise<void>) {
+export default function useRoomCreate(onSuccess?: (roomId: string) => Promise<void>) {
   const { user } = useUser();
   const [roomName, setRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -36,7 +36,7 @@ export default function useRoomCreate(onSuccess?: () => Promise<void>) {
         Alert.alert('ルームメンバーの記録に失敗しました。');
         return;
       }
-      await onSuccess?.();
+      await onSuccess?.(roomId);
     } finally {
       setIsCreating(false);
     }

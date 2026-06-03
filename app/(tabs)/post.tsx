@@ -46,7 +46,7 @@ export default function Post() {
       }
       const { data: logData, error: logError } = await supabase
         .from('weather_logs')
-        .upsert({ user_id: userId, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,room_id' })
+        .upsert({ user_id: userId, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,room_id,logged_date' })
         .select('id')
         .single();
       if (logError) {

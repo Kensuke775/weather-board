@@ -49,7 +49,6 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           if (!userId) return;
           markAsRead(userId, weather_log_id);
         }}
-        className="mb-3"
         style={{ flex: 1, maxWidth: '48%' }}>
         <View>
           <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: backgroundColor }}>

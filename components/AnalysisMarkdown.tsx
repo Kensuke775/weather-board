@@ -22,12 +22,12 @@ export function AnalysisMarkdown({ content }: AnalysisMarkdownProps) {
         },
       }}
       styles={{
-        h1: { fontSize: 24, fontWeight: 'bold' },
-        h2: { fontSize: 20, fontWeight: 'bold' },
-        h3: { fontSize: 18, fontWeight: 'bold' },
-        text: { fontSize: 12 },
+        h1: { fontSize: 20, fontWeight: 'bold' },
+        h2: { fontSize: 18, fontWeight: 'bold' },
+        h3: { fontSize: 16, fontWeight: 'bold' },
+        text: { fontSize: 13 },
         paragraph: { marginBottom: 16 },
-        li: { fontSize: 12, lineHeight: 20 },
+        li: { fontSize: 14, lineHeight: 20 },
         hr: { borderBottomWidth: 0 },
       }}
       value={content}

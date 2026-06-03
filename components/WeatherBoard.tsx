@@ -1,7 +1,7 @@
-import { FlatList } from 'react-native';
+import { FlatList, View } from 'react-native';
 
-import { CommentsStatus, WeatherBoardItem } from '@/lib/types';
 import WeatherCard from '@/components/WeatherCard';
+import { CommentsStatus, WeatherBoardItem } from '@/lib/types';
 
 type WeatherBoardProps = {
   weatherLogs: WeatherBoardItem[];
@@ -15,9 +15,10 @@ export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus 
       data={weatherLogs}
       keyExtractor={(item) => item.id}
       numColumns={2}
-      columnWrapperStyle={{ gap: 12, justifyContent: 'flex-start' }}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center'}}
+      columnWrapperStyle={{ gap: 20, justifyContent: 'flex-start' }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16, paddingTop: 16 }}
       showsVerticalScrollIndicator={false}
+      ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
       renderItem={({ item }) => (
         <WeatherCard
           nickname={item.profiles.nickname}

@@ -86,6 +86,13 @@ export type NameAvatar = {
   avatar_emoji: string
 }
 
+export type RoomMember = {
+  user_id: string
+  nickname: string;
+  avatar_emoji: string
+}
+
+
 export type Reaction = {
   id: string;
   from_user_id: string;

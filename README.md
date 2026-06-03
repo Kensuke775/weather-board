@@ -1,50 +1,60 @@
-# Welcome to your Expo app 👋
+# Weather Board
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+感情を「天気」で表現して、グループで共有するシェアハウス型アプリ。
+天気みたいに気分は毎日変わる。だから気軽に、正直に共有できる。
 
-## Get started
+## できること
 
-1. Install dependencies
+- 自分の気分を天気で投稿して、グループメンバーと共有
+- 投稿の天気に応じて付箋の色や背景が変わるビジュアル表現
+- 投稿にコメントを残したり、「ちょっと話したい」通知を送れる
+- 通知はアプリ内・プッシュ通知の両方で受け取れる
+- 絵文字でアバターを作成してプロフィールをカスタマイズ
+- ルームを作成・参加して、グループを分けて管理（上限なし）
+- ルームの招待コードをコピーしたり、ルーム一覧から削除が可能
+- 投稿にアクティビティタグを付けて記録
+- 1週間分の投稿をもとに AI が分析・アドバイスを生成
+- ヒストリーカレンダーで1ヶ月分の天気ログを振り返り
 
-   ```bash
-   npm install
-   ```
+## スクリーンショット
 
-2. Start the app
+| ホーム | ホーム（コメント） | 投稿 |
+|---|---|---|
+| ![ホーム](screenshots/weather-board-home-1.png) | ![ホーム2](screenshots/weather-board-home-2.png) | ![投稿](screenshots/weather-board-home-3.png) |
 
-   ```bash
-   npx expo start
-   ```
+| AI分析 | AI分析（履歴） | ヒストリーカレンダー |
+|---|---|---|
+| ![分析](screenshots/weather-board-analyze.png) | ![分析2](screenshots/weather-board-analyze-2.png) | ![カレンダー](screenshots/weather-board-history.png) |
 
-In the output, you'll find options to open the app in a
+| カレンダー詳細 | 通知 | 設定 |
+|---|---|---|
+| ![カレンダー2](screenshots/weather-board-history-2.png) | ![通知](screenshots/weather-board-notification.png) | ![設定](screenshots/weather-board-settings.png) |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 技術スタック
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- React Native
+- Expo / Expo Router
+- TypeScript
+- Supabase（DB・認証・Realtime・Edge Functions）
+- PostgreSQL
+- Anthropic Claude API
+- Expo Push Notifications
+- NativeWind
 
-## Get a fresh project
-
-When you're ready, run:
+## セットアップ
 
 ```bash
-npm run reset-project
+# パッケージのインストール
+npm install
+
+# 環境変数の設定
+cp .env.example .env
+# .env に Supabase の URL・APIキー・Anthropic APIキーを記入
+
+# 起動
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 作者
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+GitHub: [Kensuke775](https://github.com/Kensuke775)

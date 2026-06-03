@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 
 import { User } from '@supabase/supabase-js';
 
@@ -7,35 +6,25 @@ import { supabase } from '@/lib/supabase';
 
 type UserProviderType = {
   user: User | null;
-};
-
-const fetchUserData = async (setter: (data: User | null) => void) => {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    if (error.message === 'Network request failed') {
-      Alert.alert('通信エラーが発生しました。ネットワークを確認してください。');
-    } else {
-      console.error('[UserContext] fetchUserData', error.message);
-      Alert.alert('ユーザーの取得に失敗しました。');
-    }
-    return;
-  }
-  setter(user);
+  isLoading: boolean;
 };
 
 const UserContext = createContext<UserProviderType>(null!);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setisLoading] = useState(true);
   useEffect(() => {
-    fetchUserData(setUser);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setisLoading(false);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  return <UserContext.Provider value={{ user }}>{children}</UserContext.Provider>;
+  return <UserContext.Provider value={{ user, isLoading }}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {

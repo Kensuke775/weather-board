@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Alert, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
 
+import { makeRedirectUri } from 'expo-auth-session';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
 const backgroundImage = require('@/assets/images/weather/login.png');
+const redirectTo = makeRedirectUri();
 
 export default function AuthLogin() {
   const router = useRouter();
@@ -17,6 +20,33 @@ export default function AuthLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) {
+      console.error('[login] handleGoogleLogin', error.message);
+      return;
+    }
+    if (!data.url) return;
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type === 'success') {
+      const url = new URL(result.url);
+      const params = new URLSearchParams(url.hash.replace('#', ''));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (!accessToken || !refreshToken) return;
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    }
+  };
 
   const handleLogin = async () => {
     if (isSubmitting) return;
@@ -76,7 +106,14 @@ export default function AuthLogin() {
           ログイン
         </Text>
       </Pressable>
-      <Pressable className="py-6 px-2 rounded-xl flex justify-center items-center border" onPress={() => router.push('/(auth)/signup')} style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
+
+      <Pressable onPress={handleGoogleLogin} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
+        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+          Googleアカウントからのログインはこちら
+        </Text>
+      </Pressable>
+
+      <Pressable onPress={() => router.push('/(auth)/signup')} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
         <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
           アカウントをお持ちでない方はこちら
         </Text>

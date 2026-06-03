@@ -11,12 +11,17 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   )
   // 通知先のpush_tokenを取得
-  const {data: profileData, error } = await supabaseClient.from('profiles').select('push_token').eq('user_id', to_user_id).single();
-  if(error || !profileData) return new Response('プロフィールの取得に失敗', { status: 400 });
-  if(profileData.push_token === null) return new Response('プッシュトークンの取得に失敗しました。', { status: 404 });
+  const {data: profileData, error: profileError } = await supabaseClient.from('profiles').select('push_token').eq('user_id', to_user_id).single();
+  if(profileError || !profileData) {
+    console.error('[send-push-notification]', profileError.message);
+    return new Response('プロフィールの取得に失敗', { status: 400 });
+  }
+  if(profileData.push_token === null) {
+    return new Response('ok', { status: 200 });
+  }
 
   // Expo Push APIで通知を送信
-  await fetch('https://exp.host/--/api/v2/push/send', {
+  const pushResponse = await fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -26,6 +31,10 @@ Deno.serve(async (req) => {
     })
   })
 
+  if(!pushResponse.ok) {
+    console.error('[send-push-notification] pushResponse error', pushResponse.status);
+    return new Response('pushResponse APIの呼び出しに失敗しました。', { status: 500 })
+  }
 
   return new Response(
     JSON.stringify({ok: true}),

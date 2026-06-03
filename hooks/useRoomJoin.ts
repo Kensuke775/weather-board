@@ -4,8 +4,7 @@ import { Alert } from 'react-native';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
-
-export default function useRoomJoin(onSuccess?: (roomName: string) => Promise<void>) {
+export default function useRoomJoin(onSuccess?: (roomName: string, roomId: string) => Promise<void>) {
   const { user } = useUser();
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -44,7 +43,7 @@ export default function useRoomJoin(onSuccess?: (roomName: string) => Promise<vo
         Alert.alert('ルームメンバーの記録に失敗しました。');
         return;
       }
-      await onSuccess?.(roomData.name);
+      await onSuccess?.(roomData.name, roomData.id);
     } finally {
       setIsJoining(false);
     }
