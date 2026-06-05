@@ -35,8 +35,6 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging",
       [
         "expo-splash-screen",
         {
@@ -46,14 +44,6 @@
           "backgroundColor": "#ffffff",
           "dark": {
             "backgroundColor": "#000000"
-          }
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
           }
         }
       ]
