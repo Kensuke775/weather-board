@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "weatherboard",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kensuke0225.weather-board",
@@ -35,6 +35,8 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "expo-splash-screen",
         {
@@ -54,9 +56,7 @@
             "useFrameworks": "static"
           }
         }
-      ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
