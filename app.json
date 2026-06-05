@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "weatherboard",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kensuke0225.weather-board",
