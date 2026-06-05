@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kensuke0225.weather-board"
+      "bundleIdentifier": "com.kensuke0225.weather-board",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -43,7 +46,14 @@
           }
         }
       ],
-      "expo-build-properties"
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useModularHeaders": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
