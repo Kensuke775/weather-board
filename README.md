@@ -22,9 +22,9 @@
 |---|---|---|
 | ![ホーム](screenshots/weather-board-home-1.png) | ![ホーム2](screenshots/weather-board-home-2.png) | ![投稿](screenshots/weather-board-home-3.png) |
 
-| AI分析 | AI分析（履歴） | ヒストリーカレンダー |
+| 投稿 | AI分析 | ヒストリーカレンダー |
 |---|---|---|
-| ![分析](screenshots/weather-board-analyze.png) | ![分析2](screenshots/weather-board-analyze-2.png) | ![カレンダー](screenshots/weather-board-history.png) |
+| ![分析2](screenshots/weather-board-analyze-2.png) | ![分析](screenshots/weather-board-analyze.png) | ![カレンダー](screenshots/weather-board-history.png) |
 
 | カレンダー詳細 | 通知 | 設定 |
 |---|---|---|
