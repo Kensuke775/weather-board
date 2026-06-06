@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, View } from 'react-native';
+import { ActivityIndicator, Alert, ImageBackground, Platform, View } from 'react-native';
 
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { BlurView } from 'expo-blur';
@@ -47,7 +47,7 @@ export default function TabLayout() {
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
     let unsubscribeForegroundMessage: (() => void) | undefined;
-    if (!isExpoGo) {
+    if (!isExpoGo && Platform.OS === 'android') {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { getMessaging, onMessage } = require('@react-native-firebase/messaging');
       unsubscribeForegroundMessage = onMessage(getMessaging(), async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
