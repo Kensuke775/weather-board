@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, ImageBackground, Keyboard, Pressable, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 
 import { makeRedirectUri } from 'expo-auth-session';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
+import GlassButton from '@/components/GlassButton';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
@@ -78,46 +79,36 @@ export default function AuthLogin() {
   if (!fontsLoaded) return null;
 
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 justify-center gap-10 px-10">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
+    <Pressable onPress={Keyboard.dismiss} style={{flex: 1}}>
+      <ImageBackground source={backgroundImage} className="flex-1 justify-center px-10">
+        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
 
-      <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-        Log In
-      </Text>
-      <View>
-        <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          メールアドレス
+        <Text className="text-4xl text-center mb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
+          Log In
         </Text>
-        <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
-      </View>
+        <View className="mb-4">
+          <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+            メールアドレス
+          </Text>
+          <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" textContentType="emailAddress" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
+        </View>
 
-      <View className="w-full">
-        <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          パスワード
-        </Text>
-        <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
-        <Text className="text-sm" style={{ color: WeatherBoardColors.textPrimary }}>
-          ※6文字以上で設定してください
-        </Text>
-      </View>
+        <View className="w-full mb-8">
+          <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+            パスワード
+          </Text>
+          <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" textContentType="password" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
+          <Text className="text-sm" style={{ color: WeatherBoardColors.textPrimary }}>
+            ※6文字以上で設定してください
+          </Text>
+        </View>
 
-      <Pressable onPress={handleLogin} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-        <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-          ログイン
-        </Text>
-      </Pressable>
-
-      <Pressable onPress={handleGoogleLogin} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
-        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          Googleアカウントからのログインはこちら
-        </Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push('/(auth)/signup')} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
-        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          アカウントをお持ちでない方はこちら
-        </Text>
-      </Pressable>
-    </ImageBackground>
+        <View className="flex gap-5">
+          <GlassButton onPress={handleLogin} buttonText="ログイン" backgroundColor={WeatherBoardColors.accentBackground} buttonIcon="log-in-outline" />
+          <GlassButton onPress={handleGoogleLogin} buttonText="Googleでログイン" buttonIcon="logo-google" backgroundColor="#4285F4" />
+          <GlassButton onPress={() => router.push('/(auth)/signup')} buttonText="アカウントを新しく作る" backgroundColor={WeatherBoardColors.secondaryBackground} buttonIcon="person-add-outline" />
+        </View>
+      </ImageBackground>
+    </Pressable>
   );
 }

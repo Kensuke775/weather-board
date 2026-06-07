@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, ImageBackground, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
-import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { useRouter } from 'expo-router';
 
+import GlassButton from '@/components/GlassButton';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
@@ -49,41 +50,34 @@ export default function AuthSignUp() {
   if (!fontsLoaded) return null;
 
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 justify-center gap-10 px-10">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
-      <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-        Sign Up
-      </Text>
-      <View className="w-full">
-        <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          メールアドレス
+    <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
+      <ImageBackground source={backgroundImage} className="flex-1 justify-center px-10">
+        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
+        <Text className="text-4xl text-center mb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
+          Sign Up
         </Text>
-        <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
-      </View>
+        <View className="w-full mb-4">
+          <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+            メールアドレス
+          </Text>
+          <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" textContentType="emailAddress" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
+        </View>
 
-      <View className="w-full">
-        <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          パスワード
-        </Text>
-        <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
-        <Text className="text-sm" style={{ color: WeatherBoardColors.textPrimary }}>
-          ※6文字以上で設定してください
-        </Text>
-      </View>
+        <View className="w-full mb-8">
+          <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+            パスワード
+          </Text>
+          <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" textContentType="newPassword" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
+          <Text className="text-sm" style={{ color: WeatherBoardColors.textPrimary }}>
+            ※6文字以上で設定してください
+          </Text>
+        </View>
 
-      <Pressable onPress={handleSignUp} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-        <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-          新規登録
-        </Text>
-      </Pressable>
-      <Pressable
-        className="py-6 px-2 rounded-xl flex justify-center items-center border"
-        onPress={() => router.replace('/(auth)/login')}
-        style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
-        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          戻る
-        </Text>
-      </Pressable>
-    </ImageBackground>
+        <View className="flex gap-8">
+          <GlassButton onPress={handleSignUp} buttonText="新規登録" buttonIcon="person-add-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+          <GlassButton onPress={() => router.replace('/(auth)/login')} buttonText="戻る" buttonIcon="arrow-back-outline" backgroundColor={WeatherBoardColors.secondaryBackground} />
+        </View>
+      </ImageBackground>
+    </Pressable>
   );
 }

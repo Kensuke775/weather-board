@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, ScrollView, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -8,6 +9,7 @@ import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
+import GlassButton from '@/components/GlassButton';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
@@ -19,6 +21,7 @@ const backgroundImage = require('@/assets/images/weather/post.png');
 export default function Post() {
   const router = useRouter();
   const { user } = useUser();
+  const userId = user?.id;
   const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [fontsLoaded] = useFonts({
     DancingScript_400Regular: Fonts.titleFont,
@@ -30,7 +33,6 @@ export default function Post() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPosting, setIsPosting] = useState(false);
-  const userId = user?.id;
   const { width } = Dimensions.get('window');
   const ITEM_WIDTH = 80;
   const PADDING = (width - ITEM_WIDTH) / 2;
@@ -113,7 +115,7 @@ export default function Post() {
   const now = new Date().toLocaleString('ja-JP', { month: '2-digit', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}/>
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }} />
       <View className="flex-1 pb-8">
         <BlurView intensity={10} tint="light" className="pt-20 pb-4 overflow-visible" style={{ borderBottomWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
           <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
@@ -149,7 +151,7 @@ export default function Post() {
           </View>
         </BlurView>
 
-        <ScrollView keyboardShouldPersistTaps="handled" className="px-10" contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: 60, paddingBottom: 30 }}>
+        <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-10" contentContainerStyle={{ flexGrow: 1, paddingTop: 60, paddingBottom: 30 }}>
           <TouchableWithoutFeedback onPress={() => setIsInputVisible(false)}>
             <View>
               <View className="mb-12">
@@ -160,7 +162,7 @@ export default function Post() {
                 <View>
                   <Pressable onPress={() => setIsModalVisible(true)}>
                     <BlurView intensity={40} tint="light" className="flex-row items-center justify-between gap-2 p-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
-                      <Text className="text-xl font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                      <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                         {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
                       </Text>
 
@@ -227,20 +229,17 @@ export default function Post() {
                   style={{ borderColor: WeatherBoardColors.glassBorder }}
                 />
               </View>
+
+              <View className="mb-24">
+                <GlassButton onPress={handlePost} buttonText="天気を投稿する" buttonIcon="cloud-upload-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+
+                <Text className="text-center text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+                  天気・タグ・メモはAI分析に反映されます
+                </Text>
+              </View>
             </View>
           </TouchableWithoutFeedback>
-        </ScrollView>
-        <View className="mb-24 px-10">
-          <Pressable onPress={handlePost} className="mt-4 py-6 rounded-xl flex justify-center items-center border mb-4" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-            <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-              天気を投稿する
-            </Text>
-          </Pressable>
-
-          <Text className="text-center text-xs" style={{ color: WeatherBoardColors.textMuted }}>
-            天気・タグ・メモはAI分析に反映されます
-          </Text>
-        </View>
+        </KeyboardAwareScrollView>
       </View>
     </ImageBackground>
   );

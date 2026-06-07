@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, FlatList, ImageBackground, Pressable, Text, View } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
 import { useFocusEffect } from 'expo-router';
@@ -104,6 +105,86 @@ export default function Analysis() {
   );
 
   if (!fontsLoaded) return null;
+
+  const renderContent = () => {
+    if (isAnalysing)
+      return (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="white" />
+        </View>
+      );
+    if (isHistory)
+      return (
+        <View className="flex-1 pb-12">
+          {selectedHistory ? (
+            <View className="flex-1 gap-2">
+              <View className="flex-row justify-between items-center mb-6">
+                <Pressable onPress={() => setSelectedHistory(null)} className="py-2 pl-2">
+                  <Text className="text-center text-base font-bold border-b" style={{ color: WeatherBoardColors.textPrimary, borderBottomColor: WeatherBoardColors.textPrimary }}>
+                    戻る
+                  </Text>
+                </Pressable>
+                <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                  {new Date(selectedHistory.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              <View style={{ maxHeight: MARKDOWN_MAX_HEIGHT }}>
+                <AnalysisMarkdown content={selectedHistory.content} />
+              </View>
+            </View>
+          ) : (
+            <FlatList
+              data={histories}
+              keyExtractor={(item) => item.id}
+              ItemSeparatorComponent={() => <View className="h-4" />}
+              contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
+              renderItem={({ item }) => {
+                const title = item.content.split('\n')[0].replace(/^#\s*/, '');
+                return (
+                  <Pressable onPress={() => setSelectedHistory(item)} className="p-4 border flex-row items-center justify-between" style={{ borderColor: WeatherBoardColors.glassBorder }}>
+                    <Text className="text-sm font-semibold flex-1" style={{ color: WeatherBoardColors.textPrimary }}>
+                      {title}
+                    </Text>
+                    <Text className="text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+                      {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit' })}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          )}
+        </View>
+      );
+    if (analysisContent) return <AnalysisMarkdown content={analysisContent.content} />;
+    return (
+      <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary, padding: 8 }}>
+        まだ分析結果がありません。
+      </Text>
+    );
+  };
+
+  const renderButton = () => {
+    if (isHistory) return null;
+    if (isLoading) return <ActivityIndicator size="small" color="white" />;
+    if (canAnalyze)
+      return (
+        <>
+          <Ionicons name="analytics-outline" size={20} color="white" />
+          <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+            1週間分の分析ができます。
+          </Text>
+        </>
+      );
+    return (
+      <>
+        <Ionicons name="analytics-outline" size={20} color="white" />
+        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+          1週間分の分析は終わってます。
+        </Text>
+      </>
+    );
+  };
+
   return (
     <ImageBackground source={backgroundImage} className="flex-1 justify-center px-5">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
@@ -134,74 +215,23 @@ export default function Analysis() {
         </View>
 
         <BlurView intensity={50} tint={'dark'} className="overflow-hidden p-3 flex-1 mb-8 border" style={{ borderTopRightRadius: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: WeatherBoardColors.glassBorder }}>
-          {isAnalysing ? (
-            <View className="flex-1 justify-center items-center">
-              <ActivityIndicator size="large" color="white" />
-            </View>
-          ) : isHistory ? (
-            <View className="flex-1 pb-12">
-              {selectedHistory ? (
-                <View className="flex-1 gap-2">
-                  <View className="flex-row justify-between items-center mb-6">
-                    <Pressable onPress={() => setSelectedHistory(null)} className="py-2 pl-2">
-                      <Text className="text-center text-base font-bold border-b" style={{ color: WeatherBoardColors.textPrimary, borderBottomColor: WeatherBoardColors.textPrimary }}>
-                        戻る
-                      </Text>
-                    </Pressable>
-                    <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
-                      {new Date(selectedHistory.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  </View>
-                  <View style={{ maxHeight: MARKDOWN_MAX_HEIGHT }}>
-                    <AnalysisMarkdown content={selectedHistory.content} />
-                  </View>
-                </View>
-              ) : (
-                <FlatList
-                  data={histories}
-                  keyExtractor={(item) => item.id}
-                  ItemSeparatorComponent={() => <View className="h-4" />}
-                  contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
-                  renderItem={({ item }) => {
-                    const title = item.content.split('\n')[0].replace(/^#\s*/, '');
-                    return (
-                      <Pressable onPress={() => setSelectedHistory(item)} className="p-4 border flex-row items-center justify-between" style={{ borderColor: WeatherBoardColors.glassBorder }}>
-                        <Text className="text-sm font-semibold flex-1" style={{ color: WeatherBoardColors.textPrimary }}>
-                          {title}
-                        </Text>
-                        <Text className="text-xs" style={{ color: WeatherBoardColors.textMuted }}>
-                          {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit' })}
-                        </Text>
-                      </Pressable>
-                    );
-                  }}
-                />
-              )}
-            </View>
-          ) : analysisContent ? (
-            <AnalysisMarkdown content={analysisContent.content} />
-          ) : (
-            <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary, padding: 8 }}>
-              まだ分析結果がありません。
-            </Text>
-          )}
+          {renderContent()}
         </BlurView>
 
         {!isHistory && (
           <View>
-            <Pressable onPress={handleAnalysis} className="border py-6 rounded-xl" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-              {isLoading ? (
-                <ActivityIndicator size="small" color="white" className="text-center" />
-              ) : canAnalyze ? (
-                <Text className="text-center text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                  1週間分の分析ができます。
-                </Text>
-              ) : (
-                <Text className="text-center text-base font-bold" style={{ color: WeatherBoardColors.textPrimary, backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-                  1週間分の分析は終わってます。
-                </Text>
-              )}
-            </Pressable>
+            <BlurView
+              intensity={50}
+              tint="light"
+              className="overflow-hidden rounded-xl border"
+              style={{
+                borderColor: WeatherBoardColors.glassBorder,
+                backgroundColor: canAnalyze ? WeatherBoardColors.accentBackground : WeatherBoardColors.secondaryBackground,
+              }}>
+              <Pressable onPress={handleAnalysis} className="py-6 flex-row justify-center items-center gap-3">
+                {renderButton()}
+              </Pressable>
+            </BlurView>
             {!isLoading && !canAnalyze && (
               <Text className="text-sm text-center " style={{ color: WeatherBoardColors.textPrimary }}>
                 {`あと ${days}日${hours}時間${minutes}分${secs}秒`}

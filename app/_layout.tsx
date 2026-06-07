@@ -3,7 +3,9 @@ import 'react-native-reanimated';
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import Toast from 'react-native-toast-message';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import Toast, { BaseToast } from 'react-native-toast-message';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { RoomProvider } from '@/context/RoomContext';
@@ -17,16 +19,23 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const toastConfig = {
+    success: (props) => <BaseToast {...props} style={{ marginHorizontal: 20 }} />,
+  };
   return (
     <GluestackUIProvider mode="light">
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <UserProvider>
           <RoomProvider>
-            <Stack>
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
-            </Stack>
-            <Toast position="bottom" bottomOffset={40} />
+            <KeyboardProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <Stack>
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
+                </Stack>
+                <Toast position="bottom" bottomOffset={40} config={toastConfig} />
+              </GestureHandlerRootView>
+            </KeyboardProvider>
           </RoomProvider>
         </UserProvider>
         <StatusBar style="auto" />

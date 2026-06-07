@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, ImageBackground, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, ImageBackground, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 
+import GlassButton from '@/components/GlassButton';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -75,7 +76,6 @@ export default function ProfileSetUp() {
   }) as [boolean, Error | null];
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const userId = user?.id;
 
@@ -111,65 +111,44 @@ export default function ProfileSetUp() {
   if (!fontsLoaded) return null;
 
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 px-10">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
-      <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
-        <View className="justify-center flex-1 gap-10">
-          <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-            Profile SetUp
-          </Text>
-
-          <View>
-            <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              ニックネームを考えてください。
-            </Text>
-            <TextInput value={nickname} onChangeText={setNickname} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
-          </View>
-
-          <View>
-            <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              アバターを選んでください。
+    <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
+      <ImageBackground source={backgroundImage} className="flex-1 px-10">
+        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
+        <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
+          <View className="justify-center flex-1">
+            <Text className="text-4xl text-center mb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
+              Profile SetUp
             </Text>
 
-            <View className="relative flex items-center p-4 overflow-hidden" style={{ borderRadius: 16 }}>
-              <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} />
-              <View className="flex-row gap-3 flex-wrap justify-center mb-4">
-                {isExpanded
-                  ? AVATARS.map((item) => (
-                      <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6 }}>
-                        <Text className="text-4xl">{item}</Text>
-                      </Pressable>
-                    ))
-                  : AVATARS.slice(0, 10).map((item) => (
-                      <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6 }}>
-                        <Text className="text-4xl">{item}</Text>
-                      </Pressable>
-                    ))}
+            <View className="mb-6">
+              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                ニックネームを入力してください。
+              </Text>
+              <TextInput value={nickname} onChangeText={setNickname} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+            </View>
+
+            <View className="mb-4">
+              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                アバターを選んでください。
+              </Text>
+
+              <View className="relative flex items-center p-4 overflow-hidden" style={{ borderRadius: 16 }}>
+                <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} />
+                <View className="flex-row gap-2 flex-wrap justify-center mb-4">
+                  {AVATARS.map((item) => (
+                    <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.5 }}>
+                      <Text className="text-3xl">{item}</Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
-              <Pressable onPress={() => setIsExpanded(!isExpanded)}>
-                <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                  さらに表示
-                </Text>
-              </Pressable>
+            </View>
+            <View className="flex gap-4">
+              <GlassButton onPress={handleSaveProfile} buttonText="保存する" buttonIcon="checkmark-outline" backgroundColor={WeatherBoardColors.accentBackground} />
             </View>
           </View>
-
-          <Pressable onPress={handleSaveProfile} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-            <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-              保存する
-            </Text>
-          </Pressable>
-
-          <Pressable
-            className="py-6 px-2 rounded-xl flex justify-center items-center border"
-            onPress={() => router.replace('/(auth)/login')}
-            style={{ backgroundColor: WeatherBoardColors.secondaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
-            <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              ログイン画面に戻る
-            </Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </ImageBackground>
+        </ScrollView>
+      </ImageBackground>
+    </Pressable>
   );
 }

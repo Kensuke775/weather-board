@@ -83,9 +83,9 @@ export default function Notifications() {
         data={dataNotifications}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View className="h-4" />}
-        contentContainerStyle={{ paddingTop: 16, marginBottom: 16, paddingRight: 40, paddingLeft: 40, overflow: 'visible' }}
+        contentContainerStyle={{ paddingTop: 16, marginBottom: 16, paddingRight: 20, paddingLeft: 20, overflow: 'visible' }}
         renderItem={({ item }) => (
-          <View className="relative overflow-visible">
+          <View className="relative overflow-visible flex-1">
             <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: WeatherBoardColors.glassBackground }}>
               <View className="flex flex-row items-center gap-1 mb-2">
                 <Text className="text-xl">{item.profiles?.avatar_emoji}</Text>
@@ -97,11 +97,11 @@ export default function Notifications() {
                 <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
                   {item.type === 'comment' ? 'コメントが届きました。' : '「少し話したいです」が届きました。'}
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
-                  {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </Text>
               </View>
             </BlurView>
+            <Text className="text-sm font-semibold text-right flex-1" style={{ color: WeatherBoardColors.textMuted }}>
+              {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </Text>
             {item.is_read ? null : (
               <View className="absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 flex justify-center items-center border" style={{ borderColor: WeatherBoardColors.glassBorder }}>
                 <Text className="text-white text-[7px] font-bold">new</Text>
