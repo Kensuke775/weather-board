@@ -81,9 +81,9 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
   }, [userId]);
   return (
     <View>
-      <View className="mb-10">
-        <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-          自分のタグ
+      <View className="mb-4">
+        <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+          タグを選択してください。
         </Text>
         <View className="flex-wrap flex-row gap-3">
           {userCreatedTags.map((tag) => (
@@ -95,7 +95,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
                 onPress={() => handleToggleTag(tag)}
                 key={tag.id}
                 style={selectedTags.some((item) => item.id === tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
-                <Text className="text-ms font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                   #{tag.tag_name}
                 </Text>
               </Pressable>
@@ -116,7 +116,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
         <View className="flex-row items-center rounded-xl overflow-hidden border" style={{ borderColor: WeatherBoardColors.glassBorder }}>
           <TextInput value={inputText} onChangeText={setInputText} placeholder="名前を入力し、追加してください。" autoCapitalize="none" className="flex-1 py-4 px-2 h-12 bg-white" />
           <Pressable onPress={handleInsertTag} className="px-1 flex justify-center items-center h-12" style={{ backgroundColor: WeatherBoardColors.tertiaryBackground }}>
-            <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+            <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
               追加する
             </Text>
           </Pressable>

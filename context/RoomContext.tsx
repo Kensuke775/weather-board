@@ -10,11 +10,12 @@ type RoomProviderType = {
   setCurrentRoomId: (id: string | null) => void;
   rooms: RoomItem[];
   refreshRooms: () => Promise<void>;
+  isLoading: boolean;
 };
 
 const RoomContext = createContext<RoomProviderType>(null!);
 
-const fetchRoomsData = async (userId: string, setterRoom: (roomData: RoomItem[]) => void, setterCurrentRoomId: (rooIdData: string | null) => void) => {
+const fetchRoomsData = async (userId: string, setterRoom: (roomData: RoomItem[]) => void, setterCurrentRoomId: (rooIdData: string | null) => void, setterLoding: (value: boolean) => void) => {
   const { data: roomsData, error: roomsError } = await supabase.from('room_members').select('rooms(id, name, invite_code)').eq('user_id', userId);
   if (roomsError) {
     console.error('[RoomContext] fetchRoomsData', roomsError.message);
@@ -27,25 +28,27 @@ const fetchRoomsData = async (userId: string, setterRoom: (roomData: RoomItem[])
   });
   setterRoom(formattedRoomData);
   setterCurrentRoomId(formattedRoomData[0]?.rooms.id ?? null);
+  setterLoding(false);
 };
 
 export function RoomProvider({ children }: { children: React.ReactNode }) {
-  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
-  const [rooms, setRooms] = useState<RoomItem[]>([]);
   const { user } = useUser();
   const userId = user?.id;
+  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
+  const [rooms, setRooms] = useState<RoomItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) return;
-    fetchRoomsData(userId, setRooms, setCurrentRoomId);
+    fetchRoomsData(userId, setRooms, setCurrentRoomId, setIsLoading);
   }, [userId]);
 
   const refreshRooms = async () => {
     if (!userId) return;
-    await fetchRoomsData(userId, setRooms, setCurrentRoomId);
+    await fetchRoomsData(userId, setRooms, setCurrentRoomId, setIsLoading);
   };
 
-  return <RoomContext.Provider value={{ currentRoomId, setCurrentRoomId, rooms, refreshRooms }}>{children}</RoomContext.Provider>;
+  return <RoomContext.Provider value={{ currentRoomId, setCurrentRoomId, rooms, refreshRooms, isLoading }}>{children}</RoomContext.Provider>;
 }
 
 export function useRoom() {

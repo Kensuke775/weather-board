@@ -2,7 +2,6 @@ import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, ImageBackground, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { BlurView } from 'expo-blur';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
@@ -16,7 +15,7 @@ import useRoomJoin from '@/hooks/useRoomJoin';
 import { supabase } from '@/lib/supabase';
 
 type RoomData = {
-  rooms: { id: string; name: string; invite_code: string }[];
+  rooms: { id: string; name: string; invite_code: string; created_by: string }[];
 };
 
 const AVATARS = [
@@ -91,6 +90,9 @@ export default function Settings() {
   const [isProfileSetUpVisible, setIsProfileSetUpVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRenameVisible, setIsRenameVisible] = useState(false);
+  const [renameRoomId, setRenameRoomId] = useState('');
+  const [renameRoomName, setRenameRoomName] = useState('');
 
   const { handleCreateRoom, setRoomName, roomName } = useRoomCreate(async (roomId) => {
     setIsCreateVisible(false);
@@ -102,7 +104,7 @@ export default function Settings() {
     Toast.show({ type: 'success', text1: `ルーム[${roomName}]を作成しました`, visibilityTime: 1500 });
   });
 
-  const { inviteCode, setInviteCode, isJoining, handleJoinRoom } = useRoomJoin(async (roomName, roomId) => {
+  const { inviteCode, setInviteCode, handleJoinRoom } = useRoomJoin(async (roomName, roomId) => {
     setIsJoinVisible(false);
     setInviteCode('');
     await fetchInviteData();
@@ -119,7 +121,7 @@ export default function Settings() {
   });
 
   const fetchInviteData = useCallback(async () => {
-    const { data: roomData, error: roomError } = await supabase.from('room_members').select('rooms(id, name, invite_code)').eq('user_id', userId);
+    const { data: roomData, error: roomError } = await supabase.from('room_members').select('rooms(id, name, invite_code, created_by)').eq('user_id', userId);
     if (roomError) {
       console.error('[settings] fetchInviteData', roomError.message);
       Alert.alert('ルームメンバーの取得に失敗しました。');
@@ -153,10 +155,28 @@ export default function Settings() {
       setCurrentRoomId(remaining[0]?.id ?? null);
       await fetchInviteData();
       await refreshRooms();
+      setIsInviteVisible(false);
       Toast.show({ type: 'success', text1: `ルームを削除しました`, visibilityTime: 1500 });
     } finally {
       setIsLeaving(false);
     }
+  };
+
+  const handleRenameRoom = async (roomId: string, newName: string) => {
+    if (newName.trim().length === 0) {
+      Alert.alert('ルーム名を入力してください。');
+      return;
+    }
+    const { error } = await supabase.from('rooms').update({ name: newName.trim() }).eq('id', roomId);
+    if (error) {
+      console.error('[settings] handleRenameRoom', error.message);
+      Alert.alert('ルーム名の変更に失敗しました。');
+      return;
+    }
+    await fetchInviteData();
+    await refreshRooms();
+    setIsRenameVisible(false);
+    Toast.show({ type: 'success', text1: 'ルーム名を変更しました。', visibilityTime: 1500 });
   };
 
   const handleLogout = async () => {
@@ -190,9 +210,9 @@ export default function Settings() {
 
       <GlassButton onPress={() => setIsJoinVisible(true)} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
 
-      <GlassButton onPress={() => setIsInviteVisible(true)} buttonText="ルーム一覧" buttonIcon="list-outline" />
+      <GlassButton onPress={() => setIsInviteVisible(true)} buttonText="ルーム一覧" buttonIcon="list-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton}/>
 
-      <GlassButton onPress={() => setIsProfileSetUpVisible(true)} buttonText="プロフィール編集" buttonIcon="person-outline" />
+      <GlassButton onPress={() => setIsProfileSetUpVisible(true)} buttonText="プロフィール編集" buttonIcon="person-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton}/>
 
       <GlassButton
         onPress={() => {
@@ -203,11 +223,12 @@ export default function Settings() {
         }}
         buttonText="ログアウト"
         buttonIcon="log-out-outline"
+        backgroundColor={WeatherBoardColors.glassBackgroundButton}
       />
 
       <Modal visible={isInviteVisible} animationType="slide" transparent={true}>
         <Pressable onPress={() => setIsInviteVisible(false)} className="flex-1">
-          <BlurView intensity={40} tint="light" className="flex-1 justify-center pt-40 pb-20 px-4">
+          <View className="flex-1 justify-center pt-40 pb-20 px-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <FlatList
               data={roomData.flatMap((data) => data?.rooms)}
               keyExtractor={(item) => item?.id}
@@ -241,6 +262,17 @@ export default function Settings() {
                       <View className="flex-row items-center gap-6">
                         <Text className="text-xl font-semibold">コピー</Text>
 
+                        {item?.created_by === userId && (
+                          <Pressable
+                            onPress={() => {
+                              setRenameRoomId(item.id);
+                              setRenameRoomName(item.name);
+                              setIsInviteVisible(false);
+                              setIsRenameVisible(true);
+                            }}>
+                            <Text className="text-xl font-bold">名前変更</Text>
+                          </Pressable>
+                        )}
                         <Pressable
                           onPress={() => {
                             if (roomData.flatMap((d) => d.rooms).length === 1) {
@@ -259,13 +291,27 @@ export default function Settings() {
                   </Pressable>
                 );
               }}></FlatList>
-          </BlurView>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={isRenameVisible} animationType="slide" transparent={true}>
+        <Pressable onPress={() => setIsRenameVisible(false)} className="flex-1">
+          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <View className="w-full mb-12">
+              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                ルーム名を変更できます。
+              </Text>
+              <TextInput value={renameRoomName} onChangeText={setRenameRoomName} placeholder="新しいルーム名を入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+            </View>
+            <GlassButton onPress={() => handleRenameRoom(renameRoomId, renameRoomName)} buttonText="変更する" buttonIcon="pencil-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+          </View>
         </Pressable>
       </Modal>
 
       <Modal visible={isJoinVisible} animationType="slide" transparent={true}>
         <Pressable onPress={() => setIsJoinVisible(false)} className="flex-1">
-          <BlurView intensity={40} tint="light" className="flex-1 justify-center p-5">
+          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 招待コードを入力出来ます。
@@ -273,24 +319,14 @@ export default function Settings() {
               <TextInput value={inviteCode} onChangeText={setInviteCode} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
 
-            <View className="w-full pb-12">
-              <Pressable
-                onPress={handleJoinRoom}
-                disabled={isJoining}
-                className="mb-12 py-6 px-2 rounded-xl flex justify-center items-center border"
-                style={{ backgroundColor: WeatherBoardColors.tertiaryBackground, borderColor: WeatherBoardColors.glassBorder }}>
-                <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-                  参加する
-                </Text>
-              </Pressable>
-            </View>
-          </BlurView>
+            <GlassButton onPress={handleJoinRoom} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
+          </View>
         </Pressable>
       </Modal>
 
       <Modal visible={isCreateVisible} animationType="slide" transparent={true}>
         <Pressable onPress={() => setIsCreateVisible(false)} className="flex-1">
-          <BlurView intensity={40} tint="light" className="flex-1 justify-center p-5">
+          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 ルーム名を決めてください
@@ -298,13 +334,13 @@ export default function Settings() {
               <TextInput value={roomName} onChangeText={setRoomName} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
             <GlassButton onPress={handleCreateRoom} buttonText="ルームを作成する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
-          </BlurView>
+          </View>
         </Pressable>
       </Modal>
 
       <Modal visible={isProfileSetUpVisible} animationType="slide" transparent={true}>
         <Pressable onPress={() => setIsProfileSetUpVisible(false)} className="flex-1">
-          <BlurView intensity={40} tint="light" className="flex-1 justify-center p-5">
+          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
               <View className="justify-center flex-1">
                 <View className="mb-8">
@@ -321,8 +357,8 @@ export default function Settings() {
                 </View>
 
                 <View className="relative flex items-center p-4 overflow-hidden mb-8" style={{ borderRadius: 16 }}>
-                  <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}></View>
-                  <View className="flex-row gap-3 flex-wrap justify-center mb-4">
+                  <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)' }}></View>
+                  <View className="flex-row gap-2 flex-wrap justify-center mb-4">
                     {AVATARS.map((item) => (
                       <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6 }}>
                         <Text className="text-4xl">{item}</Text>
@@ -331,14 +367,10 @@ export default function Settings() {
                   </View>
                 </View>
 
-                <Pressable onPress={handleSaveProfile} className="py-6 px-2 rounded-xl flex justify-center items-center border" style={{ backgroundColor: WeatherBoardColors.accentBackground, borderColor: WeatherBoardColors.glassBorder }}>
-                  <Text className="text-base font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
-                    保存する
-                  </Text>
-                </Pressable>
+                <GlassButton onPress={handleSaveProfile} buttonText="保存する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
               </View>
             </ScrollView>
-          </BlurView>
+          </View>
         </Pressable>
       </Modal>
     </ImageBackground>

@@ -155,17 +155,16 @@ export default function Post() {
           <TouchableWithoutFeedback onPress={() => setIsInputVisible(false)}>
             <View>
               <View className="mb-12">
-                <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
                   投稿する部屋を選んでください。
                 </Text>
 
                 <View>
                   <Pressable onPress={() => setIsModalVisible(true)}>
-                    <BlurView intensity={40} tint="light" className="flex-row items-center justify-between gap-2 p-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+                    <BlurView intensity={40} tint="light" className="flex-row items-center justify-between gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
                       <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                         {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
                       </Text>
-
                       <Ionicons name="chevron-down" size={20} color="white" />
                     </BlurView>
                   </Pressable>
@@ -173,7 +172,6 @@ export default function Post() {
                     <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
                       <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
                         <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
-
                         <Picker
                           selectedValue={currentRoomId}
                           onValueChange={(value) => {
@@ -190,18 +188,18 @@ export default function Post() {
               </View>
 
               <View className="mb-10">
-                <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
                   選択中:
                 </Text>
-                <BlurView intensity={40} tint="light" className="flex-row flex-wrap items-center gap-2 p-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+                <BlurView intensity={40} tint="light" className="flex-row flex-wrap items-center gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
                   {selectedTags.length === 0 ? (
-                    <Text className="text-ms font-bold " style={{ color: WeatherBoardColors.textMuted }}>
+                    <Text className="text-sm font-bold " style={{ color: WeatherBoardColors.textMuted }}>
                       選択中のタグはありません。
                     </Text>
                   ) : (
                     selectedTags.map((tag) => (
                       <View key={tag.id}>
-                        <Text className="text-ms font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+                        <Text className="text-sm font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
                           #{tag.tag_name}
                         </Text>
                       </View>
@@ -215,7 +213,7 @@ export default function Post() {
               </View>
 
               <View className="mb-12">
-                <Text className="text-ms font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
                   メモを残す
                 </Text>
                 <TextInput
@@ -223,7 +221,8 @@ export default function Post() {
                   onChangeText={setNote}
                   autoCapitalize="none"
                   multiline
-                  numberOfLines={4}
+                  blurOnSubmit={true}
+                  numberOfLines={2}
                   placeholder="テキストを入力してください。"
                   className="py-4 px-2 rounded-xl bg-white border"
                   style={{ borderColor: WeatherBoardColors.glassBorder }}
@@ -231,9 +230,8 @@ export default function Post() {
               </View>
 
               <View className="mb-24">
-                <GlassButton onPress={handlePost} buttonText="天気を投稿する" buttonIcon="cloud-upload-outline" backgroundColor={WeatherBoardColors.accentBackground} />
-
-                <Text className="text-center text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+                <GlassButton onPress={handlePost} buttonText="天気を投稿する" buttonIcon="sunny-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+                <Text className="text-center text-xs mt-2" style={{ color: WeatherBoardColors.textMuted }}>
                   天気・タグ・メモはAI分析に反映されます
                 </Text>
               </View>

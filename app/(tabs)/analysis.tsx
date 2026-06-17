@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, ImageBackground, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, ImageBackground, Platform, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -76,7 +76,11 @@ export default function Analysis() {
     if (isAnalysing || !canAnalyze) return;
     setIsAnalysing(true);
     try {
-      await supabase.functions.invoke('analyze-weather');
+      const { error } = await supabase.functions.invoke('analyze-weather');
+      if (error) {
+        Alert.alert('分析に失敗しました。しばらく時間をおいて再試行してください。');
+        return;
+      }
       await fetchExistingAnalysis();
     } finally {
       setIsAnalysing(false);
@@ -138,6 +142,11 @@ export default function Analysis() {
               keyExtractor={(item) => item.id}
               ItemSeparatorComponent={() => <View className="h-4" />}
               contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
+              ListEmptyComponent={() => (
+                <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textMuted }}>
+                  まだ分析履歴はありません。
+                </Text>
+              )}
               renderItem={({ item }) => {
                 const title = item.content.split('\n')[0].replace(/^#\s*/, '');
                 return (
@@ -193,7 +202,7 @@ export default function Analysis() {
           Analisis
         </Text>
         <View className="flex-row items-center gap-2 mb-2">
-          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder }}>
+          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
             <Pressable
               onPress={() => {
                 setSelectedHistory(null);
@@ -205,7 +214,7 @@ export default function Analysis() {
             </Pressable>
           </BlurView>
 
-          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder }}>
+          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
             <Pressable onPress={() => setIsHistory(true)}>
               <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary, opacity: isHistory ? 1 : 0.5 }}>
                 History
@@ -214,7 +223,11 @@ export default function Analysis() {
           </BlurView>
         </View>
 
-        <BlurView intensity={50} tint={'dark'} className="overflow-hidden p-3 flex-1 mb-8 border" style={{ borderTopRightRadius: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: WeatherBoardColors.glassBorder }}>
+        <BlurView
+          intensity={50}
+          tint={'dark'}
+          className="overflow-hidden p-3 flex-1 mb-8 border"
+          style={{ borderTopRightRadius: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
           {renderContent()}
         </BlurView>
 

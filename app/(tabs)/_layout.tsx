@@ -14,17 +14,19 @@ import { useUser } from '@/context/UserContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 const backgroundImage = require('@/assets/images/weather/sunny.png');
+
+if (!(isExpoGo && Platform.OS === 'android')) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 const fetchUnreadCount = async (userId: string, setter: (count: number | null) => void) => {
   const { count, error: isReadError } = await supabase.from('notifications').select('id', { count: 'exact' }).eq('to_user_id', userId).eq('is_read', false);
@@ -63,7 +65,7 @@ export default function TabLayout() {
 
     const fetchSession = async () => {
       try {
-        if(!userId) return;
+        if (!userId) return;
         const { data: profileData, error: profileError } = await supabase.from('profiles').select('user_id').eq('user_id', userId).maybeSingle();
         if (profileError) {
           console.error('[_layout(tabs)] fetchSession', profileError.message);
@@ -97,7 +99,7 @@ export default function TabLayout() {
         if (existing) await supabase.removeChannel(existing);
         channel = supabase
           .channel(channelName)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async() => {
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
             await fetchUnreadCount(userId, setUnreadCount);
           })
           .subscribe();
@@ -150,7 +152,7 @@ export default function TabLayout() {
         name="post"
         options={{
           title: 'ポスト',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="square.and.pencil" color={color} />,
           tabBarActiveTintColor: WeatherBoardColors.textPrimary,
           tabBarInactiveTintColor: WeatherBoardColors.textMutedGlay,
         }}

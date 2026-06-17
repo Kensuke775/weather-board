@@ -42,13 +42,13 @@ export type WeatherLogHistory = {
 };
 
 export const WEATHER_CONFIG = {
-  sunny: { label: '最高の気分', emoji: '☀️', color: 'rgba(251, 146, 60, 0.3)' },
-  partly_cloudy: { label: 'まあまあかな', emoji: '🌤️', color: 'rgba(252, 211, 77, 0.3)' },
-  cloudy: { label: 'どんよりしている', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)' },
-  rainy: { label: '少し落ち込み気味', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)' },
-  stormy: { label: '嫌なことがあった', emoji: '⛈️', color: 'rgba(99, 102, 241, 0.3)' },
-  snowy: { label: '風邪かも...', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)' },
-  foggy: { label: 'ぼんやり・ねむい', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)' },
+  sunny: { label: '最高の気分', emoji: '☀️', color: 'rgba(251, 146, 60, 0.3)', darkColor: 'rgba(188, 110, 45, 0.95)' },
+  partly_cloudy: { label: 'まあまあかな', emoji: '🌤️', color: 'rgba(252, 211, 77, 0.3)', darkColor: 'rgba(189, 158, 58, 0.95)' },
+  cloudy: { label: 'どんよりしている', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)', darkColor: 'rgba(111, 122, 138, 0.95)' },
+  rainy: { label: '少し落ち込み気味', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)', darkColor: 'rgba(72, 124, 188, 0.95)' },
+  stormy: { label: '嫌なことがあった', emoji: '⛈️', color: 'rgba(99, 102, 241, 0.3)', darkColor: 'rgba(74, 77, 181, 0.95)' },
+  snowy: { label: '風邪かも...', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)', darkColor: 'rgba(140, 173, 190, 0.85)' },
+  foggy: { label: 'ぼんやり・ねむい', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)', darkColor: 'rgba(157, 160, 164, 0.85)' },
 };
 
 export type WeatherBoardItem = {

@@ -23,15 +23,24 @@ Deno.serve(async (req) => {
   const sevenDaysAgo = new Date(now);
   sevenDaysAgo.setDate(now.getDate() - 7);
 
-  const { data: weeklyData, error: weeklyError } = await supabaseClient.from(
-    "weather_log_history",
-  ).select(
-    "weather, note, recorded_at, weather_logs(user_id), weather_log_history_activities(tag_name)",
-  )
-    .gte("recorded_at", sevenDaysAgo.toISOString()).lte(
-      "recorded_at",
-      now.toISOString(),
-    ).eq("weather_logs.user_id", user_id);
+  const { data: userLogs, error: userLogsError } = await supabaseClient
+    .from("weather_logs")
+    .select("id")
+    .eq("user_id", user_id);
+
+  if (userLogsError) {
+    return new Response("ユーザー取得に失敗しました", { status: 401 });
+  }
+  const logIds = userLogs?.map((l: { id: string }) => l.id) ?? [];
+
+  const { data: weeklyData, error: weeklyError } = await supabaseClient
+    .from("weather_log_history")
+    .select(
+      "weather, note, recorded_at, weather_log_history_activities(tag_name)",
+    )
+    .in("weather_log_id", logIds)
+    .gte("recorded_at", sevenDaysAgo.toISOString())
+    .lte("recorded_at", now.toISOString());
 
   if (weeklyError) {
     console.error("[analyze-weather] weeklyError", weeklyError.message);
@@ -69,7 +78,7 @@ Deno.serve(async (req) => {
 
   ### （パターンの小見出し）
 
-  - （内容に合った絵文字） （気づき1）
+  - （気づき1）
   - （気づき2）
   - （気づき3）
 
@@ -77,7 +86,7 @@ Deno.serve(async (req) => {
 
   ### （アドバイスの小見出し）
 
-  - （内容に合った絵文字） （アドバイス1）
+  - （アドバイス1）
   - （アドバイス2）
 
   ## ひとこと

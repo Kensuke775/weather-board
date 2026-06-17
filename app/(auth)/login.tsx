@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ImageBackground, Keyboard, Pressable, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, ImageBackground, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { makeRedirectUri } from 'expo-auth-session';
 import { useFonts } from 'expo-font';
@@ -23,29 +23,37 @@ export default function AuthLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleGoogleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        skipBrowserRedirect: true,
-      },
-    });
-    if (error) {
-      console.error('[login] handleGoogleLogin', error.message);
-      return;
-    }
-    if (!data.url) return;
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type === 'success') {
-      const url = new URL(result.url);
-      const params = new URLSearchParams(url.hash.replace('#', ''));
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      if (!accessToken || !refreshToken) return;
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
       });
+      if (error) {
+        console.error('[login] handleGoogleLogin', error.message);
+        return;
+      }
+      if (!data.url) return;
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type === 'success') {
+        const url = new URL(result.url);
+        const params = new URLSearchParams(url.hash.replace('#', ''));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (!accessToken || !refreshToken) return;
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        router.replace('/(tabs)');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,10 +87,9 @@ export default function AuthLogin() {
   if (!fontsLoaded) return null;
 
   return (
-    <Pressable onPress={Keyboard.dismiss} style={{flex: 1}}>
+    <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
       <ImageBackground source={backgroundImage} className="flex-1 justify-center px-10">
         <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
-
         <Text className="text-4xl text-center mb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
           Log In
         </Text>

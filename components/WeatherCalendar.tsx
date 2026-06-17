@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Platform, Pressable, Text, View } from 'react-native';
+
+import { BlurView } from 'expo-blur';
 import { Calendar } from 'react-native-calendars';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { BlurView } from 'expo-blur';
 
 import CommentSection from '@/components/CommentSection';
 import { WeatherBoardColors } from '@/constants/theme';
@@ -115,13 +116,17 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
 
   return (
     <>
-      <BlurView intensity={20} tint="dark" className="overflow-hidden border" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+      <View className="overflow-hidden border p-2" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+        <Text className="text-sm font-bold text-center" style={{ color: WeatherBoardColors.textMuted }}>
+          {currentUserData.length > 0 ? `${WEATHER_CONFIG[mostWeather as WeatherType].emoji} Most Weather ${WEATHER_CONFIG[mostWeather as WeatherType].emoji}` : 'No Record'}
+        </Text>
         <Calendar
           onMonthChange={(date) => {
             const month = String(date.month).padStart(2, '0');
             setDisplayMonth(`${date.year}-${month}-01`);
           }}
           hideExtraDays={true}
+          style={{ marginBottom: -14 }}
           theme={{
             backgroundColor: 'transparent',
             calendarBackground: 'transparent',
@@ -141,14 +146,14 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                   setIsModalVisible(true);
                   handleDayPress(date?.dateString);
                 }}
-                className="relative w-[40px] h-[48px]">
+                className="relative w-[40px] h-[40px]">
                 <Text className="absolute left-0 right-0 text-[8px]" style={{ color: '#ffffff' }}>
                   {date?.day}
                 </Text>
                 <View className="absolute inset-0 items-center justify-center">
                   <View className="relative">
-                    <Text>{myLog?.profiles.avatar_emoji}</Text>
-                    {myLog ? <Text className="text-[9px] absolute -top-1 -right-1">{WEATHER_CONFIG[myLog.weather].emoji}</Text> : null}
+                    <Text className="text-[10px]">{myLog?.profiles.avatar_emoji}</Text>
+                    {myLog ? <Text className="text-[6px] absolute -top-1 -right-1">{WEATHER_CONFIG[myLog.weather].emoji}</Text> : null}
                   </View>
                 </View>
                 <View className="absolute bottom-0 left-0 flex-row">
@@ -166,11 +171,11 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
           }}
         />
 
-        <View className="px-4 pb-4">
-          <Text className="text-sm font-bold text-center mb-4" style={{ color: WeatherBoardColors.textMuted }}>
+        <View className="px-4 pb-2">
+          <Text className="text-sm font-bold text-center mb-2" style={{ color: WeatherBoardColors.textMuted }}>
             Histgram
           </Text>
-          <View className="flex-row justify-between items-center mb-4">
+          <View className="flex-row justify-between items-center">
             {Object.entries(weatherHistgram).map(([key, value]) => (
               <View key={key} className="flex flex-row items-center gap-1">
                 <Text className="text-xl font-bold">{WEATHER_CONFIG[key as WeatherType].emoji}</Text>
@@ -180,15 +185,11 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
               </View>
             ))}
           </View>
-
-          <Text className="text-sm font-bold text-center" style={{ color: WeatherBoardColors.textMuted }}>
-            {currentUserData.length > 0 ? `${WEATHER_CONFIG[mostWeather as WeatherType].emoji} Most Weather ${WEATHER_CONFIG[mostWeather as WeatherType].emoji}` : 'No Record'}
-          </Text>
         </View>
-      </BlurView>
+      </View>
 
       <Modal visible={isModalVisible} transparent={true} animationType={'slide'}>
-        <BlurView intensity={20} tint="dark" className="flex-1">
+        <View className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <Pressable onPress={() => setIsModalVisible(false)} className="flex-1">
             <View className="pt-40 pb-20 px-4">
               <View className="pb-4 flex-row items-center justify-between">
@@ -209,7 +210,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                   ) : null
                 }
                 renderItem={({ item }) => {
-                  const backgroundColor = WEATHER_CONFIG[item.weather].color;
+                  const backgroundColor = Platform.OS === 'ios' ? WEATHER_CONFIG[item.weather].color : WEATHER_CONFIG[item.weather].darkColor;
                   const seenUserIds = new Set();
                   const uniqueCommenters = item?.comments.filter((comment) => {
                     if (seenUserIds.has(comment.user_id)) return false;
@@ -281,7 +282,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
               {selectedItem && (
                 <Modal visible={isCommentVisible} animationType="slide" transparent={true}>
                   <View className="flex-1 justify-end">
-                    <BlurView intensity={40} tint="dark" className="flex-1 p-5" style={{ backgroundColor: WEATHER_CONFIG[selectedItem.weather].color }}>
+                    <BlurView intensity={40} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[selectedItem.weather].color : WEATHER_CONFIG[selectedItem.weather].darkColor }}>
                       <View className="flex-row justify-between mb-5 mt-20">
                         <Pressable onPress={() => setIsCommentVisible(false)}>
                           <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
@@ -344,7 +345,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
               </Modal>
             </View>
           </Pressable>
-        </BlurView>
+        </View>
       </Modal>
     </>
   );

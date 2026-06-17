@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import Toast, { BaseToast } from 'react-native-toast-message';
+import Toast, { BaseToast, BaseToastProps } from 'react-native-toast-message';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { RoomProvider } from '@/context/RoomContext';
@@ -20,7 +20,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const toastConfig = {
-    success: (props) => <BaseToast {...props} style={{ marginHorizontal: 20 }} />,
+    success: (props: BaseToastProps) => <BaseToast {...props} style={{ width: '90%' }} />,
   };
   return (
     <GluestackUIProvider mode="light">

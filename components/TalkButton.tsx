@@ -19,6 +19,7 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
   const { user } = useUser();
   const userId = user?.id;
   const [isSending, setIsSending] = useState(false);
+  const isOwnPost = userId === to_user_id;
 
   useEffect(() => {
     const fetchReactionData = async () => {
@@ -58,7 +59,7 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
   };
   return (
     <View style={{ alignSelf: 'flex-start' }}>
-      <Pressable onPress={handleTalk} disabled={isActiveButton} className="mb-2" style={{ opacity: isActiveButton ? 0.4 : 1 }}>
+      <Pressable onPress={handleTalk} disabled={isActiveButton || isOwnPost} className="mb-2" style={{ opacity: isActiveButton ? 0.4 : 1 }}>
         <BlurView intensity={40} tint="dark" className="py-2 px-5" style={{ borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' }}>
           <Text className="font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
             TALK
@@ -67,7 +68,7 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
       </Pressable>
 
       <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMuted, textAlign: 'right' }}>
-        {isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}
+        {isOwnPost ? '※自分の投稿です。' : isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}
       </Text>
     </View>
   );

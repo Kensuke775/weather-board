@@ -22,6 +22,8 @@ const MAPPING = {
   'bell.fill': 'notifications',
   calendar: 'calendar-month',
   'wand.and.stars': 'insights',
+  'square.and.pencil': 'edit',
+  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -160,11 +160,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useUser();
   const userId = user?.id;
+  const { currentRoomId, setCurrentRoomId, rooms, isLoading: roomIsLoading } = useRoom();
   const [boardData, setBoardData] = useState<WeatherBoardItem[]>([]);
   const [userData, setUserData] = useState<WeatherBoardItem | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [commentStatus, setCommentStatus] = useState<CommentsStatus>({});
-  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -284,6 +284,12 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      bottomSheetRef?.current?.close();
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       if (!currentRoomId) return;
       fetchRoomMember(currentRoomId, setRoomMember);
     }, [currentRoomId]),
@@ -313,13 +319,19 @@ export default function HomeScreen() {
   const backgroundImage = userData ? WEATHER_IMAGES[userData.weather] : WEATHER_IMAGES.sunny;
   const inviteCode = rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code;
 
-  if (!currentRoomId) {
+  if (roomIsLoading || !currentRoomId) {
     return (
       <ImageBackground source={WEATHER_IMAGES.sunny} className="flex-1 justify-center items-center px-10">
         <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }} />
-        <Text className="text-base font-bold text-center" style={{ color: 'white' }}>
-          現在参加しているルームはありません。{'\n'}設定からルームを作成・参加してください。
-        </Text>
+        {roomIsLoading ? (
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="white" />
+          </View>
+        ) : (
+          <Text className="text-base font-bold text-center" style={{ color: 'white' }}>
+            現在参加しているルームはありません。{'\n'}設定からルームを作成・参加してください。
+          </Text>
+        )}
       </ImageBackground>
     );
   }
@@ -330,13 +342,13 @@ export default function HomeScreen() {
       <View className="pt-20 flex-1 relative">
         <View className="flex-row justify-center mb-10 relative">
           <View className="flex-row justify-between bg-black/30 rounded-xl border gap-4" style={{ borderColor: WeatherBoardColors.glassBorder }}>
-            <Pressable onPress={() => setIsModalVisible(true)} className="py-3 px-4">
+            <Pressable onPress={() => setIsModalVisible(true)} className="py-3 px-2">
               <View className="flex-row items-center gap-2">
-                <View>
+                <View style={{ width: 80 }}>
                   <Text className="text-[6px]" style={{ color: WeatherBoardColors.textMuted }}>
                     ルーム名
                   </Text>
-                  <Text className="font-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                  <Text numberOfLines={1} ellipsizeMode="tail" className="font-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                     {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
                   </Text>
                 </View>
@@ -352,7 +364,8 @@ export default function HomeScreen() {
                   visibilityTime: 1000,
                 });
               }}
-              className="py-3 px-4">
+              style={{ width: 80 }}
+              className="py-3 pr-3">
               <View className="flex-row items-center gap-2 justify-between">
                 <View>
                   <Text className="text-[6px]" style={{ color: WeatherBoardColors.textMuted }}>
@@ -366,7 +379,7 @@ export default function HomeScreen() {
               </View>
             </Pressable>
           </View>
-          <Pressable onPress={openMemberPanel} className="absolute right-10 top-1/2 -translate-y-1/2">
+          <Pressable onPress={openMemberPanel} className="absolute right-5 top-1/2 -translate-y-1/2">
             <Ionicons name="people-outline" size={24} color="white" />
           </Pressable>
           <Modal visible={isModalVisible} transparent={true} animationType="slide">
@@ -386,25 +399,24 @@ export default function HomeScreen() {
             </Pressable>
           </Modal>
           <Modal visible={isMemberVisible} transparent={true} animationType="none">
-            <Pressable style={{ flex: 1 }} onPress={closeMemberPanel}>
-              <Animated.View onStartShouldSetResponder={() => true} style={{ position: 'absolute', top: 0, bottom: 0, width: 200, height: '100%', transform: [{ translateX: slideAnim }] }}>
-                <BlurView intensity={40} tint="dark" className="pt-40 pl-8 flex-1">
-                  <Text className="font-bold pb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-                    ✨Room Member✨
-                  </Text>
-                  <ScrollView>
-                    {roomMember.map((item) => (
-                      <View key={item.user_id} className="flex flex-row items-center gap-3 mb-4">
-                        <Text className="text-xl">{item.avatar_emoji}</Text>
-                        <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
-                          {item.nickname}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </BlurView>
-              </Animated.View>
-            </Pressable>
+            <Pressable style={{ flex: 1 }} onPress={closeMemberPanel} />
+            <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, width: 200, height: '100%', transform: [{ translateX: slideAnim }] }}>
+              <BlurView intensity={40} tint="dark" className="pt-40 pl-8 flex-1" style={{backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
+                <Text className="font-bold pb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+                  ✨Room Member✨
+                </Text>
+                <ScrollView>
+                  {roomMember.map((item) => (
+                    <View key={item.user_id} className="flex flex-row items-center gap-3 mb-4">
+                      <Text className="text-xl">{item.avatar_emoji}</Text>
+                      <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
+                        {item.nickname}
+                      </Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </BlurView>
+            </Animated.View>
           </Modal>
         </View>
 
@@ -437,7 +449,7 @@ export default function HomeScreen() {
         backgroundStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
         handleIndicatorStyle={{ backgroundColor: 'white' }}
         backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
-        <View className="bg-black/30 flex-1 p-6" style={{ borderTopWidth: 1, borderTopColor: WeatherBoardColors.glassBorder }}>
+        <BlurView intensity={40} tint="dark" className="flex-1 p-6" style={{ borderTopWidth: 1, borderTopColor: WeatherBoardColors.glassBorder }}>
           <BottomSheetFlatList
             data={activityFeed}
             keyExtractor={(item) => item.id}
@@ -454,7 +466,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
             )}></BottomSheetFlatList>
-        </View>
+        </BlurView>
       </BottomSheet>
     </ImageBackground>
   );

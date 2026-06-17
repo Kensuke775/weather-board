@@ -38,9 +38,12 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
     const setUp = async () => {
+      const channelName = `comments-${weather_log_id}`;
+      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
       await fetchComments(weather_log_id, setComments, setIsLoading);
       channel = supabase
-        .channel('comments')
+        .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async () => {
           await fetchComments(weather_log_id, setComments, setIsLoading);
         })
@@ -48,7 +51,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
     };
     setUp();
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [weather_log_id]);
 
@@ -123,8 +126,8 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
         <BlurView
           intensity={40}
           tint="light"
-          className="flex-row justify-between items-center w-full mb-12"
-          style={{ borderRadius: 16, overflow: 'hidden', borderColor: WeatherBoardColors.glassBorder, borderWidth: 1, backgroundColor: WeatherBoardColors.glassBackground }}>
+          className="flex-row justify-between items-center w-full mb-12 mt-4"
+          style={{ flexShrink: 0, borderRadius: 16, overflow: 'hidden', borderColor: WeatherBoardColors.glassBorder, borderWidth: 1, backgroundColor: WeatherBoardColors.glassBackground }}>
           <TextInput
             value={inputText}
             onChangeText={setInputText}

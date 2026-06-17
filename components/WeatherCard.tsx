@@ -1,11 +1,11 @@
 import React, { JSX, useState } from 'react';
-import { Alert, Modal, Pressable, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
-import TalkButton from '@/components/TalkButton';
 import CommentSection from '@/components/CommentSection';
+import TalkButton from '@/components/TalkButton';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -39,8 +39,6 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
   const [isModalVisible, setIsModalVisible] = useState(false);
   const formattedDate = new Date(updated_at).toLocaleTimeString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-  const backgroundColor = WEATHER_CONFIG[weather].color;
-
   return (
     <>
       <Pressable
@@ -51,20 +49,20 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
         }}
         style={{ flex: 1, maxWidth: '48%' }}>
         <View>
-          <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: backgroundColor }}>
-            <View className="flex flex-row items-center gap-1 mb-4">
+          <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
+            <View className="flex flex-row items-center gap-1 mb-2">
               <Text className="text-xl">{avatar_emoji}</Text>
               <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
                 {nickname}
               </Text>
               <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
             </View>
-            <View className="flex flex-row items-center gap-1 mb-4">
+            <View className="flex flex-row items-center gap-1 mb-2">
               <Text className="text-xs flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: 30 }} numberOfLines={2}>
                 {note}
               </Text>
             </View>
-            <View className="flex-row items-center gap-2 flex-wrap mb-4 overflow-hidden" style={{ height: 13 }}>
+            <View className="flex-row items-center gap-2 flex-wrap mb-2 overflow-hidden" style={{ height: 13 }}>
               {tags.map((tag) => (
                 <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimary }}>
                   #{tag.name}
@@ -80,11 +78,12 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
                 </Text>
               </View>
               <View className="flex-row items-center gap-1">
-                {commentStatus[weather_log_id]?.commenters.map((commenter) => (
+                {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
                   <Text key={commenter.user_id} className="text-[10px]">
                     {commenter.emoji}
                   </Text>
                 ))}
+                {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && <Text className="text-[10px] text-gray-400">...</Text>}
               </View>
             </View>
           </BlurView>
@@ -102,8 +101,8 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
       </Pressable>
 
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
-        <View className="flex-1 justify-end">
-          <BlurView intensity={40} tint="dark" className="flex-1 p-5" style={{ backgroundColor: WEATHER_CONFIG[weather].color }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={-20} className="flex-1 justify-end">
+          <BlurView intensity={40} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
             <View className="flex-row justify-between mb-5 mt-20">
               <Pressable onPress={() => setIsModalVisible(false)}>
                 <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
@@ -143,7 +142,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
             </View>
             <CommentSection to_user_id={user_id} weather_log_id={weather_log_id} />
           </BlurView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
