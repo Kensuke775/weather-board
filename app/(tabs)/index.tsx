@@ -390,9 +390,10 @@ export default function HomeScreen() {
                   selectedValue={currentRoomId}
                   onValueChange={(value) => {
                     setCurrentRoomId(value);
-                  }}>
+                  }}
+                  style={{ width: '100%', textAlign: 'center' } as any}>
                   {rooms.map((room) => (
-                    <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
+                    <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} style={{ textAlign: 'center' }} />
                   ))}
                 </Picker>
               </View>

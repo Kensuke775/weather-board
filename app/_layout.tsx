@@ -20,7 +20,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const toastConfig = {
-    success: (props: BaseToastProps) => <BaseToast {...props} style={{ width: '90%' }} />,
+    success: (props: BaseToastProps) => <BaseToast {...props} style={{ width: '90%', marginHorizontal: '5%' }} />,
   };
   return (
     <GluestackUIProvider mode="light">

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Alert, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
-import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
@@ -61,7 +60,7 @@ export default function RoomSetup() {
 
       <Modal visible={isCreateVisible} animationType="slide" transparent={true}>
         <Pressable onPress={() => setIsCreateVisible(false)} className="flex-1">
-          <BlurView intensity={40} tint="light" className="flex-1 justify-center p-5">
+          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 ルーム名を決めてください
@@ -72,14 +71,14 @@ export default function RoomSetup() {
             <View className="w-full">
               <GlassButton onPress={handleCreateRoom} buttonText="ルームを作成する" buttonIcon="checkmark-outline" backgroundColor={WeatherBoardColors.accentBackground} />
             </View>
-          </BlurView>
+          </View>
         </Pressable>
         <Toast position="bottom" bottomOffset={40} />
       </Modal>
 
       <Modal visible={isJoinVisible} animationType="slide" transparent={true}>
         <Pressable onPress={() => setIsJoinVisible(false)} className="flex-1">
-          <BlurView intensity={40} tint="light" className="flex-1 justify-center p-5">
+          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 招待コードを入力出来ます。
@@ -90,7 +89,7 @@ export default function RoomSetup() {
             <View className="w-full pb-12">
               <GlassButton onPress={handleJoinRoom} buttonText="参加する" buttonIcon="checkmark-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
             </View>
-          </BlurView>
+          </View>
         </Pressable>
         <Toast position="bottom" bottomOffset={40} />
       </Modal>
