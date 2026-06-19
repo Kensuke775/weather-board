@@ -138,7 +138,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
             placeholderTextColor={WeatherBoardColors.textPrimary}
             style={{ color: WeatherBoardColors.textPrimary, flex: 1 }}
           />
-          <Pressable onPressIn={handleSendComment} className="py-4 px-4 flex justify-center" style={{ backgroundColor: WeatherBoardColors.accentBackground }}>
+          <Pressable onPress={handleSendComment} className="py-4 px-4 flex justify-center" style={{ backgroundColor: WeatherBoardColors.accentBackground }}>
             <Text className="text-base font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
               送信する
             </Text>
