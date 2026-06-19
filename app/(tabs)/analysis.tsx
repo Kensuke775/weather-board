@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
 import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnalysisMarkdown } from '@/components/AnalysisMarkdown';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
@@ -19,7 +20,7 @@ export type AnalysisData = {
 };
 
 const backgroundImage = require('@/assets/images/weather/analysis.png');
-const MARKDOWN_MAX_HEIGHT = Dimensions.get('window').height * 0.75;
+const MARKDOWN_MAX_HEIGHT = Dimensions.get('window').height * 0.7;
 
 function formatTime(seconds: number) {
   const days = Math.floor(seconds / 86400);
@@ -32,6 +33,7 @@ function formatTime(seconds: number) {
 export default function Analysis() {
   const { user } = useUser();
   const userId = user?.id;
+  const { bottom } = useSafeAreaInsets();
   const [fontsLoaded] = useFonts({
     DancingScript_400Regular: Fonts.titleFont,
   }) as [boolean, Error | null];
@@ -180,7 +182,7 @@ export default function Analysis() {
         <>
           <Ionicons name="analytics-outline" size={20} color="white" />
           <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-            1週間分の分析ができます。
+            今週を振り返る
           </Text>
         </>
       );
@@ -188,7 +190,7 @@ export default function Analysis() {
       <>
         <Ionicons name="analytics-outline" size={20} color="white" />
         <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          1週間分の分析は終わってます。
+          分析済み — 来週また振り返ろう
         </Text>
       </>
     );
@@ -197,7 +199,7 @@ export default function Analysis() {
   return (
     <ImageBackground source={backgroundImage} className="flex-1 justify-center px-5">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
-      <View style={{ flex: 1, maxHeight: MARKDOWN_MAX_HEIGHT }}>
+      <View style={{ flex: 1, paddingBottom: 100, paddingTop: 80 }}>
         <Text className="text-4xl text-center pb-8" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
           Analisis
         </Text>
@@ -226,25 +228,23 @@ export default function Analysis() {
         <BlurView
           intensity={50}
           tint={'dark'}
-          className="overflow-hidden p-3 flex-1 mb-8 border"
+          className="overflow-hidden p-3 flex-1 mb-4 border"
           style={{ borderTopRightRadius: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
           {renderContent()}
         </BlurView>
 
         {!isHistory && (
           <View>
-            <BlurView
-              intensity={50}
-              tint="light"
+            <View
               className="overflow-hidden rounded-xl border"
               style={{
                 borderColor: WeatherBoardColors.glassBorder,
-                backgroundColor: canAnalyze ? WeatherBoardColors.accentBackground : WeatherBoardColors.secondaryBackground,
+                backgroundColor: canAnalyze ? WeatherBoardColors.accentBackground : WeatherBoardColors.glassBackgroundButton,
               }}>
               <Pressable onPress={handleAnalysis} className="py-6 flex-row justify-center items-center gap-3">
                 {renderButton()}
               </Pressable>
-            </BlurView>
+            </View>
             {!isLoading && !canAnalyze && (
               <Text className="text-sm text-center " style={{ color: WeatherBoardColors.textPrimary }}>
                 {`あと ${days}日${hours}時間${minutes}分${secs}秒`}

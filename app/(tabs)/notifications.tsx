@@ -2,7 +2,6 @@ import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { Notification } from '@/lib/types';
-import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -83,22 +82,27 @@ export default function Notifications() {
         data={dataNotifications}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View className="h-4" />}
-        contentContainerStyle={{ paddingTop: 16, marginBottom: 16, paddingRight: 20, paddingLeft: 20, overflow: 'visible' }}
+        ListEmptyComponent={() => (
+          <Text className="text-base font-bold text-center" style={{ color: WeatherBoardColors.textPrimary }}>
+            まだ通知がありません。
+          </Text>
+        )}
+        contentContainerStyle={{ paddingTop: 16, marginBottom: 16, paddingRight: 20, paddingLeft: 20, overflow: 'visible', flexGrow: 1 }}
         renderItem={({ item }) => (
-          <View className="relative overflow-visible flex-1">
-            <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: WeatherBoardColors.glassBackground }}>
+          <View className="relative overflow-visible">
+            <View className="p-4 border" style={{ borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
               <View className="flex flex-row items-center gap-1 mb-2">
                 <Text className="text-xl">{item.profiles?.avatar_emoji}</Text>
-                <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text className="text-sm font-semibold" style={{ color: 'black' }}>
                   {item.profiles?.nickname} から
                 </Text>
               </View>
               <View className="flex-row items-center justify-between gap-1 mb-2">
-                <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text className="text-sm font-semibold" style={{ color: 'black' }}>
                   {item.type === 'comment' ? 'コメントが届きました。' : '「少し話したいです」が届きました。'}
                 </Text>
               </View>
-            </BlurView>
+            </View>
             <Text className="text-sm font-semibold text-right flex-1" style={{ color: WeatherBoardColors.textMuted }}>
               {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
             </Text>

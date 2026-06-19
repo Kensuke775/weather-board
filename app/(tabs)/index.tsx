@@ -29,6 +29,11 @@ const WEATHER_IMAGES = {
   foggy: require('@/assets/images/weather/foggy.png'),
 };
 
+const truncateName = (name: string | undefined | null, maxLength = 5) => {
+  if (!name) return '';
+  return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
+};
+
 const fetchNotificationsData = async (userId: string, setter: (data: Record<string, number>) => void) => {
   const { data: notificationsData, error: notificationsError } = await supabase.from('notifications').select('weather_log_id').eq('type', 'comment').eq('to_user_id', userId).eq('is_read', false);
   if (notificationsError) {
@@ -349,7 +354,7 @@ export default function HomeScreen() {
                     ルーム名
                   </Text>
                   <Text numberOfLines={1} ellipsizeMode="tail" className="font-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                    {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
+                    {truncateName(rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name, 6)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-down" size={16} color="white" />
@@ -402,26 +407,30 @@ export default function HomeScreen() {
           <Modal visible={isMemberVisible} transparent={true} animationType="none">
             <Pressable style={{ flex: 1 }} onPress={closeMemberPanel} />
             <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, width: 200, height: '100%', transform: [{ translateX: slideAnim }] }}>
-              <BlurView intensity={40} tint="dark" className="pt-40 pl-8 flex-1" style={{backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
+              <BlurView intensity={40} tint="dark" className="pt-40 pb-20 pl-8 flex-1" style={{ backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
                 <Text className="font-bold pb-4" style={{ color: WeatherBoardColors.textPrimary }}>
                   ✨Room Member✨
                 </Text>
                 <ScrollView>
-                  {roomMember.map((item) => (
-                    <View key={item.user_id} className="flex flex-row items-center gap-3 mb-4">
-                      <Text className="text-xl">{item.avatar_emoji}</Text>
-                      <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
-                        {item.nickname}
-                      </Text>
-                    </View>
-                  ))}
+                  {roomMember.map((item) => {
+                    const isCurrentUser = userId === item.user_id;
+                    return (
+                      <View key={item.user_id} className="flex flex-row items-center gap-3 mb-4">
+                        <Text className="text-xl">{item.avatar_emoji}</Text>
+                        <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
+                          {truncateName(item.nickname, 8)}
+                        </Text>
+                        <Text className="text-[6px] font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>{isCurrentUser ? '←YOU' : ''}</Text>
+                      </View>
+                    );
+                  })}
                 </ScrollView>
               </BlurView>
             </Animated.View>
           </Modal>
         </View>
 
-        <View className="px-4" style={{ height: height * 0.65 }}>
+        <View className="px-2" style={{ height: height * 0.65 }}>
           {isLoading ? (
             <View className="flex-1 justify-center items-center">
               <ActivityIndicator size="large" color="white" />

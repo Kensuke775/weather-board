@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { BlurView } from 'expo-blur';
 
@@ -75,6 +75,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
         }
       }
       setInputText('');
+      Keyboard.dismiss();
     } finally {
       setIsCommenting(false);
     }
@@ -126,7 +127,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
         <BlurView
           intensity={40}
           tint="light"
-          className="flex-row justify-between items-center w-full mb-12 mt-4"
+          className="flex-row justify-between items-center w-full mb-12 mt-4 h-14"
           style={{ flexShrink: 0, borderRadius: 16, overflow: 'hidden', borderColor: WeatherBoardColors.glassBorder, borderWidth: 1, backgroundColor: WeatherBoardColors.glassBackground }}>
           <TextInput
             value={inputText}

@@ -51,7 +51,7 @@ export default function AuthSignUp() {
 
   return (
     <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
-      <ImageBackground source={backgroundImage} className="flex-1 justify-center px-10">
+      <ImageBackground source={backgroundImage} className="flex-1 justify-center px-6">
         <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
         <Text className="text-4xl text-center mb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
           Sign Up
@@ -60,14 +60,14 @@ export default function AuthSignUp() {
           <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
             メールアドレス
           </Text>
-          <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" textContentType="emailAddress" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
+          <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor={WeatherBoardColors.placeholderDark} textContentType="emailAddress" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
         </View>
 
         <View className="w-full mb-8">
           <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
             パスワード
           </Text>
-          <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" textContentType="newPassword" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
+          <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" placeholderTextColor={WeatherBoardColors.placeholderDark} textContentType="newPassword" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
           <Text className="text-sm" style={{ color: WeatherBoardColors.textPrimary }}>
             ※6文字以上で設定してください
           </Text>

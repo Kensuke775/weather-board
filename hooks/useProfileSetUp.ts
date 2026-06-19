@@ -27,6 +27,10 @@ export default function useProfileSetUp(onSuccess: () => Promise<void>) {
         Alert.alert('アバターを選んでください。');
         return;
       }
+      if (nickname.length > 6) {
+        Alert.alert('ニックネームは6文字以内で入力してください。');
+        return;
+      }
       const { error } = await supabase.from('profiles').upsert({ user_id: userId, nickname, avatar_emoji: avatar }, { onConflict: 'user_id' });
       if (error) {
         console.error('[profile-setup] handleSaveProfile', error.message);

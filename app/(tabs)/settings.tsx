@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
-import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, ImageBackground, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { Alert, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
 import { useFocusEffect, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
@@ -93,6 +93,10 @@ export default function Settings() {
   const [isRenameVisible, setIsRenameVisible] = useState(false);
   const [renameRoomId, setRenameRoomId] = useState('');
   const [renameRoomName, setRenameRoomName] = useState('');
+  const renameInputRef = useRef<TextInput>(null);
+  const joinInputRef = useRef<TextInput>(null);
+  const createInputRef = useRef<TextInput>(null);
+  const nicknameInputRef = useRef<TextInput>(null);
 
   const { handleCreateRoom, setRoomName, roomName } = useRoomCreate(async (roomId) => {
     setIsCreateVisible(false);
@@ -189,7 +193,6 @@ export default function Settings() {
         Alert.alert('ログアウトに失敗しました。');
         return;
       }
-      router.replace('/(auth)/login');
     } finally {
       setIsLoggingOut(false);
     }
@@ -235,7 +238,7 @@ export default function Settings() {
               contentContainerStyle={{ justifyContent: 'center', flexGrow: 1 }}
               ListFooterComponent={() => {
                 return roomData.length > 0 ? (
-                  <Text className="text-sm font-bold mt-2" style={{ color: WeatherBoardColors.textPrimary }}>
+                  <Text className="text-sm font-bold mt-1" style={{ color: WeatherBoardColors.textPrimary }}>
                     ※タップで保存できます。
                   </Text>
                 ) : null;
@@ -259,7 +262,7 @@ export default function Settings() {
 
                     <View className="flex-row justify-between items-center gap-2">
                       <Text className="text-xl font-bold">{item?.invite_code}</Text>
-                      <View className="flex-row items-center gap-6">
+                      <View className="flex-row items-center gap-4">
                         <Text className="text-xl font-semibold">コピー</Text>
 
                         {item?.created_by === userId && (
@@ -295,81 +298,91 @@ export default function Settings() {
         </Pressable>
       </Modal>
 
-      <Modal visible={isRenameVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsRenameVisible(false)} className="flex-1">
-          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <Modal visible={isRenameVisible} animationType="slide" transparent={true} onShow={() => renameInputRef.current?.focus()}>
+        <Pressable onPress={() => setIsRenameVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 ルーム名を変更できます。
               </Text>
-              <TextInput value={renameRoomName} onChangeText={setRenameRoomName} placeholder="新しいルーム名を入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+              <TextInput ref={renameInputRef} value={renameRoomName} onChangeText={setRenameRoomName} placeholder="新しいルーム名を入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
-            <GlassButton onPress={() => handleRenameRoom(renameRoomId, renameRoomName)} buttonText="変更する" buttonIcon="pencil-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+            <View className="w-full">
+              <GlassButton onPress={() => handleRenameRoom(renameRoomId, renameRoomName)} buttonText="変更する" buttonIcon="pencil-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+            </View>
           </View>
         </Pressable>
       </Modal>
 
-      <Modal visible={isJoinVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsJoinVisible(false)} className="flex-1">
-          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <Modal visible={isJoinVisible} animationType="slide" transparent={true} onShow={() => joinInputRef.current?.focus()}>
+        <Pressable onPress={() => setIsJoinVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 招待コードを入力出来ます。
               </Text>
-              <TextInput value={inviteCode} onChangeText={setInviteCode} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+              <TextInput ref={joinInputRef} value={inviteCode} onChangeText={setInviteCode} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
-
-            <GlassButton onPress={handleJoinRoom} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
+            <View className="w-full">
+              <GlassButton onPress={handleJoinRoom} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
+            </View>
           </View>
         </Pressable>
       </Modal>
 
-      <Modal visible={isCreateVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsCreateVisible(false)} className="flex-1">
-          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <Modal visible={isCreateVisible} animationType="slide" transparent={true} onShow={() => createInputRef.current?.focus()}>
+        <Pressable onPress={() => setIsCreateVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 ルーム名を決めてください
               </Text>
-              <TextInput value={roomName} onChangeText={setRoomName} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+              <TextInput ref={createInputRef} value={roomName} onChangeText={setRoomName} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
-            <GlassButton onPress={handleCreateRoom} buttonText="ルームを作成する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+            <View className="w-full">
+              <GlassButton onPress={handleCreateRoom} buttonText="ルームを作成する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+            </View>
           </View>
         </Pressable>
       </Modal>
 
       <Modal visible={isProfileSetUpVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsProfileSetUpVisible(false)} className="flex-1">
-          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
-              <View className="justify-center flex-1">
-                <View className="mb-8">
-                  <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                    ニックネームを変更できます。
-                  </Text>
-                  <TextInput value={nickname} onChangeText={setNickname} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
-                </View>
-
-                <View>
-                  <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                    アバターを選んでください。
-                  </Text>
-                </View>
-
-                <View className="relative flex items-center p-4 overflow-hidden mb-8" style={{ borderRadius: 16 }}>
-                  <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)' }}></View>
-                  <View className="flex-row gap-2 flex-wrap justify-center mb-4">
-                    {AVATARS.map((item) => (
-                      <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6 }}>
-                        <Text className="text-4xl">{item}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-
-                <GlassButton onPress={handleSaveProfile} buttonText="保存する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+        <Pressable onPress={() => setIsProfileSetUpVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
+            <View className="gap-12">
+              <View>
+                <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                  ニックネームを変更できます。
+                </Text>
+                <Text className="mb-2 text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+                  ニックネームは6文字まででお願いします。
+                </Text>
+                <TextInput ref={nicknameInputRef} value={nickname} onChangeText={setNickname} maxLength={6} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
               </View>
-            </ScrollView>
+
+              <View>
+                <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                  アバターを選んでください。
+                </Text>
+                <View className="relative overflow-hidden p-4" style={{ borderRadius: 16, height: 280 }}>
+                  <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)'  }} />
+                  <FlatList
+                    data={AVATARS}
+                    keyExtractor={(item) => item}
+                    numColumns={6}
+                    columnWrapperStyle={{ justifyContent: 'center', gap: 8}}
+                    contentContainerStyle={{ gap: 8 }}
+                    renderItem={({ item }) => (
+                      <Pressable onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6, flex: 1, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 32 }}>{item}</Text>
+                      </Pressable>
+                    )}
+                  />
+                </View>
+              </View>
+
+              <GlassButton onPress={handleSaveProfile} buttonText="保存する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+            </View>
           </View>
         </Pressable>
       </Modal>
