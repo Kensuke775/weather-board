@@ -27,7 +27,7 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <UserProvider>
           <RoomProvider>
-            <KeyboardProvider>
+            <KeyboardProvider statusBarTranslucent>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <Stack>
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />

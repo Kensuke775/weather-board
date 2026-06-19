@@ -1,8 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Alert, ImageBackground, Modal, Pressable, Text, View } from 'react-native';
+import { Alert, ImageBackground, Text, View } from 'react-native';
 
-import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from 'expo-router';
 
 import WeatherCalendar from '@/components/WeatherCalendar';
@@ -26,12 +24,11 @@ function initialMonthStart() {
 }
 
 export default function History() {
-  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
+  const { currentRoomId } = useRoom();
   const { user } = useUser();
   const userId = user?.id;
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<HistoryLog[]>([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(initialMonthStart());
   const [year, month] = currentMonth.split('-').map(Number);
   const initializeMonth = String(month).padStart(2, '0');
@@ -68,7 +65,6 @@ export default function History() {
       fetchHistory();
     }, [currentMonth, initialMonthEnd, currentRoomId, userId]),
   );
-  const currentRoomName = rooms?.find((item) => item?.rooms.id === currentRoomId)?.rooms.name;
   return (
     <ImageBackground source={backgroundImage} className="flex-1 justify-center px-5">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
@@ -76,29 +72,7 @@ export default function History() {
         <Text className="text-4xl text-center mb-8" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
           History
         </Text>
-        <View>
-          <Pressable onPress={() => setIsModalVisible(true)} className="flex-row items-center gap-2 mb-2 py-2 px-2 bg-black/30 self-start rounded-xl border" style={{ borderColor: WeatherBoardColors.glassBorder }}>
-            <Text className="text-sm text-white font-bold">{`部屋: ${currentRoomName}`}</Text>
-            <Ionicons name="chevron-down" size={16} color="white" />
-          </Pressable>
-          <WeatherCalendar historyData={historyData} currentUserId={currentUserId} setDisplayMonth={setCurrentMonth} />
-        </View>
-        <Modal visible={isModalVisible} transparent={true} animationType="slide">
-          <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
-            <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
-              <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
-              <Picker
-                selectedValue={currentRoomId}
-                onValueChange={(value) => {
-                  setCurrentRoomId(value);
-                }}>
-                {rooms.map((room) => (
-                  <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
-                ))}
-              </Picker>
-            </View>
-          </Pressable>
-        </Modal>
+        <WeatherCalendar historyData={historyData} currentUserId={currentUserId} setDisplayMonth={setCurrentMonth} />
       </View>
     </ImageBackground>
   );

@@ -50,5 +50,5 @@ DESIGN.md
 docs/
 
 memory/
-# google-services.json
-# GoogleService-Info.plist
+google-services.json
+GoogleService-Info.plist

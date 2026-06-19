@@ -1,9 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import Toast from 'react-native-toast-message';
-
 import GlassButton from '@/components/GlassButton';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
@@ -19,6 +17,8 @@ export default function RoomSetup() {
   const [isJoinVisible, setIsJoinVisible] = useState(false);
   const [isCreateVisible, setIsCreateVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const roomNameInputRef = useRef<TextInput>(null);
+  const inviteCodeInputRef = useRef<TextInput>(null);
 
   const { handleCreateRoom, setRoomName, roomName } = useRoomCreate(async () => {
     await refreshRooms();
@@ -49,7 +49,7 @@ export default function RoomSetup() {
   };
 
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center px-10">
+    <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center px-6">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
 
       <View className="w-full gap-6">
@@ -58,40 +58,36 @@ export default function RoomSetup() {
         <GlassButton onPress={handleLogout} buttonText="ログアウト" buttonIcon="log-out-outline" backgroundColor={WeatherBoardColors.secondaryBackground} />
       </View>
 
-      <Modal visible={isCreateVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsCreateVisible(false)} className="flex-1">
-          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <Modal visible={isCreateVisible} animationType="slide" transparent={true} onShow={() => roomNameInputRef.current?.focus()}>
+        <Pressable onPress={() => setIsCreateVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 ルーム名を決めてください
               </Text>
-              <TextInput value={roomName} onChangeText={setRoomName} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+              <TextInput ref={roomNameInputRef} value={roomName} onChangeText={setRoomName} placeholder="テキストを入力できます。" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
-
             <View className="w-full">
               <GlassButton onPress={handleCreateRoom} buttonText="ルームを作成する" buttonIcon="checkmark-outline" backgroundColor={WeatherBoardColors.accentBackground} />
             </View>
           </View>
         </Pressable>
-        <Toast position="bottom" bottomOffset={40} />
       </Modal>
 
-      <Modal visible={isJoinVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsJoinVisible(false)} className="flex-1">
-          <View className="flex-1 justify-center p-5" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <Modal visible={isJoinVisible} animationType="slide" transparent={true} onShow={() => inviteCodeInputRef.current?.focus()}>
+        <Pressable onPress={() => setIsJoinVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 招待コードを入力出来ます。
               </Text>
-              <TextInput value={inviteCode} onChangeText={setInviteCode} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+              <TextInput ref={inviteCodeInputRef} value={inviteCode} onChangeText={setInviteCode} placeholder="テキストを入力できます。" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
-
             <View className="w-full pb-12">
               <GlassButton onPress={handleJoinRoom} buttonText="参加する" buttonIcon="checkmark-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
             </View>
           </View>
         </Pressable>
-        <Toast position="bottom" bottomOffset={40} />
       </Modal>
     </ImageBackground>
   );

@@ -1,7 +1,6 @@
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -20,7 +19,7 @@ export type ActivityTag = {
 
 const fetchUserTags = async (userId: string, setter: (data: ActivityTag[]) => void) => {
   const { data: userTagsData, error: userTagsError } = await supabase.from('activity_tags').select('id, tag_name, user_id').eq('user_id', userId);
-  if (userTagsError){
+  if (userTagsError) {
     console.error('[ActivityTagPicker] fetchUserTags', userTagsError.message);
     Alert.alert('タグの取得に失敗しました。');
     return;
@@ -83,11 +82,11 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
     <View>
       <View className="mb-4">
         <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-          タグを選択してください。
+          今日のアクティビティ
         </Text>
         <View className="flex-wrap flex-row gap-3">
           {userCreatedTags.map((tag) => (
-            <BlurView key={tag.id} intensity={40} tint="light" className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+            <View key={tag.id} className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
               <Pressable
                 onLongPress={() => {
                   Alert.alert('タグを削除しますか？', '', [{ text: 'キャンセル' }, { text: 'OK', onPress: () => handleDeleteTag(tag) }]);
@@ -95,27 +94,27 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
                 onPress={() => handleToggleTag(tag)}
                 key={tag.id}
                 style={selectedTags.some((item) => item.id === tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
-                <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text className="text-sm font-bold" style={{ color: 'black' }}>
                   #{tag.tag_name}
                 </Text>
               </Pressable>
-            </BlurView>
+            </View>
           ))}
 
-          <BlurView intensity={40} tint="light" className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
-            <Pressable onPress={() => setIsInputVisible(true)}>
-              <Text className="text-ms font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+          <View className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
+            <Pressable onPress={() => setIsInputVisible(!isInputVisible)}>
+              <Text className="text-ms font-bold" style={{ color: 'black' }}>
                 tags +
               </Text>
             </Pressable>
-          </BlurView>
+          </View>
         </View>
       </View>
 
       {isInputVisible && (
-        <View className="flex-row items-center rounded-xl overflow-hidden border" style={{ borderColor: WeatherBoardColors.glassBorder }}>
-          <TextInput value={inputText} onChangeText={setInputText} placeholder="名前を入力し、追加してください。" autoCapitalize="none" className="flex-1 py-4 px-2 h-12 bg-white" />
-          <Pressable onPress={handleInsertTag} className="px-1 flex justify-center items-center h-12" style={{ backgroundColor: WeatherBoardColors.tertiaryBackground }}>
+        <View className="flex-row items-center rounded-xl overflow-hidden border" style={{ borderColor: WeatherBoardColors.glassBorder, marginTop: 12, marginBottom: 16 }}>
+          <TextInput value={inputText} onChangeText={setInputText} placeholder="タグ名を入れて追加しよう" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="flex-1 px-1 h-14 bg-white text-sm" />
+          <Pressable onPress={handleInsertTag} className="px-1 flex justify-center items-center h-14" style={{ backgroundColor: WeatherBoardColors.tertiaryBackground }}>
             <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
               追加する
             </Text>

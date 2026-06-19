@@ -51,6 +51,11 @@ type RawHistoryData = Omit<HistoryDayItem, 'profiles' | 'weather_log_activities'
   }[];
 };
 
+const formatNote = (note: string | null | undefined) => {
+  if (!note || note === 'null') return null;
+  return note;
+};
+
 export default function WeatherCalendar({ historyData, currentUserId, setDisplayMonth }: WeatherCalendarProps) {
   const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -116,10 +121,16 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
 
   return (
     <>
-      <View className="overflow-hidden border p-2" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder, backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <Text className="text-sm font-bold text-center" style={{ color: WeatherBoardColors.textMuted }}>
-          {currentUserData.length > 0 ? `${WEATHER_CONFIG[mostWeather as WeatherType].emoji} Most Weather ${WEATHER_CONFIG[mostWeather as WeatherType].emoji}` : 'No Record'}
-        </Text>
+      <View className="border p-2" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+        <View style={{ position: 'relative' }}>
+          <Pressable onPress={() => setIsPickerVisible(true)} className="flex-row items-center gap-1 py-1 px-2 bg-black/30 rounded-xl border" style={{ position: 'absolute', top: 0, left: 0, borderColor: WeatherBoardColors.glassBorder, zIndex: 1 }}>
+            <Text className="text-[10px] text-white font-bold">{currentRoomName && currentRoomName.length > 3 ? `${currentRoomName.slice(0, 3)}...` : currentRoomName}</Text>
+            <Ionicons name="chevron-down" size={10} color="white" />
+          </Pressable>
+          <Text className="text-sm font-bold text-center" style={{ color: WeatherBoardColors.textMuted }}>
+            {currentUserData.length > 0 ? `${WEATHER_CONFIG[mostWeather as WeatherType].emoji} Most Weather ${WEATHER_CONFIG[mostWeather as WeatherType].emoji}` : 'No Record'}
+          </Text>
+        </View>
         <Calendar
           onMonthChange={(date) => {
             const month = String(date.month).padStart(2, '0');
@@ -178,7 +189,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
           <View className="flex-row justify-between items-center">
             {Object.entries(weatherHistgram).map(([key, value]) => (
               <View key={key} className="flex flex-row items-center gap-1">
-                <Text className="text-xl font-bold">{WEATHER_CONFIG[key as WeatherType].emoji}</Text>
+                <Text className="text-base font-bold">{WEATHER_CONFIG[key as WeatherType].emoji}</Text>
                 <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                   {value === 0 ? null : value}
                 </Text>
@@ -193,7 +204,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
           <Pressable onPress={() => setIsModalVisible(false)} className="flex-1">
             <View className="pt-40 pb-20 px-4">
               <View className="pb-4 flex-row items-center justify-between">
-                <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textMuted }}>{`履歴: ${selectedDate}`}</Text>
+                <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textMuted }}>{`履歴: ${selectedDate ?? ''}`}</Text>
                 <Pressable onPress={() => setIsPickerVisible(true)} className="flex-row items-center gap-2 mb-2 py-2 px-2 bg-black/30 self-start rounded-xl border" style={{ borderColor: WeatherBoardColors.glassBorder }}>
                   <Text className="text-sm text-white font-bold">{`部屋: ${currentRoomName}`}</Text>
                   <Ionicons name="chevron-down" size={16} color="white" />
@@ -236,7 +247,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                           </View>
                           <View className="flex flex-row items-center gap-1 mb-2">
                             <Text className="text-xs flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: 30 }} numberOfLines={2}>
-                              {item?.note}
+                              {formatNote(item?.note)}
                             </Text>
                           </View>
                           <View className="flex-row justify-between">
@@ -300,7 +311,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                         </View>
                         <View className="flex flex-row items-center gap-1 mb-4">
                           <Text className="text-xs" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={2}>
-                            {selectedItem.note}
+                            {formatNote(selectedItem.note)}
                           </Text>
                         </View>
 
@@ -327,25 +338,26 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                 </Modal>
               )}
 
-              <Modal visible={isPickerVisible} transparent={true} animationType="slide">
-                <Pressable style={{ flex: 1 }} onPress={() => setIsPickerVisible(false)}>
-                  <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
-                    <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
-                    <Picker
-                      selectedValue={currentRoomId}
-                      onValueChange={(value) => {
-                        setCurrentRoomId(value);
-                      }}>
-                      {rooms.map((room) => (
-                        <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
-                      ))}
-                    </Picker>
-                  </View>
-                </Pressable>
-              </Modal>
             </View>
           </Pressable>
         </View>
+      </Modal>
+
+      <Modal visible={isPickerVisible} transparent={true} animationType="slide">
+        <Pressable style={{ flex: 1 }} onPress={() => setIsPickerVisible(false)}>
+          <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
+            <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
+            <Picker
+              selectedValue={currentRoomId}
+              onValueChange={(value) => {
+                setCurrentRoomId(value);
+              }}>
+              {rooms.map((room) => (
+                <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
+              ))}
+            </Picker>
+          </View>
+        </Pressable>
       </Modal>
     </>
   );

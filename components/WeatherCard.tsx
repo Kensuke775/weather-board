@@ -1,5 +1,6 @@
 import React, { JSX, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, Text, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -47,22 +48,26 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           if (!userId) return;
           markAsRead(userId, weather_log_id);
         }}
-        style={{ flex: 1, maxWidth: '48%' }}>
-        <View>
-          <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
+        style={{ flex: 1, maxWidth: '50%', overflow: 'visible' }}>
+        <View className="overflow-visible relative">
+          <BlurView
+            intensity={40}
+            tint="light"
+            className="p-4 border overflow-visible"
+            style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
             <View className="flex flex-row items-center gap-1 mb-2">
-              <Text className="text-xl">{avatar_emoji}</Text>
-              <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
+              <Text className="text-base">{avatar_emoji}</Text>
+              <Text className="text-[12px] font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
                 {nickname}
               </Text>
               <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
             </View>
             <View className="flex flex-row items-center gap-1 mb-2">
-              <Text className="text-xs flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: 30 }} numberOfLines={2}>
+              <Text className="text-[10px] flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: 30 }} numberOfLines={2}>
                 {note}
               </Text>
             </View>
-            <View className="flex-row items-center gap-2 flex-wrap mb-2 overflow-hidden" style={{ height: 13 }}>
+            <View className="flex-row items-center gap-2 flex-wrap mb-2 overflow-hidden text-[8px]" style={{ height: 13 }}>
               {tags.map((tag) => (
                 <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimary }}>
                   #{tag.name}
@@ -88,12 +93,12 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
             </View>
           </BlurView>
           {unreadCount > 0 && (
-            <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-5 h-5 flex justify-center items-center">
+            <View className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex justify-center items-center">
               <Text className="text-white text-xs font-bold">{unreadCount}</Text>
             </View>
           )}
           <View className="flex-row justify-end">
-            <Text className="text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+            <Text className="text-[8px]" style={{ color: WeatherBoardColors.textMuted }}>
               {formattedDate}
             </Text>
           </View>
@@ -101,7 +106,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
       </Pressable>
 
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={-20} className="flex-1 justify-end">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} automaticOffset style={{ flex: 1, justifyContent: 'flex-end' }}>
           <BlurView intensity={40} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
             <View className="flex-row justify-between mb-5 mt-20">
               <Pressable onPress={() => setIsModalVisible(false)}>

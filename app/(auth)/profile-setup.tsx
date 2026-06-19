@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ImageBackground, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, ImageBackground, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
@@ -9,7 +9,7 @@ import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
-const backgroundImage = require('@/assets/images/weather/profile-setup.png');
+const backgroundImage = require('@/assets/images/weather/signup.png');
 const AVATARS = [
   // 動物
   '🐶',
@@ -40,13 +40,10 @@ const AVATARS = [
   '🐢',
   '🐬',
   '🦭',
-  '🐙',
   '🐿️',
   '🦔',
   // 食べ物・かわいい系
   '🍓',
-  '🍑',
-  '🍒',
   '🍰',
   '🧁',
   '🍩',
@@ -60,7 +57,6 @@ const AVATARS = [
   '🌈',
   '⭐',
   '🌙',
-  '☁️',
   // キャラ系
   '👻',
   '🤖',
@@ -96,6 +92,10 @@ export default function ProfileSetUp() {
         Alert.alert('アバターを選んでください。');
         return;
       }
+      if (nickname.length > 6) {
+        Alert.alert('ニックネームは6文字以内で入力してください。');
+        return;
+      }
       const { error } = await supabase.from('profiles').upsert({ user_id: userId, nickname, avatar_emoji: avatar }, { onConflict: 'user_id' });
       if (error) {
         console.error('[profile-setup] handleSaveProfile', error.message);
@@ -112,9 +112,9 @@ export default function ProfileSetUp() {
 
   return (
     <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
-      <ImageBackground source={backgroundImage} className="flex-1 px-10">
+      <ImageBackground source={backgroundImage} className="flex-1 px-6">
         <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
-        <ScrollView contentContainerStyle={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
+        <View style={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
           <View className="justify-center flex-1">
             <Text className="text-4xl text-center mb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
               Profile SetUp
@@ -124,7 +124,10 @@ export default function ProfileSetUp() {
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
                 ニックネームを入力してください。
               </Text>
-              <TextInput value={nickname} onChangeText={setNickname} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+              <Text className="mb-2 text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+                ニックネームは6文字まででお願いします。
+              </Text>
+              <TextInput value={nickname} onChangeText={setNickname} maxLength={6} placeholder="テキストを入力してください。" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
             </View>
 
             <View className="mb-4">
@@ -132,22 +135,28 @@ export default function ProfileSetUp() {
                 アバターを選んでください。
               </Text>
 
-              <View className="relative flex items-center p-4 overflow-hidden" style={{ borderRadius: 16 }}>
-                <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} />
-                <View className="flex-row gap-2 flex-wrap justify-center mb-4">
-                  {AVATARS.map((item) => (
-                    <Pressable key={item} onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.5 }}>
-                      <Text className="text-3xl">{item}</Text>
+              <View className="relative overflow-hidden" style={{ borderRadius: 16, height: 280, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
+                <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)' }} />
+                <FlatList
+                  data={AVATARS}
+                  keyExtractor={(item) => item}
+                  numColumns={6}
+                  nestedScrollEnabled
+                  columnWrapperStyle={{ justifyContent: 'center', gap: 8 }}
+                  contentContainerStyle={{ gap: 8, padding: 8 }}
+                  renderItem={({ item }) => (
+                    <Pressable onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6, flex: 1, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 32 }}>{item}</Text>
                     </Pressable>
-                  ))}
-                </View>
+                  )}
+                />
               </View>
             </View>
             <View className="flex gap-4">
               <GlassButton onPress={handleSaveProfile} buttonText="保存する" buttonIcon="checkmark-outline" backgroundColor={WeatherBoardColors.accentBackground} />
             </View>
           </View>
-        </ScrollView>
+        </View>
       </ImageBackground>
     </Pressable>
   );

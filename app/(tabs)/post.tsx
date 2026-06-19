@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -117,7 +117,7 @@ export default function Post() {
     <ImageBackground source={backgroundImage} className="flex-1">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }} />
       <View className="flex-1 pb-8">
-        <BlurView intensity={10} tint="light" className="pt-20 pb-4 overflow-visible" style={{ borderBottomWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+        <BlurView intensity={10} tint="light" className="pt-20 pb-2 overflow-visible" style={{ borderBottomWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
           <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
             {`How's your weather today?`}
           </Text>
@@ -134,10 +134,10 @@ export default function Post() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 32, paddingHorizontal: PADDING, alignItems: 'center' }}
-            style={{ height: 100 }}
+            style={{ height: 95 }}
             renderItem={({ item: [key, value], index }) => (
               <View style={{ width: ITEM_WIDTH, opacity: index === selectedIndex ? 1 : 0.4, transform: [{ scale: index === selectedIndex ? 1.3 : 0.8 }], justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ fontSize: 50, lineHeight: 60 }}>{value.emoji}</Text>
+                <Text style={{ fontSize: 50, lineHeight: 55 }}>{value.emoji}</Text>
 
                 <Text className="text-[8px]" style={{ color: WeatherBoardColors.textMuted }}>
                   {value.label}
@@ -152,21 +152,20 @@ export default function Post() {
         </BlurView>
 
         <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-10" contentContainerStyle={{ flexGrow: 1, paddingTop: 60, paddingBottom: 30 }}>
-          <TouchableWithoutFeedback onPress={() => setIsInputVisible(false)}>
-            <View>
+          <View>
               <View className="mb-12">
                 <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-                  投稿する部屋を選んでください。
+                  投稿するルームを選ぼう
                 </Text>
 
                 <View>
                   <Pressable onPress={() => setIsModalVisible(true)}>
-                    <BlurView intensity={40} tint="light" className="flex-row items-center justify-between gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
-                      <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                    <View className="flex-row items-center justify-between gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
+                      <Text className="text-base font-bold" style={{ color: 'black' }}>
                         {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
                       </Text>
-                      <Ionicons name="chevron-down" size={20} color="white" />
-                    </BlurView>
+                      <Ionicons name="chevron-down" size={20} color="black" />
+                    </View>
                   </Pressable>
                   <Modal visible={isModalVisible} transparent={true} animationType="slide">
                     <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
@@ -191,21 +190,21 @@ export default function Post() {
                 <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
                   選択中:
                 </Text>
-                <BlurView intensity={40} tint="light" className="flex-row flex-wrap items-center gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder }}>
+                <View className="flex-row flex-wrap items-center gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
                   {selectedTags.length === 0 ? (
-                    <Text className="text-sm font-bold " style={{ color: WeatherBoardColors.textMuted }}>
+                    <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.placeholderDark }}>
                       選択中のタグはありません。
                     </Text>
                   ) : (
                     selectedTags.map((tag) => (
                       <View key={tag.id}>
-                        <Text className="text-sm font-bold " style={{ color: WeatherBoardColors.textPrimary }}>
+                        <Text className="text-sm font-bold" style={{ color: 'black' }}>
                           #{tag.tag_name}
                         </Text>
                       </View>
                     ))
                   )}
-                </BlurView>
+                </View>
               </View>
 
               <View className="mb-10">
@@ -214,7 +213,7 @@ export default function Post() {
 
               <View className="mb-12">
                 <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-                  メモを残す
+                  ひとことメモ
                 </Text>
                 <TextInput
                   value={note}
@@ -223,7 +222,8 @@ export default function Post() {
                   multiline
                   blurOnSubmit={true}
                   numberOfLines={2}
-                  placeholder="テキストを入力してください。"
+                  placeholder="今日の気分を一言メモ…"
+                  placeholderTextColor="rgba(0,0,0,0.4)"
                   className="py-4 px-2 rounded-xl bg-white border"
                   style={{ borderColor: WeatherBoardColors.glassBorder }}
                 />
@@ -232,11 +232,10 @@ export default function Post() {
               <View className="mb-24">
                 <GlassButton onPress={handlePost} buttonText="天気を投稿する" buttonIcon="sunny-outline" backgroundColor={WeatherBoardColors.accentBackground} />
                 <Text className="text-center text-xs mt-2" style={{ color: WeatherBoardColors.textMuted }}>
-                  天気・タグ・メモはAI分析に反映されます
+                  投稿内容はWeekly分析に反映されます
                 </Text>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
+          </View>
         </KeyboardAwareScrollView>
       </View>
     </ImageBackground>

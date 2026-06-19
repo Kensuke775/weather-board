@@ -33,7 +33,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification.png"
+        }
+      ],
       [
         "expo-splash-screen",
         {
