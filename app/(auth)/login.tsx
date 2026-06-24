@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, ImageBackground, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, ImageBackground, Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { makeRedirectUri } from 'expo-auth-session';
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
@@ -13,6 +14,8 @@ import { supabase } from '@/lib/supabase';
 const backgroundImage = require('@/assets/images/weather/login.png');
 const redirectTo = makeRedirectUri();
 
+type SubmittingName = 'google' | 'apple' | 'password' | null;
+
 export default function AuthLogin() {
   const router = useRouter();
   const [fontsLoaded] = useFonts({
@@ -20,11 +23,11 @@ export default function AuthLogin() {
   }) as [boolean, Error | null];
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
 
   const handleGoogleLogin = async () => {
     if (isSubmitting) return;
-    setIsSubmitting(true);
+    setIsSubmitting('google');
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -53,13 +56,39 @@ export default function AuthLogin() {
         router.replace('/(tabs)');
       }
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(null);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting('apple');
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      });
+      if (!credential.identityToken) return;
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+      if (error) {
+        console.error('[login] handleAppleLogin', error.message);
+        return;
+      }
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        console.error('[login] handleAppleLogin', e);
+      }
+    } finally {
+      setIsSubmitting(null);
     }
   };
 
   const handleLogin = async () => {
     if (isSubmitting) return;
-    setIsSubmitting(true);
+    setIsSubmitting('password');
     try {
       if (email.length === 0) {
         Alert.alert('メールアドレスが空です。');
@@ -81,7 +110,7 @@ export default function AuthLogin() {
       }
       router.replace('/(tabs)');
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(null);
     }
   };
   if (!fontsLoaded) return null;
@@ -97,22 +126,41 @@ export default function AuthLogin() {
           <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
             メールアドレス
           </Text>
-          <TextInput value={email} onChangeText={setEmail} placeholder="example@email.com" placeholderTextColor={WeatherBoardColors.placeholderDark} textContentType="emailAddress" autoCapitalize="none" keyboardType="email-address" className="bg-white py-4 px-2 rounded-xl" />
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="example@email.com"
+            placeholderTextColor={WeatherBoardColors.placeholderDark}
+            textContentType="emailAddress"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            className="bg-white py-4 px-2 rounded-xl"
+          />
         </View>
 
-        <View className="w-full mb-8">
+        <View className="w-full mb-4">
           <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
             パスワード
           </Text>
-          <TextInput value={password} onChangeText={setPassword} placeholder="パスワード" placeholderTextColor={WeatherBoardColors.placeholderDark} textContentType="password" secureTextEntry autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl mb-2" />
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="パスワード"
+            placeholderTextColor={WeatherBoardColors.placeholderDark}
+            textContentType="password"
+            secureTextEntry
+            autoCapitalize="none"
+            className="bg-white py-4 px-2 rounded-xl mb-2"
+          />
           <Text className="text-sm" style={{ color: WeatherBoardColors.textPrimary }}>
             ※6文字以上で設定してください
           </Text>
         </View>
 
-        <View className="flex gap-8">
+        <View className="flex gap-4">
           <GlassButton onPress={handleLogin} buttonText="ログイン" backgroundColor={WeatherBoardColors.accentBackground} buttonIcon="log-in-outline" />
           <GlassButton onPress={handleGoogleLogin} buttonText="Googleでログイン" buttonIcon="logo-google" backgroundColor="#4285F4" />
+          {Platform.OS === 'ios' && <GlassButton onPress={handleAppleLogin} buttonText="Appleでログイン" buttonIcon="logo-apple" backgroundColor="#000000" />}
           <GlassButton onPress={() => router.push('/(auth)/signup')} buttonText="アカウントを新しく作る" backgroundColor={WeatherBoardColors.secondaryBackground} buttonIcon="person-add-outline" />
         </View>
       </ImageBackground>

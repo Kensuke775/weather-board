@@ -143,7 +143,10 @@ const fetchActivityFeed = async (roomId: string | null, setter: (data: ActivityF
   setter(formattedData);
 };
 
-const fetchRoomMember = async (roomId: string, setter: (data: RoomMember[]) => void) => {
+const hasActivityFeedProfiles = (item: ActivityFeedItem): item is ActivityFeedItem & { from: NonNullable<ActivityFeedItem['from']>; to: NonNullable<ActivityFeedItem['to']> } =>
+  item.from !== null && item.to !== null;
+
+const fetchRoomMember = async (roomId: string, userId: string, setter: (data: RoomMember[]) => void) => {
   if (!roomId) return;
   const { data: roomMemberData, error: roomMemberError } = await supabase.from('room_members').select('user_id').eq('room_id', roomId);
   if (roomMemberError) {
@@ -158,7 +161,14 @@ const fetchRoomMember = async (roomId: string, setter: (data: RoomMember[]) => v
     Alert.alert('プロフィールの取得に失敗しました。');
     return;
   }
-  setter(profileData);
+  const { data: blockedData, error: blockedError } = await supabase.from('blocks').select('blocked_id').eq('blocker_id', userId);
+  if (blockedError) {
+    console.error('[index(tab)] fetchRoomMember', blockedError.message);
+    Alert.alert('ブロック情報の取得に失敗しました。');
+    return;
+  }
+  const blockedIds = new Set(blockedData.map((item) => item.blocked_id));
+  setter(profileData.filter((item) => !blockedIds.has(item.user_id)));
 };
 
 export default function HomeScreen() {
@@ -252,6 +262,31 @@ export default function HomeScreen() {
   }, [currentRoomId, userId]);
 
   useEffect(() => {
+    if (!userId || !currentRoomId) return;
+    let channel: ReturnType<typeof supabase.channel>;
+    let isCancelled = false;
+    const setUp = async () => {
+      const channelName = `blocks-${userId}`;
+      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      if (isCancelled) return;
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'blocks' }, async () => {
+          await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
+          await fetchCommentsData(setCommentStatus);
+          await fetchRoomMember(currentRoomId, userId, setRoomMember);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      isCancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [currentRoomId, userId]);
+
+  useEffect(() => {
     if (!userId) return;
     let channel: ReturnType<typeof supabase.channel>;
     let isCancelled = false;
@@ -295,9 +330,9 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!currentRoomId) return;
-      fetchRoomMember(currentRoomId, setRoomMember);
-    }, [currentRoomId]),
+      if (!currentRoomId || !userId) return;
+      fetchRoomMember(currentRoomId, userId, setRoomMember);
+    }, [currentRoomId, userId]),
   );
 
   const openMemberPanel = () => {
@@ -461,7 +496,7 @@ export default function HomeScreen() {
         backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
         <BlurView intensity={40} tint="dark" className="flex-1 p-6" style={{ borderTopWidth: 1, borderTopColor: WeatherBoardColors.glassBorder }}>
           <BottomSheetFlatList
-            data={activityFeed}
+            data={activityFeed.filter(hasActivityFeedProfiles)}
             keyExtractor={(item) => item.id}
             ItemSeparatorComponent={() => <View className="h-4" />}
             contentContainerStyle={{ alignItems: 'center', paddingBottom: tabBarHeight }}

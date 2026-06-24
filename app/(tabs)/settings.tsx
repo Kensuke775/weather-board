@@ -18,6 +18,16 @@ type RoomData = {
   rooms: { id: string; name: string; invite_code: string; created_by: string }[];
 };
 
+type ModalName = 'invite' | 'join' | 'create' | 'profileSetup' | 'rename' | 'account' | 'blockList' | null;
+
+type BlockedUser = {
+  id: string;
+  blocked_id: string;
+  profiles: { nickname: string; avatar_emoji: string } | null;
+};
+
+type LoadingName = 'leaving' | 'loggingOut' | 'deletingAccount' | null;
+
 const AVATARS = [
   // 動物
   '🐶',
@@ -83,14 +93,10 @@ export default function Settings() {
   const userId = user?.id;
   const router = useRouter();
   const [roomData, setRoomData] = useState<RoomData[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const { setCurrentRoomId, refreshRooms } = useRoom();
-  const [isInviteVisible, setIsInviteVisible] = useState(false);
-  const [isJoinVisible, setIsJoinVisible] = useState(false);
-  const [isCreateVisible, setIsCreateVisible] = useState(false);
-  const [isProfileSetUpVisible, setIsProfileSetUpVisible] = useState(false);
-  const [isLeaving, setIsLeaving] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isRenameVisible, setIsRenameVisible] = useState(false);
+  const [activeModal, setActiveModal] = useState<ModalName>(null);
+  const [isLoading, setIsLoading] = useState<LoadingName>(null);
   const [renameRoomId, setRenameRoomId] = useState('');
   const [renameRoomName, setRenameRoomName] = useState('');
   const renameInputRef = useRef<TextInput>(null);
@@ -99,7 +105,7 @@ export default function Settings() {
   const nicknameInputRef = useRef<TextInput>(null);
 
   const { handleCreateRoom, setRoomName, roomName } = useRoomCreate(async (roomId) => {
-    setIsCreateVisible(false);
+    setActiveModal(null);
     setRoomName('');
     await fetchInviteData();
     await refreshRooms();
@@ -109,7 +115,7 @@ export default function Settings() {
   });
 
   const { inviteCode, setInviteCode, handleJoinRoom } = useRoomJoin(async (roomName, roomId) => {
-    setIsJoinVisible(false);
+    setActiveModal(null);
     setInviteCode('');
     await fetchInviteData();
     await refreshRooms();
@@ -120,7 +126,7 @@ export default function Settings() {
 
   const { handleSaveProfile, setNickname, setAvatar, avatar, nickname } = useProfileSetUp(async () => {
     await fetchProfileData();
-    setIsProfileSetUpVisible(false);
+    setActiveModal(null);
     Toast.show({ type: 'success', text1: `プロフィールを変更しました。`, visibilityTime: 1500 });
   });
 
@@ -145,9 +151,37 @@ export default function Settings() {
     setNickname(profileData[0]?.nickname);
   }, [userId, setNickname, setAvatar]);
 
+  const fetchBlockedUsers = useCallback(async () => {
+    const { data: blockedData, error: blockedError } = await supabase
+      .from('blocks')
+      .select('id, blocked_id, profiles!blocks_blocked_id_fkey(nickname, avatar_emoji)')
+      .eq('blocker_id', userId);
+    if (blockedError) {
+      console.error('[settings] fetchBlockedUsers', blockedError.message);
+      Alert.alert('ブロック一覧の取得に失敗しました。');
+      return;
+    }
+    const formattedData = (blockedData ?? []).map((item) => ({
+      ...item,
+      profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+    }));
+    setBlockedUsers(formattedData);
+  }, [userId]);
+
+  const handleUnblock = async (blockId: string) => {
+    const { error } = await supabase.from('blocks').delete().eq('id', blockId);
+    if (error) {
+      console.error('[settings] handleUnblock', error.message);
+      Alert.alert('ブロック解除に失敗しました。');
+      return;
+    }
+    setBlockedUsers((prev) => prev.filter((item) => item.id !== blockId));
+    Toast.show({ type: 'success', text1: 'ブロックを解除しました。', visibilityTime: 1500 });
+  };
+
   const handleLeaveRoom = async (roomId: string) => {
-    if (isLeaving) return;
-    setIsLeaving(true);
+    if (isLoading) return;
+    setIsLoading('leaving');
     try {
       const { error: roomMembersError } = await supabase.from('room_members').delete().eq('user_id', userId).eq('room_id', roomId);
       if (roomMembersError) {
@@ -159,10 +193,10 @@ export default function Settings() {
       setCurrentRoomId(remaining[0]?.id ?? null);
       await fetchInviteData();
       await refreshRooms();
-      setIsInviteVisible(false);
+      setActiveModal(null);
       Toast.show({ type: 'success', text1: `ルームを削除しました`, visibilityTime: 1500 });
     } finally {
-      setIsLeaving(false);
+      setIsLoading(null);
     }
   };
 
@@ -179,13 +213,13 @@ export default function Settings() {
     }
     await fetchInviteData();
     await refreshRooms();
-    setIsRenameVisible(false);
+    setActiveModal(null);
     Toast.show({ type: 'success', text1: 'ルーム名を変更しました。', visibilityTime: 1500 });
   };
 
   const handleLogout = async () => {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
+    if (isLoading) return;
+    setIsLoading('loggingOut');
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -194,7 +228,23 @@ export default function Settings() {
         return;
       }
     } finally {
-      setIsLoggingOut(false);
+      setIsLoading(null);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (isLoading) return;
+    setIsLoading('deletingAccount');
+    try {
+      const { error } = await supabase.functions.invoke('delete-account');
+      if (error) {
+        console.error('[settings] handleDeleteAccount', error.message);
+        Alert.alert('アカウント削除に失敗しました。');
+        return;
+      }
+      await supabase.auth.signOut();
+    } finally {
+      setIsLoading(null);
     }
   };
 
@@ -206,16 +256,16 @@ export default function Settings() {
   );
 
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center gap-8 px-10">
+    <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center gap-4 px-10">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
 
-      <GlassButton onPress={() => setIsCreateVisible(true)} buttonText="ルームを作成する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+      <GlassButton onPress={() => setActiveModal('create')} buttonText="ルームを作成する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
 
-      <GlassButton onPress={() => setIsJoinVisible(true)} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
+      <GlassButton onPress={() => setActiveModal('join')} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
 
-      <GlassButton onPress={() => setIsInviteVisible(true)} buttonText="ルーム一覧" buttonIcon="list-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton}/>
+      <GlassButton onPress={() => setActiveModal('invite')} buttonText="ルーム一覧" buttonIcon="list-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton} />
 
-      <GlassButton onPress={() => setIsProfileSetUpVisible(true)} buttonText="プロフィール編集" buttonIcon="person-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton}/>
+      <GlassButton onPress={() => setActiveModal('account')} buttonText="アカウント設定" buttonIcon="settings-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton} />
 
       <GlassButton
         onPress={() => {
@@ -229,8 +279,8 @@ export default function Settings() {
         backgroundColor={WeatherBoardColors.glassBackgroundButton}
       />
 
-      <Modal visible={isInviteVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsInviteVisible(false)} className="flex-1">
+      <Modal visible={activeModal === 'invite'} animationType="slide" transparent={true}>
+        <Pressable onPress={() => setActiveModal(null)} className="flex-1">
           <View className="flex-1 justify-center pt-40 pb-20 px-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <FlatList
               data={roomData.flatMap((data) => data?.rooms)}
@@ -248,7 +298,7 @@ export default function Settings() {
                   <Pressable
                     onPress={async () => {
                       await Clipboard.setStringAsync(item?.invite_code);
-                      setIsInviteVisible(false);
+                      setActiveModal(null);
                       Toast.show({
                         type: 'success',
                         text1: 'コピーしました。',
@@ -270,8 +320,7 @@ export default function Settings() {
                             onPress={() => {
                               setRenameRoomId(item.id);
                               setRenameRoomName(item.name);
-                              setIsInviteVisible(false);
-                              setIsRenameVisible(true);
+                              setActiveModal('rename');
                             }}>
                             <Text className="text-xl font-bold">名前変更</Text>
                           </Pressable>
@@ -298,8 +347,8 @@ export default function Settings() {
         </Pressable>
       </Modal>
 
-      <Modal visible={isRenameVisible} animationType="slide" transparent={true} onShow={() => renameInputRef.current?.focus()}>
-        <Pressable onPress={() => setIsRenameVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+      <Modal visible={activeModal === 'rename'} animationType="slide" transparent={true} onShow={() => renameInputRef.current?.focus()}>
+        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
           <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
@@ -314,8 +363,8 @@ export default function Settings() {
         </Pressable>
       </Modal>
 
-      <Modal visible={isJoinVisible} animationType="slide" transparent={true} onShow={() => joinInputRef.current?.focus()}>
-        <Pressable onPress={() => setIsJoinVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+      <Modal visible={activeModal === 'join'} animationType="slide" transparent={true} onShow={() => joinInputRef.current?.focus()}>
+        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
           <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
@@ -330,8 +379,8 @@ export default function Settings() {
         </Pressable>
       </Modal>
 
-      <Modal visible={isCreateVisible} animationType="slide" transparent={true} onShow={() => createInputRef.current?.focus()}>
-        <Pressable onPress={() => setIsCreateVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+      <Modal visible={activeModal === 'create'} animationType="slide" transparent={true} onShow={() => createInputRef.current?.focus()}>
+        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
           <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="w-full mb-12">
               <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
@@ -346,8 +395,76 @@ export default function Settings() {
         </Pressable>
       </Modal>
 
-      <Modal visible={isProfileSetUpVisible} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setIsProfileSetUpVisible(false)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+      <Modal visible={activeModal === 'account'} animationType="slide" transparent={true}>
+        <Pressable onPress={() => setActiveModal(null)} className="flex-1">
+          <View className="flex-1 justify-center pt-40 pb-20 px-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <View onStartShouldSetResponder={() => true} className="gap-4">
+              <GlassButton onPress={() => setActiveModal('profileSetup')} buttonText="プロフィール編集" buttonIcon="person-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton} />
+
+              <GlassButton
+                onPress={() => {
+                  setActiveModal('blockList');
+                  fetchBlockedUsers();
+                }}
+                buttonText="ブロック一覧"
+                buttonIcon="ban-outline"
+                backgroundColor={WeatherBoardColors.glassBackgroundButton}
+              />
+
+              <GlassButton
+                onPress={() => {
+                  Alert.alert('確認', 'アカウントを削除しますか？', [
+                    { text: 'キャンセル', style: 'cancel' },
+                    { text: '削除する', onPress: handleDeleteAccount, style: 'destructive' },
+                  ]);
+                }}
+                buttonText="アカウントを削除"
+                buttonIcon="trash-outline"
+                backgroundColor={WeatherBoardColors.glassBackgroundButton}
+              />
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={activeModal === 'blockList'} animationType="slide" transparent={true}>
+        <Pressable onPress={() => setActiveModal(null)} className="flex-1">
+          <View className="flex-1 justify-center pt-40 pb-20 px-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <FlatList
+              data={blockedUsers}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ justifyContent: 'center', flexGrow: 1 }}
+              ListEmptyComponent={
+                <Text className="text-base font-bold text-center" style={{ color: WeatherBoardColors.textPrimary }}>
+                  ブロック中のユーザーはいません。
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <View className="mb-4 p-4 rounded-xl bg-white flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-xl">{item.profiles?.avatar_emoji}</Text>
+                    <Text className="text-base font-semibold">{item.profiles?.nickname}</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert('確認', 'ブロックを解除しますか？', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: '解除する', onPress: () => handleUnblock(item.id) },
+                      ]);
+                    }}>
+                    <Text className="text-base font-bold" style={{ color: WeatherBoardColors.accentBackground }}>
+                      解除する
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={activeModal === 'profileSetup'} animationType="slide" transparent={true}>
+        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
           <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
             <View className="gap-12">
               <View>
@@ -365,12 +482,12 @@ export default function Settings() {
                   アバターを選んでください。
                 </Text>
                 <View className="relative overflow-hidden p-4" style={{ borderRadius: 16, height: 280 }}>
-                  <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)'  }} />
+                  <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }} />
                   <FlatList
                     data={AVATARS}
                     keyExtractor={(item) => item}
                     numColumns={6}
-                    columnWrapperStyle={{ justifyContent: 'center', gap: 8}}
+                    columnWrapperStyle={{ justifyContent: 'center', gap: 8 }}
                     contentContainerStyle={{ gap: 8 }}
                     renderItem={({ item }) => (
                       <Pressable onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6, flex: 1, alignItems: 'center' }}>

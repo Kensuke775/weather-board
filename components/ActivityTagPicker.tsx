@@ -103,7 +103,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
 
           <View className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
             <Pressable onPress={() => setIsInputVisible(!isInputVisible)}>
-              <Text className="text-ms font-bold" style={{ color: 'black' }}>
+              <Text className="text-sm font-bold" style={{ color: 'black' }}>
                 tags +
               </Text>
             </Pressable>

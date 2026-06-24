@@ -123,8 +123,8 @@ export type ActivityFeedItem = {
   from_user_id:string;
   to_user_id: string;
   created_at: string;
-  from: {  avatar_emoji: string; nickname: string;}
-  to: {  avatar_emoji: string; nickname: string;}
+  from: { avatar_emoji: string; nickname: string } | null;
+  to: { avatar_emoji: string; nickname: string } | null;
 }
 
 export type CommentSectionProps = {

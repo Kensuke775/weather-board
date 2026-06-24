@@ -74,7 +74,7 @@ export default function TabLayout() {
           Alert.alert('プロフィールの取得に失敗しました。');
           return;
         }
-        if (!profileData) return router.replace('/(auth)/profile-setup');
+        if (!profileData) return router.replace('/(auth)/eula');
         const { data: roomData, error: roomError } = await supabase.from('room_members').select('user_id').eq('user_id', userId);
         if (roomError) {
           console.error('[_layout(tabs)] fetchSession', roomError.message);

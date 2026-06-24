@@ -41,7 +41,7 @@ export default function AuthSignUp() {
         }
         return;
       }
-      router.replace('/(auth)/profile-setup');
+      router.replace('/(auth)/eula');
     } finally {
       setIsSubmitting(false);
     }

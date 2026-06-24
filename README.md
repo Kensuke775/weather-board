@@ -17,6 +17,12 @@ Weather Boardは気軽に、正直に共有できる。
 - 投稿にアクティビティタグを付けて記録
 - 1週間分の投稿をもとに AI が分析・アドバイスを生成
 - ヒストリーカレンダーで1ヶ月分の天気ログを振り返り
+- メール/パスワード・Google・Apple でログイン
+- 登録前に利用規約（EULA）への同意が必要
+- 不適切な投稿・コメント・ユーザーを通報できる
+- 迷惑なユーザーをブロックでき、ブロック相手の投稿・コメント・タグは表示されなくなる
+- 自分の投稿・コメントを削除できる
+- 設定からアカウントを削除でき、関連データも完全に削除される
 
 ## スクリーンショット
 
@@ -48,6 +54,7 @@ Weather Boardは気軽に、正直に共有できる。
 - Supabase（DB・認証・Realtime・Edge Functions）
 - PostgreSQL
 - Google OAuth（expo-auth-session）
+- Sign in with Apple（expo-apple-authentication）
 - Anthropic Claude API
 - Firebase Cloud Messaging（Android プッシュ通知）
 - Expo Push Notifications（iOS プッシュ通知）

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 import CommentSection from '@/components/CommentSection';
+import ReportBlockMenu from '@/components/ReportBlockMenu';
 import TalkButton from '@/components/TalkButton';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
@@ -23,6 +24,16 @@ type WeatherCardProps = {
   unreadCount: number;
   tags: { id: string; name: string }[];
   commentStatus: CommentsStatus;
+};
+
+const handleDeletePost = async (weather_log_id: string, onDeleted: () => void) => {
+  const { error } = await supabase.from('weather_logs').delete().eq('id', weather_log_id);
+  if (error) {
+    console.error('[WeatherCard] handleDeletePost', error.message);
+    Alert.alert('投稿の削除に失敗しました。');
+    return;
+  }
+  onDeleted();
 };
 
 const markAsRead = async (userId: string, weather_log_id: string) => {
@@ -114,8 +125,25 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
                   <Ionicons name="close" size={20} style={{ color: WeatherBoardColors.textPrimary }} />
                 </BlurView>
               </Pressable>
-              <TalkButton to_user_id={user_id} weather_log_id={weather_log_id} />
+              <View className="flex-row items-start gap-2">
+                {userId === user_id && (
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert('確認', 'この投稿を削除しますか？\n削除すると元に戻せません。', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(weather_log_id, () => setIsModalVisible(false)) },
+                      ]);
+                    }}>
+                    <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+                      <Ionicons name="trash-outline" size={18} style={{ color: WeatherBoardColors.textPrimary }} />
+                    </BlurView>
+                  </Pressable>
+                )}
+                <ReportBlockMenu targetUserId={user_id} weatherLogId={weather_log_id} onBlocked={() => setIsModalVisible(false)} />
+                <TalkButton to_user_id={user_id} weather_log_id={weather_log_id} />
+              </View>
             </View>
+
             <View className="mb-4">
               <View className="flex flex-row items-center gap-3 mb-4">
                 <Text className="text-xl">{avatar_emoji}</Text>
