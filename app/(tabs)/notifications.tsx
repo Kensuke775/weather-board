@@ -79,7 +79,7 @@ export default function Notifications() {
         Mail Box
       </Text>
       <FlatList
-        data={dataNotifications}
+        data={dataNotifications.filter((item) => item.profiles !== null)}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View className="h-4" />}
         ListEmptyComponent={() => (

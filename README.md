@@ -4,6 +4,22 @@
 天気みたいに気分は毎日変わる。
 Weather Boardは気軽に、正直に共有できる。
 
+メール/Google/Appleでの認証、AIによる週次分析、EULA同意・通報・ブロックなどの安全対策まで実装しています。
+
+## 技術スタック
+
+- React Native
+- Expo / Expo Router
+- TypeScript
+- Supabase（DB・認証・Realtime・Edge Functions）
+- PostgreSQL
+- Google OAuth（expo-auth-session）
+- Sign in with Apple（expo-apple-authentication）
+- Anthropic Claude API
+- Firebase Cloud Messaging（Android プッシュ通知）
+- Expo Push Notifications（iOS プッシュ通知）
+- NativeWind
+
 ## できること
 
 - 自分の気分を天気で投稿して、グループメンバーと共有
@@ -42,23 +58,13 @@ Weather Boardは気軽に、正直に共有できる。
 |---|---|---|
 | ![通知](screenshots/notifications.png) | ![ログイン](screenshots/login.png) | ![サインアップ](screenshots/sign-up.png) |
 
-| 設定 |
+| EULA | 設定 | アカウント設定 |
+|---|---|---|
+| ![EULA](screenshots/eula.png) | ![設定](screenshots/settings.png) | ![アカウント設定](screenshots/account-settings.png) |
+
+| 通報・ブロックメニュー |
 |---|
-| ![設定](screenshots/settings.png) |
-
-## 技術スタック
-
-- React Native
-- Expo / Expo Router
-- TypeScript
-- Supabase（DB・認証・Realtime・Edge Functions）
-- PostgreSQL
-- Google OAuth（expo-auth-session）
-- Sign in with Apple（expo-apple-authentication）
-- Anthropic Claude API
-- Firebase Cloud Messaging（Android プッシュ通知）
-- Expo Push Notifications（iOS プッシュ通知）
-- NativeWind
+| ![通報・ブロックメニュー](screenshots/report-block.png) |
 
 ## セットアップ
 
