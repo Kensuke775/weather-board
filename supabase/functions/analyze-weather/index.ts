@@ -1,5 +1,14 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+
+const ClaudeResponseSchema = z.object({
+  content: z.array(
+    z.object({
+      text: z.string(),
+    }),
+  ),
+});
 
 Deno.serve(async (req) => {
   const supabaseClient = createClient(
@@ -123,10 +132,20 @@ Deno.serve(async (req) => {
     });
   }
   const claudeData = await claudeResponse.json();
+  const parsed = ClaudeResponseSchema.safeParse(claudeData);
+  if (!parsed.success) {
+    console.error(
+      "[analyze-weather] unexpected Claude response shape",
+      parsed.error.message,
+    );
+    return new Response("Claude APIの返答形式が想定と異なります。", {
+      status: 500,
+    });
+  }
   const { error: analysedError } = await supabaseClient.from("ai_analyses")
     .insert({
       "user_id": user_id,
-      "content": claudeData.content[0].text,
+      "content": parsed.data.content[0].text,
       "type": "weekly",
     });
   if (analysedError) {
@@ -135,7 +154,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify(claudeData),
+    JSON.stringify(parsed.data),
     { headers: { "Content-Type": "application/json" } },
   );
 });

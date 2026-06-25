@@ -1,9 +1,22 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+
+const NotificationPayloadSchema = z.object({
+  to_user_id: z.string().uuid(),
+  from_user_id: z.string().uuid(),
+  type: z.enum(['comment', 'talk'])
+})
 
 // notificationsのINSERTをトリガーにDBから呼ばれるEdge Function
 Deno.serve(async (req) => {
-  const { to_user_id, from_user_id, type } = await req.json();
+  const body = await req.json();
+  const parsed = NotificationPayloadSchema.safeParse(body);
+  if(!parsed.success){
+    console.error("[send-push-notification] invalid request body", parsed.error.message);
+    return new Response("リクエストの形式が正しくありません。", { status: 400 });
+  }
+  const { to_user_id, from_user_id, type } = parsed.data;
   // サービスロールキーで初期化（RLS無視）
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL")!,

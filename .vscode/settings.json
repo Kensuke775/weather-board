@@ -10,5 +10,6 @@
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
   },
-  "deno.enable": true
+  "deno.enable": true,
+  "deno.path": "/Users/ikebatakensuke/.deno/bin/deno"
 }

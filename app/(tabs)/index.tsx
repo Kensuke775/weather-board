@@ -143,8 +143,7 @@ const fetchActivityFeed = async (roomId: string | null, setter: (data: ActivityF
   setter(formattedData);
 };
 
-const hasActivityFeedProfiles = (item: ActivityFeedItem): item is ActivityFeedItem & { from: NonNullable<ActivityFeedItem['from']>; to: NonNullable<ActivityFeedItem['to']> } =>
-  item.from !== null && item.to !== null;
+const hasActivityFeedProfiles = (item: ActivityFeedItem): item is ActivityFeedItem & { from: NonNullable<ActivityFeedItem['from']>; to: NonNullable<ActivityFeedItem['to']> } => item.from !== null && item.to !== null;
 
 const fetchRoomMember = async (roomId: string, userId: string, setter: (data: RoomMember[]) => void) => {
   if (!roomId) return;
@@ -455,7 +454,9 @@ export default function HomeScreen() {
                         <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
                           {truncateName(item.nickname, 8)}
                         </Text>
-                        <Text className="text-[6px] font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>{isCurrentUser ? '←YOU' : ''}</Text>
+                        <Text className="text-[6px] font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                          {isCurrentUser ? '←YOU' : ''}
+                        </Text>
                       </View>
                     );
                   })}
