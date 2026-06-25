@@ -84,13 +84,9 @@ Weather Boardは気軽に、正直に共有できる。
 |---|---|---|
 | ![EULA](screenshots/eula.png) | ![設定](screenshots/settings.png) | ![アカウント設定](screenshots/account-settings.png) |
 
-| 投稿画面のキーボード回避 | コメント画面のキーボード回避 |
-|---|---|
-| ![投稿画面のキーボード回避](screenshots/post-test-input.png) | ![コメント画面のキーボード回避](screenshots/comments-test-input.png) |
-
-| 通報・ブロックメニュー |
-|---|
-| ![通報・ブロックメニュー](screenshots/report-block.png) |
+| 投稿画面のキーボード回避 | コメント画面のキーボード回避 | 通報・ブロックメニュー |
+|---|---|---|
+| ![投稿画面のキーボード回避](screenshots/post-test-input.png) | ![コメント画面のキーボード回避](screenshots/comments-test-input.png) | ![通報・ブロックメニュー](screenshots/report-block.png) |
 
 ## セットアップ
 
