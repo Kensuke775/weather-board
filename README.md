@@ -16,6 +16,7 @@ Weather Boardは気軽に、正直に共有できる。
 - Google OAuth（expo-auth-session）
 - Sign in with Apple（expo-apple-authentication）
 - Anthropic Claude API
+- Zod（Edge Functionの入力・外部APIレスポンスのバリデーション）
 - Firebase Cloud Messaging（Android プッシュ通知）
 - Expo Push Notifications（iOS プッシュ通知）
 - NativeWind
@@ -42,6 +43,7 @@ Weather Boardは気軽に、正直に共有できる。
 - 投稿・コメント入力時、iOS/Android両方でキーボードに入力欄が隠れないよう自動調整
 - ニックネームなどの文字数制限、長いテキストの省略表示・折り返しなど、表示崩れを防ぐUI対応
 - iOS・Android両方の実機で動作確認済み
+- Edge Functionでは、外部から受け取るデータ（プッシュ通知リクエストの中身、Claude APIの返答形式）をZodでバリデーションし、想定外の形式を早期に検知
 
 ## テストについて
 
