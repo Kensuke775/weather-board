@@ -10,7 +10,7 @@ Weather Boardは気軽に、正直に共有できる。
 
 **App Store**：[Weather Board](https://apps.apple.com/jp/app/id6782014446)
 
-**デモ用ルーム**（一時公開・ダミーデータ）：ルーム名「Coffee」／招待コード `0tjpj9`
+**デモ用ルーム**（一時公開・ダミーデータ）：ルーム名「Demo」／招待コード `demo11`
 
 ## 制作のきっかけ
 
