@@ -95,7 +95,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
         return;
       }
 
-      const formatedData = (historyDayData as RawHistoryData[]).map((item) => ({
+      const formattedData = (historyDayData as RawHistoryData[]).map((item) => ({
         ...item,
         profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
         weather_log_activities: item.weather_log_activities.map((activity) => ({
@@ -108,7 +108,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
         })),
       }));
 
-      setHistoryItem(formatedData);
+      setHistoryItem(formattedData);
       setSelectedDate(date ?? null);
       setIsLoading(false);
     } finally {
@@ -123,18 +123,18 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRoomId]);
 
-  const weatherHistgram = useMemo(() => {
-    const histgram: Record<string, number> = Object.fromEntries(Object.keys(WEATHER_CONFIG).map((key) => [key, 0]));
+  const weatherHistogram = useMemo(() => {
+    const histogram: Record<string, number> = Object.fromEntries(Object.keys(WEATHER_CONFIG).map((key) => [key, 0]));
     for (const data of historyData) {
       if (data.user_id !== currentUserId) continue;
-      histgram[data.weather] += 1;
+      histogram[data.weather] += 1;
     }
-    return histgram;
+    return histogram;
   }, [historyData, currentUserId]);
-  const weatherEntries = Object.entries(weatherHistgram);
+  const weatherEntries = Object.entries(weatherHistogram);
   const mostWeather = weatherEntries.length > 0 ? weatherEntries.reduce((max, current) => (max[1] < current[1] ? current : max))[0] : null;
   const currentRoomName = rooms?.find((item) => item?.rooms.id === currentRoomId)?.rooms.name;
-  const hasCurrentUserRecord = Object.values(weatherHistgram).some((count) => count > 0);
+  const hasCurrentUserRecord = Object.values(weatherHistogram).some((count) => count > 0);
 
   const dayLogByDate = useMemo(() => {
     const dateRecord = new Map<string, { myLog: HistoryLog | undefined; otherLogs: HistoryLog[] }>();
@@ -217,7 +217,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
             Histgram
           </Text>
           <View className="flex-row justify-between items-center">
-            {Object.entries(weatherHistgram).map(([key, value]) => (
+            {Object.entries(weatherHistogram).map(([key, value]) => (
               <View key={key} className="flex flex-row items-center gap-1">
                 <Text className="text-base font-bold">{WEATHER_CONFIG[key as WeatherType].emoji}</Text>
                 <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
