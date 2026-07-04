@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ImageBackground, Platform, View } from 'react-native';
 
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Redirect, Tabs, useRouter } from 'expo-router';
@@ -10,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, WeatherBoardColors } from '@/constants/theme';
+import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
@@ -128,30 +127,35 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Platform.OS === 'android' ? 'black' : Colors[colorScheme ?? 'light'].tint,
-        tabBarInactiveTintColor: Platform.OS === 'android' ? WeatherBoardColors.placeholderDark : undefined,
+        tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
+        tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: Platform.OS === 'android' ? 'white' : WeatherBoardColors.glassBackground,
-          borderTopColor: Platform.OS === 'android' ? 'rgba(0,0,0,0.1)' : WeatherBoardColors.glassBorder,
-          borderTopWidth: 1,
+          backgroundColor: 'white',
+          borderTopWidth: 0,
           position: 'absolute',
-          paddingTop: 4,
-          paddingHorizontal: 10,
-          height: Platform.OS === 'android' ? 70 : undefined,
-          paddingBottom: Platform.OS === 'android' ? 32 : bottom,
+          marginHorizontal: 16,
+          marginBottom: Platform.OS === 'android' ? 12 : bottom + 4,
+          borderRadius: 28,
+          height: 60,
+          paddingTop: 6,
+          paddingBottom: 6,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
+          elevation: 6,
         },
-        tabBarBackground: () =>
-          Platform.OS === 'android' ? <View style={{ flex: 1, backgroundColor: 'white' }} /> : <BlurView intensity={40} tint="light" style={{ flex: 1 }} />,
+        tabBarBackground: () => null,
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'ホーム',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-          tabBarActiveTintColor: Platform.OS === 'android' ? 'black' : WeatherBoardColors.textPrimary,
-          tabBarInactiveTintColor: Platform.OS === 'android' ? WeatherBoardColors.placeholderDark : WeatherBoardColors.textMutedGlay,
+          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
@@ -159,8 +163,8 @@ export default function TabLayout() {
         options={{
           title: 'ポスト',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="square.and.pencil" color={color} />,
-          tabBarActiveTintColor: Platform.OS === 'android' ? 'black' : WeatherBoardColors.textPrimary,
-          tabBarInactiveTintColor: Platform.OS === 'android' ? WeatherBoardColors.placeholderDark : WeatherBoardColors.textMutedGlay,
+          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
@@ -169,8 +173,8 @@ export default function TabLayout() {
           title: '通知',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
           tabBarBadge: unreadCount ? unreadCount : undefined,
-          tabBarActiveTintColor: Platform.OS === 'android' ? 'black' : WeatherBoardColors.textPrimary,
-          tabBarInactiveTintColor: Platform.OS === 'android' ? WeatherBoardColors.placeholderDark : WeatherBoardColors.textMutedGlay,
+          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
@@ -178,8 +182,8 @@ export default function TabLayout() {
         options={{
           title: 'カレンダー',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
-          tabBarActiveTintColor: Platform.OS === 'android' ? 'black' : WeatherBoardColors.textPrimary,
-          tabBarInactiveTintColor: Platform.OS === 'android' ? WeatherBoardColors.placeholderDark : WeatherBoardColors.textMutedGlay,
+          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
@@ -187,8 +191,8 @@ export default function TabLayout() {
         options={{
           title: '分析',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="wand.and.stars" color={color} />,
-          tabBarActiveTintColor: Platform.OS === 'android' ? 'black' : WeatherBoardColors.textPrimary,
-          tabBarInactiveTintColor: Platform.OS === 'android' ? WeatherBoardColors.placeholderDark : WeatherBoardColors.textMutedGlay,
+          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
@@ -196,8 +200,8 @@ export default function TabLayout() {
         options={{
           title: '設定',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
-          tabBarActiveTintColor: Platform.OS === 'android' ? 'black' : WeatherBoardColors.textPrimary,
-          tabBarInactiveTintColor: Platform.OS === 'android' ? WeatherBoardColors.placeholderDark : WeatherBoardColors.textMutedGlay,
+          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
     </Tabs>
