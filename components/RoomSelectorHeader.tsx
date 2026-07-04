@@ -70,7 +70,7 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
             <Picker
               selectedValue={currentRoomId}
               onValueChange={(value) => value !== null && setCurrentRoomId(value)}
-              style={{ width: '100%', textAlign: 'center' } as any}>
+              style={{ width: '100%' }}>
               {rooms.map((room) => (
                 <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} style={{ textAlign: 'center' }} />
               ))}
