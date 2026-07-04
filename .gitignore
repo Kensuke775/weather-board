@@ -54,3 +54,6 @@ DESIGN.md
 docs/
 
 memory/
+
+# Supabase CLI temp files
+supabase/.temp/
