@@ -1,21 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Pressable, Text, View } from 'react-native';
 
-import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
-import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useRouter } from 'expo-router';
-import Toast from 'react-native-toast-message';
 
+import ActivityFeedSheet from '@/components/ActivityFeedSheet';
+import RoomMemberPanel from '@/components/RoomMemberPanel';
+import RoomSelectorHeader from '@/components/RoomSelectorHeader';
 import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { ActivityFeedItem, CommentsStatus, RoomMember, WeatherBoardItem } from '@/lib/types';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import BottomSheet from '@gorhom/bottom-sheet';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { BlurView } from 'expo-blur';
 
 const { height } = Dimensions.get('window');
 
@@ -29,10 +27,6 @@ const WEATHER_IMAGES = {
   foggy: require('@/assets/images/weather/foggy.png'),
 };
 
-const truncateName = (name: string | undefined | null, maxLength = 5) => {
-  if (!name) return '';
-  return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
-};
 
 const fetchNotificationsData = async (userId: string, setter: (data: Record<string, number>) => void) => {
   const { data: notificationsData, error: notificationsError } = await supabase.from('notifications').select('weather_log_id').eq('type', 'comment').eq('to_user_id', userId).eq('is_read', false);
@@ -58,13 +52,32 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
     Alert.alert('コメントの取得に失敗しました。');
     return;
   }
-  const commentersMap = commentsData.reduce((acc, status) => {
+
+  const intermediate = new Map<string, { users: Map<string, string | undefined>; count: number }>();
+
+  for (const status of commentsData) {
     const profiles = status.profiles as { avatar_emoji: string } | { avatar_emoji: string }[];
     const avatars = Array.isArray(profiles) ? profiles[0].avatar_emoji : profiles?.avatar_emoji;
-    const isIncludes = acc[status.weather_log_id]?.commenters.some((commenter) => commenter.user_id === status.user_id);
-    acc[status.weather_log_id] = { commenters: [...(acc[status.weather_log_id]?.commenters ?? []), ...(isIncludes ? [] : [{ user_id: status.user_id, emoji: avatars }])], count: (acc[status.weather_log_id]?.count ?? 0) + 1 };
-    return acc;
-  }, {} as CommentsStatus);
+    if (!intermediate.has(status.weather_log_id)) {
+      intermediate.set(status.weather_log_id, { users: new Map(), count: 0 });
+    }
+    const entry = intermediate.get(status.weather_log_id)!;
+    if (!entry.users.has(status.user_id)) {
+      entry.users.set(status.user_id, avatars); // user_id → emoji のMap
+    }
+    entry.count += 1;
+  }
+
+  // CommentsStatus の形に変換
+  const commentersMap = Object.fromEntries(
+    Array.from(intermediate.entries()).map(([logId, { users, count }]) => [
+      logId,
+      {
+        commenters: Array.from(users.entries()).map(([user_id, emoji]) => ({ user_id, emoji })),
+        count,
+      },
+    ]),
+  ) as CommentsStatus;
 
   setter(commentersMap);
 };
@@ -143,7 +156,6 @@ const fetchActivityFeed = async (roomId: string | null, setter: (data: ActivityF
   setter(formattedData);
 };
 
-const hasActivityFeedProfiles = (item: ActivityFeedItem): item is ActivityFeedItem & { from: NonNullable<ActivityFeedItem['from']>; to: NonNullable<ActivityFeedItem['to']> } => item.from !== null && item.to !== null;
 
 const fetchRoomMember = async (roomId: string, userId: string, setter: (data: RoomMember[]) => void) => {
   if (!roomId) return;
@@ -379,93 +391,15 @@ export default function HomeScreen() {
     <ImageBackground source={backgroundImage} className="flex-1">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }} />
       <View className="pt-20 flex-1 relative">
-        <View className="flex-row justify-center mb-10 relative">
-          <View className="flex-row justify-between bg-black/30 rounded-xl border gap-4" style={{ borderColor: WeatherBoardColors.glassBorder }}>
-            <Pressable onPress={() => setIsModalVisible(true)} className="py-3 px-2">
-              <View className="flex-row items-center gap-2">
-                <View style={{ width: 80 }}>
-                  <Text className="text-[6px]" style={{ color: WeatherBoardColors.textMuted }}>
-                    ルーム名
-                  </Text>
-                  <Text numberOfLines={1} ellipsizeMode="tail" className="font-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                    {truncateName(rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name, 6)}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-down" size={16} color="white" />
-              </View>
-            </Pressable>
-            <Pressable
-              onPress={async () => {
-                if (inviteCode) await Clipboard.setStringAsync(inviteCode);
-                Toast.show({
-                  type: 'success',
-                  text1: 'コピーしました。',
-                  visibilityTime: 1000,
-                });
-              }}
-              style={{ width: 80 }}
-              className="py-3 pr-3">
-              <View className="flex-row items-center gap-2 justify-between">
-                <View>
-                  <Text className="text-[6px]" style={{ color: WeatherBoardColors.textMuted }}>
-                    招待コード
-                  </Text>
-                  <Text className="font-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                    {inviteCode}
-                  </Text>
-                </View>
-                <Ionicons name="copy-outline" size={16} color="white" />
-              </View>
-            </Pressable>
-          </View>
-          <Pressable onPress={openMemberPanel} className="absolute right-5 top-1/2 -translate-y-1/2">
-            <Ionicons name="people-outline" size={24} color="white" />
-          </Pressable>
-          <Modal visible={isModalVisible} transparent={true} animationType="slide">
-            <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
-              <View onStartShouldSetResponder={() => true} className="pb-32 border-t" style={{ position: 'absolute', bottom: 0, width: '100%', borderTopColor: WeatherBoardColors.glassBorder, backgroundColor: 'white' }}>
-                <Text className="text-center font-bold pt-8 text-base">部屋を選んでください</Text>
-                <Picker
-                  selectedValue={currentRoomId}
-                  onValueChange={(value) => {
-                    setCurrentRoomId(value);
-                  }}
-                  style={{ width: '100%', textAlign: 'center' } as any}>
-                  {rooms.map((room) => (
-                    <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} style={{ textAlign: 'center' }} />
-                  ))}
-                </Picker>
-              </View>
-            </Pressable>
-          </Modal>
-          <Modal visible={isMemberVisible} transparent={true} animationType="none">
-            <Pressable style={{ flex: 1 }} onPress={closeMemberPanel} />
-            <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, width: 200, height: '100%', transform: [{ translateX: slideAnim }] }}>
-              <BlurView intensity={40} tint="dark" className="pt-40 pb-20 pl-8 flex-1" style={{ backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
-                <Text className="font-bold pb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-                  ✨Room Member✨
-                </Text>
-                <ScrollView>
-                  {roomMember.map((item) => {
-                    const isCurrentUser = userId === item.user_id;
-                    return (
-                      <View key={item.user_id} className="flex flex-row items-center gap-3 mb-4">
-                        <Text className="text-xl">{item.avatar_emoji}</Text>
-                        <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
-                          {truncateName(item.nickname, 8)}
-                        </Text>
-                        <Text className="text-[6px] font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
-                          {isCurrentUser ? '←YOU' : ''}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </ScrollView>
-              </BlurView>
-            </Animated.View>
-          </Modal>
-        </View>
-
+        <RoomSelectorHeader
+          rooms={rooms}
+          currentRoomId={currentRoomId}
+          setCurrentRoomId={setCurrentRoomId}
+          inviteCode={inviteCode}
+          isModalVisible={isModalVisible}
+          setIsModalVisible={setIsModalVisible}
+          onMemberPanelOpen={openMemberPanel}
+        />
         <View className="px-2" style={{ height: height * 0.65 }}>
           {isLoading ? (
             <View className="flex-1 justify-center items-center">
@@ -487,33 +421,18 @@ export default function HomeScreen() {
           </Text>
         </Pressable>
       </View>
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={['30%']}
-        enablePanDownToClose
-        backgroundStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
-        handleIndicatorStyle={{ backgroundColor: 'white' }}
-        backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
-        <BlurView intensity={40} tint="dark" className="flex-1 p-6" style={{ borderTopWidth: 1, borderTopColor: WeatherBoardColors.glassBorder }}>
-          <BottomSheetFlatList
-            data={activityFeed.filter(hasActivityFeedProfiles)}
-            keyExtractor={(item) => item.id}
-            ItemSeparatorComponent={() => <View className="h-4" />}
-            contentContainerStyle={{ alignItems: 'center', paddingBottom: tabBarHeight }}
-            renderItem={({ item }) => (
-              <View className="flex-row gap-3 w-full">
-                <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMuted }}>
-                  {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </Text>
-                <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMuted }}>
-                  {item.from.avatar_emoji} {item.from.nickname}が {item.to.avatar_emoji}
-                  {item.to.nickname}にコメントしました。
-                </Text>
-              </View>
-            )}></BottomSheetFlatList>
-        </BlurView>
-      </BottomSheet>
+      <RoomMemberPanel
+        roomMember={roomMember}
+        userId={userId}
+        visible={isMemberVisible}
+        slideAnim={slideAnim}
+        onClose={closeMemberPanel}
+      />
+      <ActivityFeedSheet
+        bottomSheetRef={bottomSheetRef}
+        activityFeed={activityFeed}
+        tabBarHeight={tabBarHeight}
+      />
     </ImageBackground>
   );
 }
