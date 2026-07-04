@@ -5,6 +5,7 @@ import { Modal, Pressable, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 import { WeatherBoardColors } from '@/constants/theme';
+import { ROOM_HEADER_COLUMN_WIDTH, TOAST_DURATION } from '@/constants/ui';
 import { RoomItem } from '@/lib/types';
 
 type RoomSelectorHeaderProps = {
@@ -28,7 +29,7 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
       <View className="flex-row justify-between bg-black/30 rounded-xl border gap-4" style={{ borderColor: WeatherBoardColors.glassBorder }}>
         <Pressable onPress={() => setIsModalVisible(true)} className="py-3 px-2">
           <View className="flex-row items-center gap-2">
-            <View style={{ width: 80 }}>
+            <View style={{ width: ROOM_HEADER_COLUMN_WIDTH }}>
               <Text className="text-[6px]" style={{ color: WeatherBoardColors.textMuted }}>
                 ルーム名
               </Text>
@@ -42,9 +43,9 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
         <Pressable
           onPress={async () => {
             if (inviteCode) await Clipboard.setStringAsync(inviteCode);
-            Toast.show({ type: 'success', text1: 'コピーしました。', visibilityTime: 1000 });
+            Toast.show({ type: 'success', text1: 'コピーしました。', visibilityTime: TOAST_DURATION.short });
           }}
-          style={{ width: 80 }}
+          style={{ width: ROOM_HEADER_COLUMN_WIDTH }}
           className="py-3 pr-3">
           <View className="flex-row items-center gap-2 justify-between">
             <View>
