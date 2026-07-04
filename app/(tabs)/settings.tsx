@@ -7,6 +7,7 @@ import Toast from 'react-native-toast-message';
 
 import GlassButton from '@/components/GlassButton';
 import { WeatherBoardColors } from '@/constants/theme';
+import { TOAST_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import useProfileSetUp from '@/hooks/useProfileSetUp';
@@ -111,7 +112,7 @@ export default function Settings() {
     await refreshRooms();
     setCurrentRoomId(roomId);
     router.replace('/(tabs)');
-    Toast.show({ type: 'success', text1: `ルーム[${roomName}]を作成しました`, visibilityTime: 1500 });
+    Toast.show({ type: 'success', text1: `ルーム[${roomName}]を作成しました`, visibilityTime: TOAST_DURATION.default });
   });
 
   const { inviteCode, setInviteCode, handleJoinRoom } = useRoomJoin(async (roomName, roomId) => {
@@ -121,13 +122,13 @@ export default function Settings() {
     await refreshRooms();
     setCurrentRoomId(roomId);
     router.replace('/(tabs)');
-    Toast.show({ type: 'success', text1: `${roomName}に参加しました。`, visibilityTime: 1500 });
+    Toast.show({ type: 'success', text1: `${roomName}に参加しました。`, visibilityTime: TOAST_DURATION.default });
   });
 
   const { handleSaveProfile, setNickname, setAvatar, avatar, nickname } = useProfileSetUp(async () => {
     await fetchProfileData();
     setActiveModal(null);
-    Toast.show({ type: 'success', text1: `プロフィールを変更しました。`, visibilityTime: 1500 });
+    Toast.show({ type: 'success', text1: `プロフィールを変更しました。`, visibilityTime: TOAST_DURATION.default });
   });
 
   const fetchInviteData = useCallback(async () => {
@@ -176,7 +177,7 @@ export default function Settings() {
       return;
     }
     setBlockedUsers((prev) => prev.filter((item) => item.id !== blockId));
-    Toast.show({ type: 'success', text1: 'ブロックを解除しました。', visibilityTime: 1500 });
+    Toast.show({ type: 'success', text1: 'ブロックを解除しました。', visibilityTime: TOAST_DURATION.default });
   };
 
   const handleLeaveRoom = async (roomId: string) => {
@@ -194,7 +195,7 @@ export default function Settings() {
       await fetchInviteData();
       await refreshRooms();
       setActiveModal(null);
-      Toast.show({ type: 'success', text1: `ルームを削除しました`, visibilityTime: 1500 });
+      Toast.show({ type: 'success', text1: `ルームを削除しました`, visibilityTime: TOAST_DURATION.default });
     } finally {
       setIsLoading(null);
     }
@@ -214,7 +215,7 @@ export default function Settings() {
     await fetchInviteData();
     await refreshRooms();
     setActiveModal(null);
-    Toast.show({ type: 'success', text1: 'ルーム名を変更しました。', visibilityTime: 1500 });
+    Toast.show({ type: 'success', text1: 'ルーム名を変更しました。', visibilityTime: TOAST_DURATION.default });
   };
 
   const handleLogout = async () => {
@@ -302,7 +303,7 @@ export default function Settings() {
                       Toast.show({
                         type: 'success',
                         text1: 'コピーしました。',
-                        visibilityTime: 1000,
+                        visibilityTime: TOAST_DURATION.short,
                       });
                     }}
                     className="mb-6 p-6 rounded-xl bg-white">

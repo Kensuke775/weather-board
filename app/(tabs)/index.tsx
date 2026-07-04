@@ -8,6 +8,7 @@ import RoomMemberPanel from '@/components/RoomMemberPanel';
 import RoomSelectorHeader from '@/components/RoomSelectorHeader';
 import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
+import { ROOM_MEMBER_PANEL_WIDTH, SLIDE_ANIMATION_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -196,7 +197,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [roomMember, setRoomMember] = useState<RoomMember[]>([]);
   const [isMemberVisible, setIsMemberVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-200)).current;
+  const slideAnim = useRef(new Animated.Value(-ROOM_MEMBER_PANEL_WIDTH)).current;
   const bottomSheetRef = useRef<BottomSheet>(null);
   const tabBarHeight = useBottomTabBarHeight();
 
@@ -350,15 +351,15 @@ export default function HomeScreen() {
     setIsMemberVisible(true);
     Animated.timing(slideAnim, {
       toValue: 0,
-      duration: 300,
+      duration: SLIDE_ANIMATION_DURATION,
       useNativeDriver: true,
     }).start();
   };
 
   const closeMemberPanel = () => {
     Animated.timing(slideAnim, {
-      toValue: -200,
-      duration: 300,
+      toValue: -ROOM_MEMBER_PANEL_WIDTH,
+      duration: SLIDE_ANIMATION_DURATION,
       useNativeDriver: true,
     }).start(() => setIsMemberVisible(false));
   };

@@ -3,6 +3,7 @@ import { Animated, Modal, Platform, Pressable, ScrollView, Text, View } from 're
 import { BlurView } from 'expo-blur';
 
 import { WeatherBoardColors } from '@/constants/theme';
+import { ROOM_MEMBER_PANEL_WIDTH } from '@/constants/ui';
 import { RoomMember } from '@/lib/types';
 
 type RoomMemberPanelProps = {
@@ -22,7 +23,7 @@ export default function RoomMemberPanel({ roomMember, userId, visible, slideAnim
   return (
     <Modal visible={visible} transparent={true} animationType="none">
       <Pressable style={{ flex: 1 }} onPress={onClose} />
-      <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, width: 200, height: '100%', transform: [{ translateX: slideAnim }] }}>
+      <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, width: ROOM_MEMBER_PANEL_WIDTH, height: '100%', transform: [{ translateX: slideAnim }] }}>
         <BlurView intensity={40} tint="dark" className="pt-40 pb-20 pl-8 flex-1" style={{ backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
           <Text className="font-bold pb-4" style={{ color: WeatherBoardColors.textPrimary }}>
             ✨Room Member✨
