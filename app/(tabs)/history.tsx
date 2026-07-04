@@ -8,11 +8,7 @@ import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { HistoryLog } from '@/lib/types';
-
-type RawHistoryLog = Omit<HistoryLog, 'profiles'> & {
-  profiles: { avatar_emoji: string } | { avatar_emoji: string }[] | null;
-};
+import { HistoryLog, WeatherType } from '@/lib/types';
 
 const backgroundImage = require('@/assets/images/weather/history.png');
 
@@ -52,16 +48,18 @@ export default function History() {
           return;
         }
 
-        const seen = new Map<string, RawHistoryLog>();
-        for (const record of (historyData as unknown) as RawHistoryLog[]) {
+        const rows = historyData ?? [];
+        const seen = new Map<string, (typeof rows)[number]>();
+        for (const record of rows) {
           const key = `${record.logged_date}|${record.user_id}`;
           if (!seen.has(key)) seen.set(key, record);
         }
 
-        const result = Array.from(seen.values()).map((data) => ({
+        const result: HistoryLog[] = Array.from(seen.values()).map((data) => ({
           ...data,
+          weather: data.weather as WeatherType,
           profiles: {
-            avatar_emoji: Array.isArray(data.profiles) ? (data.profiles[0]?.avatar_emoji ?? '') : (data.profiles?.avatar_emoji ?? ''),
+            avatar_emoji: data.profiles[0]?.avatar_emoji ?? '',
           },
         }));
 
