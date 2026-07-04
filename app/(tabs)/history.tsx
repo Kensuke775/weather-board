@@ -53,7 +53,7 @@ export default function History() {
         }
 
         const seen = new Map<string, RawHistoryLog>();
-        for (const record of historyData as RawHistoryLog[]) {
+        for (const record of (historyData as unknown) as RawHistoryLog[]) {
           const key = `${record.logged_date}|${record.user_id}`;
           if (!seen.has(key)) seen.set(key, record);
         }
