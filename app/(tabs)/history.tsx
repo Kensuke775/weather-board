@@ -51,15 +51,21 @@ export default function History() {
           Alert.alert('ヒストリーの取得に失敗しました。');
           return;
         }
-        const filteredHistoryData = (historyData as RawHistoryLog[])
-          .filter((record, idx, self) => idx === self.findIndex((r) => r.logged_date === record.logged_date && r.user_id === record.user_id))
-          .map((data) => ({
-            ...data,
-            profiles: {
-              avatar_emoji: Array.isArray(data.profiles) ? (data.profiles[0]?.avatar_emoji ?? '') : (data.profiles?.avatar_emoji ?? ''),
-            },
-          }));
-        setHistoryData(filteredHistoryData);
+
+        const seen = new Map<string, RawHistoryLog>();
+        for (const record of historyData as RawHistoryLog[]) {
+          const key = `${record.logged_date}|${record.user_id}`;
+          if (!seen.has(key)) seen.set(key, record);
+        }
+
+        const result = Array.from(seen.values()).map((data) => ({
+          ...data,
+          profiles: {
+            avatar_emoji: Array.isArray(data.profiles) ? (data.profiles[0]?.avatar_emoji ?? '') : (data.profiles?.avatar_emoji ?? ''),
+          },
+        }));
+
+        setHistoryData(result);
         setCurrentUserId(userId);
       };
       fetchHistory();

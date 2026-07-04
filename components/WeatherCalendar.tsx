@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Platform, Pressable, Text, View } from 'react-native';
 
 import { BlurView } from 'expo-blur';
@@ -122,14 +122,33 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRoomId]);
 
-  const currentUserData = historyData.filter((data) => data.user_id === currentUserId);
-  const weatherHistgram: Record<string, number> = {};
-  for (const weatherKey of Object.keys(WEATHER_CONFIG)) {
-    const count = currentUserData.filter((data) => data.weather === weatherKey).length;
-    weatherHistgram[weatherKey] = count;
-  }
-  const mostWeather = Object.entries(weatherHistgram).reduce((max, current) => (max[1] < current[1] ? current : max))[0];
+  const weatherHistgram = useMemo(() => {
+    const histgram: Record<string, number> = Object.fromEntries(Object.keys(WEATHER_CONFIG).map((key) => [key, 0]));
+    for (const data of historyData) {
+      if (data.user_id !== currentUserId) continue;
+      histgram[data.weather] += 1;
+    }
+    return histgram;
+  }, [historyData, currentUserId]);
+  const weatherEntries = Object.entries(weatherHistgram);
+  const mostWeather = weatherEntries.length > 0 ? weatherEntries.reduce((max, current) => (max[1] < current[1] ? current : max))[0] : null;
   const currentRoomName = rooms?.find((item) => item?.rooms.id === currentRoomId)?.rooms.name;
+  const hasCurrentUserRecord = Object.values(weatherHistgram).some((count) => count > 0);
+
+  const dayLogByDate = useMemo(() => {
+    const dateRecord = new Map<string, { myLog: HistoryLog | undefined; otherLogs: HistoryLog[] }>();
+    for (const log of historyData) {
+      const key = log.logged_date;
+      if (!dateRecord.has(key)) dateRecord.set(key, { myLog: undefined, otherLogs: [] });
+      const entry = dateRecord.get(key)!;
+      if (log.user_id === currentUserId) {
+        entry.myLog = log;
+      } else {
+        entry.otherLogs.push(log);
+      }
+    }
+    return dateRecord;
+  }, [historyData, currentUserId]);
 
   return (
     <>
@@ -140,7 +159,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
             <Ionicons name="chevron-down" size={10} color="white" />
           </Pressable>
           <Text className="text-sm font-bold text-center" style={{ color: WeatherBoardColors.textMuted }}>
-            {currentUserData.length > 0 ? `${WEATHER_CONFIG[mostWeather as WeatherType].emoji} Most Weather ${WEATHER_CONFIG[mostWeather as WeatherType].emoji}` : 'No Record'}
+            {hasCurrentUserRecord ? `${WEATHER_CONFIG[mostWeather as WeatherType].emoji} Most Weather ${WEATHER_CONFIG[mostWeather as WeatherType].emoji}` : 'No Record'}
           </Text>
         </View>
         <Calendar
@@ -159,13 +178,11 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
             arrowColor: '#ffffff',
           }}
           dayComponent={({ date }) => {
-            const dayLogs = historyData.filter((daylog) => daylog.logged_date === date?.dateString);
-            const myLog = dayLogs.find((log) => log.user_id === currentUserId);
-            const otherLogs = dayLogs.filter((log) => log.user_id !== currentUserId);
+            const { myLog, otherLogs } = dayLogByDate.get(date?.dateString ?? '') ?? { myLog: undefined, otherLogs: [] };
             return (
               <Pressable
                 onPress={() => {
-                  if (dayLogs.length === 0) return;
+                  if (!myLog && otherLogs.length === 0) return;
                   setIsModalVisible(true);
                   handleDayPress(date?.dateString);
                 }}
@@ -234,12 +251,11 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                 }
                 renderItem={({ item }) => {
                   const backgroundColor = Platform.OS === 'ios' ? WEATHER_CONFIG[item.weather].color : WEATHER_CONFIG[item.weather].darkColor;
-                  const seenUserIds = new Set();
-                  const uniqueCommenters = item?.comments.filter((comment) => {
-                    if (seenUserIds.has(comment.user_id)) return false;
-                    seenUserIds.add(comment.user_id);
-                    return true;
-                  });
+                  const seenCommenter = new Map<string, string | undefined>();
+                  for (const commenter of item.comments) {
+                    seenCommenter.set(commenter.user_id, commenter.profiles?.avatar_emoji);
+                  }
+                  const uniqueCommenters = [...seenCommenter.entries()];
                   return (
                     <Pressable
                       onPress={() => {
@@ -275,10 +291,10 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                         </View>
                         <View className="flex-row items-center gap-2 justify-end">
                           <View className="flex-row items-center gap-1">
-                            {uniqueCommenters.map((comment) => {
+                            {uniqueCommenters.map(([id, emoji]) => {
                               return (
-                                <Text key={comment.id} className="text-[10px]">
-                                  {comment.profiles?.avatar_emoji}
+                                <Text key={id} className="text-[10px]">
+                                  {emoji}
                                 </Text>
                               );
                             })}
