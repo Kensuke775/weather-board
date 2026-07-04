@@ -57,10 +57,7 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
   const intermediate = new Map<string, { users: Map<string, string | undefined>; count: number }>();
 
   for (const status of commentsData) {
-    const rawProfiles = status.profiles;
-    const avatars = Array.isArray(rawProfiles)
-      ? (rawProfiles as { avatar_emoji: string }[])[0]?.avatar_emoji
-      : (rawProfiles as { avatar_emoji: string } | null)?.avatar_emoji;
+    const avatars = status.profiles[0]?.avatar_emoji;
     if (!intermediate.has(status.weather_log_id)) {
       intermediate.set(status.weather_log_id, { users: new Map(), count: 0 });
     }
