@@ -1,7 +1,7 @@
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 
 export type ActivityTagPickerProps = {
@@ -33,6 +33,10 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
   const [inputText, setInputText] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
   const userId = user?.id;
+  const selectedTagIds = useMemo(
+    () => new Set(selectedTags.map((t) => t.id)),
+    [selectedTags]
+  );
 
   const handleInsertTag = async () => {
     if (isAddingTag) return;
@@ -93,7 +97,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
                 }}
                 onPress={() => handleToggleTag(tag)}
                 key={tag.id}
-                style={selectedTags.some((item) => item.id === tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
+                style={selectedTagIds.has(tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
                 <Text className="text-sm font-bold" style={{ color: 'black' }}>
                   #{tag.tag_name}
                 </Text>
