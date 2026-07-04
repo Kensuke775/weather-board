@@ -18,15 +18,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 const { height } = Dimensions.get('window');
 
-const WEATHER_IMAGES = {
-  sunny: require('@/assets/images/weather/sunny.png'),
-  partly_cloudy: require('@/assets/images/weather/partly_cloudy.png'),
-  cloudy: require('@/assets/images/weather/cloudy.png'),
-  rainy: require('@/assets/images/weather/rainy.png'),
-  stormy: require('@/assets/images/weather/stormy.png'),
-  snowy: require('@/assets/images/weather/snowy.png'),
-  foggy: require('@/assets/images/weather/foggy.png'),
-};
+const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
 
 const fetchNotificationsData = async (userId: string, setter: (data: Record<string, number>) => void) => {
@@ -368,13 +360,12 @@ export default function HomeScreen() {
     bottomSheetRef.current?.expand();
   };
 
-  const backgroundImage = userData ? WEATHER_IMAGES[userData.weather] : WEATHER_IMAGES.sunny;
   const inviteCode = rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code;
 
   if (roomIsLoading || !currentRoomId) {
     return (
-      <ImageBackground source={WEATHER_IMAGES.sunny} className="flex-1 justify-center items-center px-10">
-        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }} />
+      <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center px-10">
+        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }} />
         {roomIsLoading ? (
           <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color="white" />
@@ -390,7 +381,7 @@ export default function HomeScreen() {
 
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }} />
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
       <View className="pt-20 flex-1 relative">
         <RoomSelectorHeader
           rooms={rooms}
@@ -408,7 +399,7 @@ export default function HomeScreen() {
             </View>
           ) : boardData.length === 0 ? (
             <View className="flex-1 justify-center items-center">
-              <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+              <Text className="text-base font-bold" style={{ color: 'rgba(0,0,0,0.6)' }}>
                 まだ投稿はありません。
               </Text>
             </View>
@@ -416,10 +407,30 @@ export default function HomeScreen() {
             <WeatherBoard weatherLogs={boardData} unreadCounts={unreadCounts} commentStatus={commentStatus} />
           )}
         </View>
-        <Pressable onPress={openBottomSheet} className="absolute" style={{ bottom: tabBarHeight + 10, left: 0, right: 0, alignItems: 'center' }}>
-          <Text className="text-sm font-bold bg-black/30 rounded-xl border py-2 px-6" style={{ color: WeatherBoardColors.textPrimary, borderColor: WeatherBoardColors.glassBorder }}>
-            Activity Feed 💬
-          </Text>
+        <Pressable
+          onPress={openBottomSheet}
+          className="absolute"
+          style={{
+            bottom: tabBarHeight + 10,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              backgroundColor: 'rgba(45, 35, 25, 0.82)',
+              borderRadius: 24,
+              paddingVertical: 12,
+              paddingHorizontal: 28,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+            <Text className="text-sm font-bold" style={{ color: 'white' }}>
+              Activity Feed
+            </Text>
+            <Text>💬</Text>
+          </View>
         </Pressable>
       </View>
       <RoomMemberPanel
