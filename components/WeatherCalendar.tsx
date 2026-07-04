@@ -40,18 +40,8 @@ type HistoryDayItem = {
   }[];
 };
 
-type RawHistoryData = Omit<HistoryDayItem, 'profiles' | 'weather_log_activities' | 'comments'> & {
-  profiles: { avatar_emoji: string; nickname: string } | { avatar_emoji: string; nickname: string }[] | null;
-  weather_log_activities: {
-    activity_tag_id: string;
-    activity_tags: { tag_name: string } | { tag_name: string }[] | null;
-  }[];
-  comments: {
-    id: string;
-    user_id: string;
-    profiles: { avatar_emoji: string } | { avatar_emoji: string }[] | null;
-  }[];
-};
+
+const isWeatherType = (value: string): value is WeatherType => value in WEATHER_CONFIG;
 
 const formatNote = (note: string | null | undefined) => {
   if (!note || note === 'null') return null;
@@ -95,16 +85,17 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
         return;
       }
 
-      const formattedData = (historyDayData as RawHistoryData[]).map((item) => ({
+      const formattedData: HistoryDayItem[] = (historyDayData ?? []).map((item) => ({
         ...item,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+        weather: isWeatherType(item.weather) ? item.weather : 'cloudy',
+        profiles: Array.isArray(item.profiles) ? (item.profiles[0] ?? null) : item.profiles,
         weather_log_activities: item.weather_log_activities.map((activity) => ({
           ...activity,
-          activity_tags: Array.isArray(activity.activity_tags) ? activity.activity_tags[0] : activity.activity_tags,
+          activity_tags: Array.isArray(activity.activity_tags) ? (activity.activity_tags[0] ?? null) : activity.activity_tags,
         })),
         comments: item.comments.map((comment) => ({
           ...comment,
-          profiles: Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles,
+          profiles: Array.isArray(comment.profiles) ? (comment.profiles[0] ?? null) : comment.profiles,
         })),
       }));
 
