@@ -8,9 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 
 import CommentSection from '@/components/CommentSection';
+import HistoryDayCard from '@/components/HistoryDayCard';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
 import { WeatherBoardColors } from '@/constants/theme';
-import { AVATAR_BUTTON, BLUR_INTENSITY, CARD_TEXT } from '@/constants/ui';
+import { AVATAR_BUTTON, BLUR_INTENSITY } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WEATHER_CONFIG, WeatherType } from '@/lib/types';
@@ -21,7 +22,7 @@ export type WeatherCalendarProps = {
   setDisplayMonth: (dateString: string) => void;
 };
 
-type HistoryDayItem = {
+export type HistoryDayItem = {
   id: string;
   user_id: string;
   weather: WeatherType;
@@ -53,7 +54,7 @@ type RawHistoryData = Omit<HistoryDayItem, 'profiles' | 'weather_log_activities'
   }[];
 };
 
-const formatNote = (note: string | null | undefined) => {
+export const formatNote = (note: string | null | undefined) => {
   if (!note || note === 'null') return null;
   return note;
 };
@@ -250,73 +251,15 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                     </View>
                   ) : null
                 }
-                renderItem={({ item }) => {
-                  const backgroundColor = Platform.OS === 'ios' ? WEATHER_CONFIG[item.weather].color : WEATHER_CONFIG[item.weather].darkColor;
-                  const seenCommenter = new Map<string, string | undefined>();
-                  for (const commenter of item.comments) {
-                    seenCommenter.set(commenter.user_id, commenter.profiles?.avatar_emoji);
-                  }
-                  const uniqueCommenters = [...seenCommenter.entries()];
-                  return (
-                    <Pressable
-                      onPress={() => {
-                        setSelectedItem(item);
-                        setIsCommentVisible(true);
-                      }}
-                      className="mb-3"
-                      style={{ flex: 1 }}>
-                      <BlurView intensity={BLUR_INTENSITY} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: backgroundColor }}>
-                        <View className="flex flex-row items-center gap-1 mb-2">
-                          <Text className="text-xl">{item.profiles?.avatar_emoji}</Text>
-                          <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
-                            {item.profiles?.nickname}
-                          </Text>
-                          <Text className="text-lg">{WEATHER_CONFIG[item?.weather].emoji}</Text>
-                        </View>
-                        <View className="flex flex-row items-center gap-1 mb-2">
-                          <Text className="text-xs flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
-                            {formatNote(item?.note)}
-                          </Text>
-                        </View>
-
-                        <View className="flex-row items-center gap-2 flex-wrap overflow-hidden" style={{ height: CARD_TEXT.tagRowHeight }}>
-                          {item?.weather_log_activities
-                            .filter((activity) => activity.activity_tags !== null)
-                            .map((activity) => {
-                              return (
-                                <Text key={activity?.activity_tag_id} numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimary }}>
-                                  #{activity.activity_tags?.tag_name}
-                                </Text>
-                              );
-                            })}
-                        </View>
-                        <View className="flex-row items-center gap-2 justify-end">
-                          <View className="flex-row items-center gap-1">
-                            {uniqueCommenters.map(([id, emoji]) => {
-                              return (
-                                <Text key={id} className="text-[10px]">
-                                  {emoji}
-                                </Text>
-                              );
-                            })}
-                          </View>
-                          <View className="flex-row gap-1 items-center">
-                            <Ionicons name="chatbubble-ellipses-outline" size={12} />
-                            <Text className="text-xs font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                              {item?.comments.length ?? 0}
-                            </Text>
-                          </View>
-                        </View>
-                      </BlurView>
-
-                      <View className="flex-row justify-end">
-                        <Text className="text-xs" style={{ color: WeatherBoardColors.textMuted }}>
-                          {new Date(item.updated_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                }}></FlatList>
+                renderItem={({ item }) => (
+                  <HistoryDayCard
+                    item={item}
+                    onPress={() => {
+                      setSelectedItem(item);
+                      setIsCommentVisible(true);
+                    }}
+                  />
+                )}></FlatList>
 
               {selectedItem && (
                 <Modal visible={isCommentVisible} animationType="slide" transparent={true}>
