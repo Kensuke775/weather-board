@@ -9,6 +9,7 @@ import CommentSection from '@/components/CommentSection';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
 import TalkButton from '@/components/TalkButton';
 import { WeatherBoardColors } from '@/constants/theme';
+import { AVATAR_BUTTON, BLUR_INTENSITY, CARD_TEXT } from '@/constants/ui';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { CommentsStatus, WEATHER_CONFIG, WeatherType } from '@/lib/types';
@@ -62,7 +63,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
         style={{ flex: 1, maxWidth: '50%', overflow: 'visible' }}>
         <View className="overflow-visible relative">
           <BlurView
-            intensity={40}
+            intensity={BLUR_INTENSITY}
             tint="light"
             className="p-4 border overflow-visible"
             style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
@@ -74,11 +75,11 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
               <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
             </View>
             <View className="flex flex-row items-center gap-1 mb-2">
-              <Text className="text-[10px] flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: 30 }} numberOfLines={2}>
+              <Text className="text-[10px] flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
                 {note}
               </Text>
             </View>
-            <View className="flex-row items-center gap-2 flex-wrap mb-2 overflow-hidden text-[8px]" style={{ height: 13 }}>
+            <View className="flex-row items-center gap-2 flex-wrap mb-2 overflow-hidden text-[8px]" style={{ height: CARD_TEXT.tagRowHeight }}>
               {tags.map((tag) => (
                 <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimary }}>
                   #{tag.name}
@@ -118,10 +119,10 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
 
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} automaticOffset style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <BlurView intensity={40} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
+          <BlurView intensity={BLUR_INTENSITY} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
             <View className="flex-row justify-between mb-5 mt-20">
               <Pressable onPress={() => setIsModalVisible(false)}>
-                <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+                <BlurView intensity={BLUR_INTENSITY} tint="dark" style={{ width: AVATAR_BUTTON.size, height: AVATAR_BUTTON.size, borderRadius: AVATAR_BUTTON.borderRadius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
                   <Ionicons name="close" size={20} style={{ color: WeatherBoardColors.textPrimary }} />
                 </BlurView>
               </Pressable>
@@ -134,7 +135,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
                         { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(weather_log_id, () => setIsModalVisible(false)) },
                       ]);
                     }}>
-                    <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+                    <BlurView intensity={BLUR_INTENSITY} tint="dark" style={{ width: AVATAR_BUTTON.size, height: AVATAR_BUTTON.size, borderRadius: AVATAR_BUTTON.borderRadius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
                       <Ionicons name="trash-outline" size={18} style={{ color: WeatherBoardColors.textPrimary }} />
                     </BlurView>
                   </Pressable>

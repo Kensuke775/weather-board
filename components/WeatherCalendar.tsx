@@ -10,6 +10,7 @@ import { Picker } from '@react-native-picker/picker';
 import CommentSection from '@/components/CommentSection';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
 import { WeatherBoardColors } from '@/constants/theme';
+import { AVATAR_BUTTON, BLUR_INTENSITY, CARD_TEXT } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WEATHER_CONFIG, WeatherType } from '@/lib/types';
@@ -264,7 +265,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                       }}
                       className="mb-3"
                       style={{ flex: 1 }}>
-                      <BlurView intensity={40} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: backgroundColor }}>
+                      <BlurView intensity={BLUR_INTENSITY} tint="light" className="p-4 border" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: backgroundColor }}>
                         <View className="flex flex-row items-center gap-1 mb-2">
                           <Text className="text-xl">{item.profiles?.avatar_emoji}</Text>
                           <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
@@ -273,12 +274,12 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                           <Text className="text-lg">{WEATHER_CONFIG[item?.weather].emoji}</Text>
                         </View>
                         <View className="flex flex-row items-center gap-1 mb-2">
-                          <Text className="text-xs flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: 30 }} numberOfLines={2}>
+                          <Text className="text-xs flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
                             {formatNote(item?.note)}
                           </Text>
                         </View>
 
-                        <View className="flex-row items-center gap-2 flex-wrap overflow-hidden" style={{ height: 13 }}>
+                        <View className="flex-row items-center gap-2 flex-wrap overflow-hidden" style={{ height: CARD_TEXT.tagRowHeight }}>
                           {item?.weather_log_activities
                             .filter((activity) => activity.activity_tags !== null)
                             .map((activity) => {
@@ -320,10 +321,10 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
               {selectedItem && (
                 <Modal visible={isCommentVisible} animationType="slide" transparent={true}>
                   <View className="flex-1 justify-end">
-                    <BlurView intensity={40} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[selectedItem.weather].color : WEATHER_CONFIG[selectedItem.weather].darkColor }}>
+                    <BlurView intensity={BLUR_INTENSITY} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[selectedItem.weather].color : WEATHER_CONFIG[selectedItem.weather].darkColor }}>
                       <View className="flex-row justify-between mb-5 mt-20">
                         <Pressable onPress={() => setIsCommentVisible(false)}>
-                          <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+                          <BlurView intensity={BLUR_INTENSITY} tint="dark" style={{ width: AVATAR_BUTTON.size, height: AVATAR_BUTTON.size, borderRadius: AVATAR_BUTTON.borderRadius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
                             <Ionicons name="close" size={20} style={{ color: WeatherBoardColors.textPrimary }} />
                           </BlurView>
                         </Pressable>
@@ -335,7 +336,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                                 { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(selectedItem.id) },
                               ]);
                             }}>
-                            <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+                            <BlurView intensity={BLUR_INTENSITY} tint="dark" style={{ width: AVATAR_BUTTON.size, height: AVATAR_BUTTON.size, borderRadius: AVATAR_BUTTON.borderRadius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
                               <Ionicons name="trash-outline" size={18} style={{ color: WeatherBoardColors.textPrimary }} />
                             </BlurView>
                           </Pressable>
