@@ -60,37 +60,42 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           if (!userId) return;
           markAsRead(userId, weather_log_id);
         }}
-        style={{ flex: 1, maxWidth: '50%', overflow: 'visible' }}>
-        <View className="overflow-visible relative">
-          <BlurView
-            intensity={BLUR_INTENSITY}
-            tint="light"
-            className="p-4 border overflow-visible"
-            style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
-            <View className="flex flex-row items-center gap-1 mb-2">
-              <Text className="text-base">{avatar_emoji}</Text>
-              <Text className="text-[12px] font-semibold" style={{ color: WeatherBoardColors.textPrimary }} numberOfLines={1}>
-                {nickname}
+        style={{ flex: 1, maxWidth: '50%' }}>
+        <View
+          style={{
+            backgroundColor: WEATHER_CONFIG[weather].cardColor,
+            borderRadius: 20,
+            padding: 14,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+            elevation: 3,
+          }}>
+          <View className="flex flex-row items-center gap-1 mb-2">
+            <Text className="text-base">{avatar_emoji}</Text>
+            <Text className="text-[12px] font-semibold flex-1" style={{ color: 'rgba(0,0,0,0.8)' }} numberOfLines={1}>
+              {nickname}
+            </Text>
+            <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
+          </View>
+          <View className="mb-2">
+            <Text className="text-[10px]" style={{ color: 'rgba(0,0,0,0.7)', height: CARD_TEXT.noteHeight }} numberOfLines={2}>
+              {note}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-2 flex-wrap overflow-hidden mb-2" style={{ height: CARD_TEXT.tagRowHeight }}>
+            {tags.map((tag) => (
+              <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: 'rgba(0,0,0,0.6)' }}>
+                #{tag.name}
               </Text>
-              <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
-            </View>
-            <View className="flex flex-row items-center gap-1 mb-2">
-              <Text className="text-[10px] flex-1 overflow-hidden" style={{ color: WeatherBoardColors.textPrimary, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
-                {note}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2 flex-wrap mb-2 overflow-hidden text-[8px]" style={{ height: CARD_TEXT.tagRowHeight }}>
-              {tags.map((tag) => (
-                <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimary }}>
-                  #{tag.name}
-                </Text>
-              ))}
-            </View>
-
+            ))}
+          </View>
+          <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <View className="flex-row gap-1 items-center">
-                <Ionicons name="chatbubble-ellipses-outline" size={12} />
-                <Text className="text-xs font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Ionicons name="chatbubble-ellipses-outline" size={12} color="rgba(0,0,0,0.5)" />
+                <Text className="text-xs font-bold" style={{ color: 'rgba(0,0,0,0.6)' }}>
                   {commentStatus[weather_log_id]?.count > 0 ? commentStatus[weather_log_id]?.count : 0}
                 </Text>
               </View>
@@ -100,21 +105,19 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
                     {commenter.emoji}
                   </Text>
                 ))}
-                {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && <Text className="text-[10px] text-gray-400">...</Text>}
+                {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && <Text className="text-[10px]" style={{ color: 'rgba(0,0,0,0.4)' }}>...</Text>}
               </View>
             </View>
-          </BlurView>
-          {unreadCount > 0 && (
-            <View className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex justify-center items-center">
-              <Text className="text-white text-xs font-bold">{unreadCount}</Text>
-            </View>
-          )}
-          <View className="flex-row justify-end">
-            <Text className="text-[8px]" style={{ color: WeatherBoardColors.textMuted }}>
+            <Text className="text-[9px]" style={{ color: 'rgba(0,0,0,0.4)' }}>
               {formattedDate}
             </Text>
           </View>
         </View>
+        {unreadCount > 0 && (
+          <View className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex justify-center items-center">
+            <Text className="text-white text-xs font-bold">{unreadCount}</Text>
+          </View>
+        )}
       </Pressable>
 
       <Modal visible={isModalVisible} animationType="slide" transparent={true}>
@@ -158,7 +161,6 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
                   {note}
                 </Text>
               </View>
-
               <View>
                 <View className="flex-row items-center gap-2 flex-wrap mb-1">
                   {tags.map((tag) => (
