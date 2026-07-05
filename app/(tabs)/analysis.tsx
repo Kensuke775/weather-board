@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, ImageBackground, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, ImageBackground, Platform, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnalysisMarkdown } from '@/components/AnalysisMarkdown';
-import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
@@ -20,7 +19,9 @@ export type AnalysisData = {
 };
 
 const backgroundImage = require('@/assets/images/weather/analysis.png');
-const MARKDOWN_MAX_HEIGHT = Dimensions.get('window').height * 0.7;
+const PRIMARY_BROWN = '#624221';
+const MUTED_BROWN = 'rgba(98,66,33,0.5)';
+const ACCENT_BLUE = '#6B9BDE';
 
 function formatTime(seconds: number) {
   const days = Math.floor(seconds / 86400);
@@ -33,7 +34,8 @@ function formatTime(seconds: number) {
 export default function Analysis() {
   const { user } = useUser();
   const userId = user?.id;
-  const { bottom } = useSafeAreaInsets();
+  const { bottom, top } = useSafeAreaInsets();
+  const tabBarHeight = Platform.OS === 'android' ? 72 : 60 + bottom + 4;
   const [fontsLoaded] = useFonts({
     DancingScript_400Regular: Fonts.titleFont,
   }) as [boolean, Error | null];
@@ -48,7 +50,13 @@ export default function Analysis() {
   const { days, hours, minutes, secs } = formatTime(leftTime);
 
   const fetchExistingAnalysis = useCallback(async () => {
-    const { data: analysedData, error: analysedError } = await supabase.from('ai_analyses').select('id, type, content, created_at').eq('user_id', userId).eq('type', 'weekly').order('created_at', { ascending: false }).limit(1);
+    const { data: analysedData, error: analysedError } = await supabase
+      .from('ai_analyses')
+      .select('id, type, content, created_at')
+      .eq('user_id', userId)
+      .eq('type', 'weekly')
+      .order('created_at', { ascending: false })
+      .limit(1);
     if (analysedError) {
       console.error('[analysis] fetchExistingAnalysis', analysedError.message);
       Alert.alert('過去の分析の取得に失敗しました。');
@@ -56,7 +64,12 @@ export default function Analysis() {
     }
     if (!analysedData || analysedData.length === 0) return setCanAnalyze(true);
     else {
-      const { data: historyData, error: historyError } = await supabase.from('ai_analyses').select('id, type, content, created_at').eq('user_id', userId).eq('type', 'weekly').order('created_at', { ascending: false });
+      const { data: historyData, error: historyError } = await supabase
+        .from('ai_analyses')
+        .select('id, type, content, created_at')
+        .eq('user_id', userId)
+        .eq('type', 'weekly')
+        .order('created_at', { ascending: false });
       if (historyError) {
         console.error('[analysis] fetchExistingAnalysis', historyError.message);
         Alert.alert('分析の取得に失敗しました。');
@@ -115,48 +128,46 @@ export default function Analysis() {
   const renderContent = () => {
     if (isAnalysing)
       return (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="white" />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={PRIMARY_BROWN} />
         </View>
       );
     if (isHistory)
       return (
-        <View className="flex-1 pb-12">
+        <View style={{ flex: 1 }}>
           {selectedHistory ? (
-            <View className="flex-1 gap-2">
-              <View className="flex-row justify-between items-center mb-6">
-                <Pressable onPress={() => setSelectedHistory(null)} className="py-2 pl-2">
-                  <Text className="text-center text-base font-bold border-b" style={{ color: WeatherBoardColors.textPrimary, borderBottomColor: WeatherBoardColors.textPrimary }}>
+            <View style={{ flex: 1, gap: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Pressable onPress={() => setSelectedHistory(null)} style={{ paddingVertical: 6, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: PRIMARY_BROWN }}>
+                  <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 14 }}>
                     戻る
                   </Text>
                 </Pressable>
-                <Text className="text-sm font-semibold" style={{ color: WeatherBoardColors.textPrimary }}>
+                <Text style={{ color: MUTED_BROWN, fontSize: 12 }}>
                   {new Date(selectedHistory.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
-              <View style={{ maxHeight: MARKDOWN_MAX_HEIGHT }}>
-                <AnalysisMarkdown content={selectedHistory.content} />
-              </View>
+              <AnalysisMarkdown content={selectedHistory.content} />
             </View>
           ) : (
             <FlatList
               data={histories}
               keyExtractor={(item) => item.id}
-              ItemSeparatorComponent={() => <View className="h-4" />}
-              contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(98,66,33,0.1)', marginVertical: 4 }} />}
+              contentContainerStyle={{ paddingVertical: 8 }}
               ListEmptyComponent={() => (
-                <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textMuted }}>
+                <Text style={{ color: MUTED_BROWN, fontWeight: '700', textAlign: 'center', padding: 16 }}>
                   まだ分析履歴はありません。
                 </Text>
               )}
               renderItem={({ item }) => {
                 const title = item.content.split('\n')[0].replace(/^#\s*/, '');
                 return (
-                  <Pressable onPress={() => setSelectedHistory(item)} className="p-4 border flex-row items-center justify-between" style={{ borderColor: WeatherBoardColors.glassBorder }}>
-                    <Text className="text-sm font-semibold flex-1" style={{ color: WeatherBoardColors.textPrimary }}>
-                      {title}
-                    </Text>
-                    <Text className="text-xs" style={{ color: WeatherBoardColors.textMuted }}>
+                  <Pressable
+                    onPress={() => setSelectedHistory(item)}
+                    style={{ paddingVertical: 12, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ color: PRIMARY_BROWN, fontWeight: '600', fontSize: 13, flex: 1 }}>{title}</Text>
+                    <Text style={{ color: MUTED_BROWN, fontSize: 11 }}>
                       {new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit' })}
                     </Text>
                   </Pressable>
@@ -168,7 +179,7 @@ export default function Analysis() {
       );
     if (analysisContent) return <AnalysisMarkdown content={analysisContent.content} />;
     return (
-      <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary, padding: 8 }}>
+      <Text style={{ color: MUTED_BROWN, fontWeight: '700', textAlign: 'center', padding: 16 }}>
         まだ分析結果がありません。
       </Text>
     );
@@ -179,79 +190,130 @@ export default function Analysis() {
     if (isLoading) return <ActivityIndicator size="small" color="white" />;
     if (canAnalyze)
       return (
-        <>
-          <Ionicons name="analytics-outline" size={20} color="white" />
-          <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-            今週を振り返る
-          </Text>
-        </>
+        <Pressable
+          onPress={handleAnalysis}
+          style={{
+            backgroundColor: ACCENT_BLUE,
+            borderRadius: 16,
+            paddingVertical: 18,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}>
+          <Ionicons name="trending-up-outline" size={20} color="white" />
+          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>今週を振り返る</Text>
+        </Pressable>
       );
     return (
       <>
-        <Ionicons name="analytics-outline" size={20} color="white" />
-        <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-          分析済み — 来週また振り返ろう
+        <Pressable
+          onPress={handleAnalysis}
+          style={{
+            backgroundColor: 'rgba(107,155,222,0.45)',
+            borderRadius: 16,
+            paddingVertical: 18,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}>
+          <Ionicons name="trending-up-outline" size={20} color="white" />
+          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>分析済み — 来週また振り返ろう</Text>
+        </Pressable>
+        <Text style={{ color: MUTED_BROWN, fontSize: 12, textAlign: 'center', marginTop: 6 }}>
+          {`あと ${days}日${hours}時間${minutes}分${secs}秒`}
         </Text>
       </>
     );
   };
 
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 justify-center px-5">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
-      <View style={{ flex: 1, paddingBottom: 100, paddingTop: 80 }}>
-        <Text className="text-4xl text-center pb-8" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-          Analisis
-        </Text>
-        <View className="flex-row items-center gap-2 mb-2">
-          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
-            <Pressable
-              onPress={() => {
-                setSelectedHistory(null);
-                setIsHistory(false);
-              }}>
-              <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary, opacity: isHistory ? 0.5 : 1 }}>
-                Weekly
-              </Text>
-            </Pressable>
-          </BlurView>
-
-          <BlurView intensity={50} tint={'dark'} className="py-2 px-4 border rounded" style={{ borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
-            <Pressable onPress={() => setIsHistory(true)}>
-              <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary, opacity: isHistory ? 1 : 0.5 }}>
-                History
-              </Text>
-            </Pressable>
-          </BlurView>
+    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: top + 20, paddingHorizontal: 20, paddingBottom: tabBarHeight + 12 }}>
+        {/* Title */}
+        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{ fontSize: 20, marginBottom: 4 }}>🌿</Text>
+          <Text style={{ fontFamily: 'DancingScript_400Regular', fontSize: 40, color: PRIMARY_BROWN }}>Analysis</Text>
         </View>
 
-        <BlurView
-          intensity={50}
-          tint={'dark'}
-          className="overflow-hidden p-3 flex-1 mb-4 border"
-          style={{ borderTopRightRadius: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, borderColor: WeatherBoardColors.glassBorder, backgroundColor: Platform.OS === 'ios' ? undefined : 'rgba(0, 0, 0, 0.8)' }}>
-          {renderContent()}
-        </BlurView>
+        {/* Segmented control */}
+        <View
+          style={{
+            flexDirection: 'row',
+            backgroundColor: '#F5EEE4',
+            borderRadius: 20,
+            padding: 4,
+            marginBottom: 14,
+          }}>
+          <Pressable
+            onPress={() => {
+              setSelectedHistory(null);
+              setIsHistory(false);
+            }}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 16,
+              backgroundColor: isHistory ? 'transparent' : 'white',
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 6,
+              shadowColor: isHistory ? 'transparent' : '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: isHistory ? 0 : 0.08,
+              shadowRadius: 4,
+              elevation: isHistory ? 0 : 2,
+            }}>
+            <Text style={{ fontSize: 13 }}>🌿</Text>
+            <Text style={{ color: isHistory ? MUTED_BROWN : PRIMARY_BROWN, fontWeight: isHistory ? '400' : '700', fontSize: 14 }}>
+              Weekly
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setIsHistory(true)}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 16,
+              backgroundColor: isHistory ? 'white' : 'transparent',
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 6,
+              shadowColor: isHistory ? '#000' : 'transparent',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: isHistory ? 0.08 : 0,
+              shadowRadius: 4,
+              elevation: isHistory ? 2 : 0,
+            }}>
+            <Ionicons name="calendar-outline" size={14} color={isHistory ? PRIMARY_BROWN : MUTED_BROWN} />
+            <Text style={{ color: isHistory ? PRIMARY_BROWN : MUTED_BROWN, fontWeight: isHistory ? '700' : '400', fontSize: 14 }}>
+              History
+            </Text>
+          </Pressable>
+        </View>
 
-        {!isHistory && (
-          <View>
-            <View
-              className="overflow-hidden rounded-xl border"
-              style={{
-                borderColor: WeatherBoardColors.glassBorder,
-                backgroundColor: canAnalyze ? WeatherBoardColors.accentBackground : WeatherBoardColors.glassBackgroundButton,
-              }}>
-              <Pressable onPress={handleAnalysis} className="py-6 flex-row justify-center items-center gap-3">
-                {renderButton()}
-              </Pressable>
-            </View>
-            {!isLoading && !canAnalyze && (
-              <Text className="text-sm text-center " style={{ color: WeatherBoardColors.textPrimary }}>
-                {`あと ${days}日${hours}時間${minutes}分${secs}秒`}
-              </Text>
-            )}
-          </View>
-        )}
+        {/* Content card */}
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderRadius: 20,
+            padding: 16,
+            marginBottom: 14,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 4,
+          }}>
+          {renderContent()}
+        </View>
+
+        {/* Button */}
+        {renderButton()}
       </View>
     </ImageBackground>
   );

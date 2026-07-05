@@ -1,12 +1,25 @@
 import * as Clipboard from 'expo-clipboard';
-import React, { useCallback, useRef, useState } from 'react';
-import { Alert, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import React, { ComponentProps, useCallback, useRef, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  ImageBackground,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
+import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
-import GlassButton from '@/components/GlassButton';
-import { WeatherBoardColors } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
 import { TOAST_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
@@ -30,69 +43,63 @@ type BlockedUser = {
 type LoadingName = 'leaving' | 'loggingOut' | 'deletingAccount' | null;
 
 const AVATARS = [
-  // 動物
-  '🐶',
-  '🐱',
-  '🐭',
-  '🐹',
-  '🐰',
-  '🦊',
-  '🐻',
-  '🐼',
-  '🐨',
-  '🐯',
-  '🦁',
-  '🐮',
-  '🐷',
-  '🐸',
-  '🐵',
-  '🐔',
-  '🐧',
-  '🐦',
-  '🦆',
-  '🦉',
-  '🐺',
-  '🐴',
-  '🦄',
-  '🐝',
-  '🦋',
-  '🐢',
-  '🐬',
-  '🦭',
-  '🐙',
-  '🐿️',
-  '🦔',
-  // 食べ物・かわいい系
-  '🍓',
-  '🍑',
-  '🍒',
-  '🍰',
-  '🧁',
-  '🍩',
-  '🍪',
-  '🧸',
-  // 自然・植物
-  '🌸',
-  '🌼',
-  '🌻',
-  '🍄',
-  '🌈',
-  '⭐',
-  '🌙',
-  '☁️',
-  // キャラ系
-  '👻',
-  '🤖',
-  '👾',
-  '🎃',
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊',
+  '🐻', '🐼', '🐨', '🐯', '🦁', '🐮',
+  '🐷', '🐸', '🐵', '🐔', '🐧', '🐦',
+  '🦆', '🦉', '🐺', '🐴', '🦄', '🐝',
+  '🦋', '🐢', '🐬', '🦭', '🐙', '🐿️',
+  '🦔', '🍓', '🍑', '🍒', '🍰', '🧁',
+  '🍩', '🍪', '🧸', '🌸', '🌼', '🌻',
+  '🍄', '🌈', '⭐', '🌙', '☁️', '👻',
+  '🤖', '👾', '🎃',
 ];
 
 const backgroundImage = require('@/assets/images/weather/settings.png');
+const PRIMARY_BROWN = '#624221';
+const SECONDARY_BROWN = 'rgba(98,66,33,0.75)';
+const MUTED_BROWN = 'rgba(98,66,33,0.5)';
+
+type MenuItemProps = {
+  label: string;
+  description: string;
+  iconName: ComponentProps<typeof Ionicons>['name'];
+  iconBg: string;
+  onPress: () => void;
+};
+
+function MenuItem({ label, description, iconName, iconBg, onPress }: MenuItemProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        backgroundColor: 'rgba(255,255,255,0.92)',
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        gap: 14,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+      }}>
+      <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={iconName} size={22} color="white" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 15 }}>{label}</Text>
+        <Text style={{ color: MUTED_BROWN, fontSize: 11, marginTop: 2 }}>{description}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={MUTED_BROWN} />
+    </Pressable>
+  );
+}
 
 export default function Settings() {
   const { user } = useUser();
   const userId = user?.id;
-  const router = useRouter();
+  const { top } = useSafeAreaInsets();
   const [roomData, setRoomData] = useState<RoomData[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const { setCurrentRoomId, refreshRooms } = useRoom();
@@ -104,6 +111,9 @@ export default function Settings() {
   const joinInputRef = useRef<TextInput>(null);
   const createInputRef = useRef<TextInput>(null);
   const nicknameInputRef = useRef<TextInput>(null);
+  const [fontsLoaded] = useFonts({
+    DancingScript_400Regular: Fonts.titleFont,
+  }) as [boolean, Error | null];
 
   const { handleCreateRoom, setRoomName, roomName } = useRoomCreate(async (roomId) => {
     setActiveModal(null);
@@ -111,7 +121,6 @@ export default function Settings() {
     await fetchInviteData();
     await refreshRooms();
     setCurrentRoomId(roomId);
-    router.replace('/(tabs)');
     Toast.show({ type: 'success', text1: `ルーム[${roomName}]を作成しました`, visibilityTime: TOAST_DURATION.default });
   });
 
@@ -121,7 +130,6 @@ export default function Settings() {
     await fetchInviteData();
     await refreshRooms();
     setCurrentRoomId(roomId);
-    router.replace('/(tabs)');
     Toast.show({ type: 'success', text1: `${roomName}に参加しました。`, visibilityTime: TOAST_DURATION.default });
   });
 
@@ -132,7 +140,10 @@ export default function Settings() {
   });
 
   const fetchInviteData = useCallback(async () => {
-    const { data: roomData, error: roomError } = await supabase.from('room_members').select('rooms(id, name, invite_code, created_by)').eq('user_id', userId);
+    const { data: roomData, error: roomError } = await supabase
+      .from('room_members')
+      .select('rooms(id, name, invite_code, created_by)')
+      .eq('user_id', userId);
     if (roomError) {
       console.error('[settings] fetchInviteData', roomError.message);
       Alert.alert('ルームメンバーの取得に失敗しました。');
@@ -142,7 +153,10 @@ export default function Settings() {
   }, [userId]);
 
   const fetchProfileData = useCallback(async () => {
-    const { data: profileData, error: profileError } = await supabase.from('profiles').select('nickname, avatar_emoji').eq('user_id', userId);
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('nickname, avatar_emoji')
+      .eq('user_id', userId);
     if (profileError) {
       console.error('[settings] fetchProfileData', profileError.message);
       Alert.alert('プロフィールの取得に失敗しました。');
@@ -256,195 +270,264 @@ export default function Settings() {
     }, [fetchProfileData, fetchInviteData]),
   );
 
+  if (!fontsLoaded) return null;
+
   return (
-    <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center gap-4 px-10">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></View>
+    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: top + 20, paddingHorizontal: 20 }}>
+        {/* Title */}
+        <Text
+          style={{
+            fontFamily: 'DancingScript_400Regular',
+            fontSize: 32,
+            color: PRIMARY_BROWN,
+            textAlign: 'center',
+            lineHeight: 42,
+            marginBottom: 36,
+          }}>
+          {"How's your\nweather today?"}
+        </Text>
 
-      <GlassButton onPress={() => setActiveModal('create')} buttonText="ルームを作成する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+        {/* Menu items */}
+        <View style={{ gap: 12 }}>
+          <MenuItem
+            label="ルームを作成する"
+            description="新しいルームを作成します"
+            iconName="add-circle"
+            iconBg="#F5A623"
+            onPress={() => setActiveModal('create')}
+          />
+          <MenuItem
+            label="ルームに参加する"
+            description="ルームに参加します"
+            iconName="enter"
+            iconBg="#4CAF7D"
+            onPress={() => setActiveModal('join')}
+          />
+          <MenuItem
+            label="ルーム一覧"
+            description="参加中のルームを確認します"
+            iconName="list"
+            iconBg="#A0A0A0"
+            onPress={() => setActiveModal('invite')}
+          />
+          <MenuItem
+            label="アカウント設定"
+            description="プロフィールや各種設定を行います"
+            iconName="settings-sharp"
+            iconBg="#A0A0A0"
+            onPress={() => setActiveModal('account')}
+          />
+          <MenuItem
+            label="ログアウト"
+            description="アカウントからログアウトします"
+            iconName="log-out-outline"
+            iconBg="#A0A0A0"
+            onPress={() => {
+              Alert.alert('確認', 'ログアウトしますか？', [
+                { text: 'キャンセル', style: 'cancel' },
+                { text: 'ログアウトする', onPress: handleLogout, style: 'default' },
+              ]);
+            }}
+          />
+        </View>
+      </View>
 
-      <GlassButton onPress={() => setActiveModal('join')} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
-
-      <GlassButton onPress={() => setActiveModal('invite')} buttonText="ルーム一覧" buttonIcon="list-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton} />
-
-      <GlassButton onPress={() => setActiveModal('account')} buttonText="アカウント設定" buttonIcon="settings-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton} />
-
-      <GlassButton
-        onPress={() => {
-          Alert.alert('確認', 'ログアウトしますか？', [
-            { text: 'キャンセル', style: 'cancel' },
-            { text: 'ログアウトする', onPress: handleLogout, style: 'default' },
-          ]);
-        }}
-        buttonText="ログアウト"
-        buttonIcon="log-out-outline"
-        backgroundColor={WeatherBoardColors.glassBackgroundButton}
-      />
-
+      {/* ─── ルーム一覧 modal ─── */}
       <Modal visible={activeModal === 'invite'} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setActiveModal(null)} className="flex-1">
-          <View className="flex-1 justify-center pt-40 pb-20 px-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1 }}>
+          <View style={{ flex: 1, justifyContent: 'center', paddingTop: 120, paddingBottom: 80, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <FlatList
               data={roomData.flatMap((data) => data?.rooms)}
               keyExtractor={(item) => item?.id}
               contentContainerStyle={{ justifyContent: 'center', flexGrow: 1 }}
-              ListFooterComponent={() => {
-                return roomData.length > 0 ? (
-                  <Text className="text-sm font-bold mt-1" style={{ color: WeatherBoardColors.textPrimary }}>
-                    ※タップで保存できます。
-                  </Text>
-                ) : null;
-              }}
-              renderItem={({ item }) => {
-                return (
-                  <Pressable
-                    onPress={async () => {
-                      await Clipboard.setStringAsync(item?.invite_code);
-                      setActiveModal(null);
-                      Toast.show({
-                        type: 'success',
-                        text1: 'コピーしました。',
-                        visibilityTime: TOAST_DURATION.short,
-                      });
-                    }}
-                    className="mb-6 p-6 rounded-xl bg-white">
-                    <View className="flex-row items-center gap-2">
-                      <Text className="text-sm font-semibold">{item?.name}</Text>
-                    </View>
-
-                    <View className="flex-row justify-between items-center gap-2">
-                      <Text className="text-xl font-bold">{item?.invite_code}</Text>
-                      <View className="flex-row items-center gap-4">
-                        <Text className="text-xl font-semibold">コピー</Text>
-
-                        {item?.created_by === userId && (
-                          <Pressable
-                            onPress={() => {
-                              setRenameRoomId(item.id);
-                              setRenameRoomName(item.name);
-                              setActiveModal('rename');
-                            }}>
-                            <Text className="text-xl font-bold">名前変更</Text>
-                          </Pressable>
-                        )}
+              ListFooterComponent={() =>
+                roomData.length > 0 ? (
+                  <Text style={{ color: 'white', fontSize: 12, fontWeight: '700', marginTop: 4 }}>※タップで保存できます。</Text>
+                ) : null
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={async () => {
+                    await Clipboard.setStringAsync(item?.invite_code);
+                    setActiveModal(null);
+                    Toast.show({ type: 'success', text1: 'コピーしました。', visibilityTime: TOAST_DURATION.short });
+                  }}
+                  style={{ marginBottom: 16, padding: 20, borderRadius: 16, backgroundColor: 'white' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: PRIMARY_BROWN }}>{item?.name}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 20, fontWeight: '700', color: PRIMARY_BROWN }}>{item?.invite_code}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Text style={{ fontSize: 14, color: SECONDARY_BROWN }}>コピー</Text>
+                      {item?.created_by === userId && (
                         <Pressable
                           onPress={() => {
-                            if (roomData.flatMap((d) => d.rooms).length === 1) {
-                              Alert.alert('退出できません', '最低でも1つのルームに所属している必要があります。');
-                              return;
-                            }
-                            Alert.alert('確認', '退出するとこのルームのカレンダー履歴が見られなくなります。本当に退出しますか？', [
-                              { text: 'キャンセル', style: 'cancel' },
-                              { text: '退出する', style: 'destructive', onPress: () => handleLeaveRoom(item?.id) },
-                            ]);
+                            setRenameRoomId(item.id);
+                            setRenameRoomName(item.name);
+                            setActiveModal('rename');
                           }}>
-                          <Text className="text-xl font-bold">退出</Text>
+                          <Text style={{ fontSize: 14, color: SECONDARY_BROWN }}>名前変更</Text>
                         </Pressable>
-                      </View>
+                      )}
+                      <Pressable
+                        onPress={() => {
+                          if (roomData.flatMap((d) => d.rooms).length === 1) {
+                            Alert.alert('退出できません', '最低でも1つのルームに所属している必要があります。');
+                            return;
+                          }
+                          Alert.alert('確認', '退出するとこのルームのカレンダー履歴が見られなくなります。本当に退出しますか？', [
+                            { text: 'キャンセル', style: 'cancel' },
+                            { text: '退出する', style: 'destructive', onPress: () => handleLeaveRoom(item?.id) },
+                          ]);
+                        }}>
+                        <Text style={{ fontSize: 14, color: '#EF4444' }}>退出</Text>
+                      </Pressable>
                     </View>
-                  </Pressable>
-                );
-              }}></FlatList>
+                  </View>
+                </Pressable>
+              )}
+            />
           </View>
         </Pressable>
       </Modal>
 
+      {/* ─── 名前変更 modal ─── */}
       <Modal visible={activeModal === 'rename'} animationType="slide" transparent={true} onShow={() => renameInputRef.current?.focus()}>
         <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
           <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
-            <View className="w-full mb-12">
-              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                ルーム名を変更できます。
-              </Text>
-              <TextInput ref={renameInputRef} value={renameRoomName} onChangeText={setRenameRoomName} placeholder="新しいルーム名を入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ marginBottom: 8, fontSize: 15, fontWeight: '700', color: 'white' }}>ルーム名を変更できます。</Text>
+              <TextInput
+                ref={renameInputRef}
+                value={renameRoomName}
+                onChangeText={setRenameRoomName}
+                placeholder="新しいルーム名を入力してください。"
+                autoCapitalize="none"
+                style={{ backgroundColor: 'white', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12 }}
+              />
             </View>
-            <View className="w-full">
-              <GlassButton onPress={() => handleRenameRoom(renameRoomId, renameRoomName)} buttonText="変更する" buttonIcon="pencil-outline" backgroundColor={WeatherBoardColors.accentBackground} />
-            </View>
+            <Pressable
+              onPress={() => handleRenameRoom(renameRoomId, renameRoomName)}
+              style={{ backgroundColor: PRIMARY_BROWN, borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}>
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 15 }}>変更する</Text>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
 
+      {/* ─── ルームに参加 modal ─── */}
       <Modal visible={activeModal === 'join'} animationType="slide" transparent={true} onShow={() => joinInputRef.current?.focus()}>
         <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
           <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
-            <View className="w-full mb-12">
-              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                招待コードを入力出来ます。
-              </Text>
-              <TextInput ref={joinInputRef} value={inviteCode} onChangeText={setInviteCode} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ marginBottom: 8, fontSize: 15, fontWeight: '700', color: 'white' }}>招待コードを入力出来ます。</Text>
+              <TextInput
+                ref={joinInputRef}
+                value={inviteCode}
+                onChangeText={setInviteCode}
+                placeholder="招待コードを入力してください。"
+                autoCapitalize="none"
+                style={{ backgroundColor: 'white', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12 }}
+              />
             </View>
-            <View className="w-full">
-              <GlassButton onPress={handleJoinRoom} buttonText="ルームに参加する" buttonIcon="enter-outline" backgroundColor={WeatherBoardColors.tertiaryBackground} />
-            </View>
+            <Pressable
+              onPress={handleJoinRoom}
+              style={{ backgroundColor: '#4CAF7D', borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}>
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 15 }}>ルームに参加する</Text>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
 
+      {/* ─── ルームを作成 modal ─── */}
       <Modal visible={activeModal === 'create'} animationType="slide" transparent={true} onShow={() => createInputRef.current?.focus()}>
         <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
           <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
-            <View className="w-full mb-12">
-              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                ルーム名を決めてください
-              </Text>
-              <TextInput ref={createInputRef} value={roomName} onChangeText={setRoomName} placeholder="テキストを入力できます。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ marginBottom: 8, fontSize: 15, fontWeight: '700', color: 'white' }}>ルーム名を決めてください</Text>
+              <TextInput
+                ref={createInputRef}
+                value={roomName}
+                onChangeText={setRoomName}
+                placeholder="ルーム名を入力してください。"
+                autoCapitalize="none"
+                style={{ backgroundColor: 'white', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12 }}
+              />
             </View>
-            <View className="w-full">
-              <GlassButton onPress={handleCreateRoom} buttonText="ルームを作成する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
-            </View>
+            <Pressable
+              onPress={handleCreateRoom}
+              style={{ backgroundColor: '#F5A623', borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}>
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 15 }}>ルームを作成する</Text>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
 
+      {/* ─── アカウント設定 modal ─── */}
       <Modal visible={activeModal === 'account'} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setActiveModal(null)} className="flex-1">
-          <View className="flex-1 justify-center pt-40 pb-20 px-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <View onStartShouldSetResponder={() => true} className="gap-4">
-              <GlassButton onPress={() => setActiveModal('profileSetup')} buttonText="プロフィール編集" buttonIcon="person-outline" backgroundColor={WeatherBoardColors.glassBackgroundButton} />
+        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1 }}>
+          <View style={{ flex: 1, justifyContent: 'center', paddingTop: 120, paddingBottom: 80, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <View onStartShouldSetResponder={() => true} style={{ gap: 12 }}>
+              <Pressable
+                onPress={() => setActiveModal('profileSetup')}
+                style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 16, flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 }}>
+                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#A0A0A0', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="person-outline" size={22} color="white" />
+                </View>
+                <Text style={{ flex: 1, color: PRIMARY_BROWN, fontWeight: '700', fontSize: 15 }}>プロフィール編集</Text>
+                <Ionicons name="chevron-forward" size={18} color={MUTED_BROWN} />
+              </Pressable>
 
-              <GlassButton
+              <Pressable
                 onPress={() => {
                   setActiveModal('blockList');
                   fetchBlockedUsers();
                 }}
-                buttonText="ブロック一覧"
-                buttonIcon="ban-outline"
-                backgroundColor={WeatherBoardColors.glassBackgroundButton}
-              />
+                style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 16, flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 }}>
+                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#A0A0A0', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="ban-outline" size={22} color="white" />
+                </View>
+                <Text style={{ flex: 1, color: PRIMARY_BROWN, fontWeight: '700', fontSize: 15 }}>ブロック一覧</Text>
+                <Ionicons name="chevron-forward" size={18} color={MUTED_BROWN} />
+              </Pressable>
 
-              <GlassButton
+              <Pressable
                 onPress={() => {
                   Alert.alert('確認', 'アカウントを削除しますか？', [
                     { text: 'キャンセル', style: 'cancel' },
                     { text: '削除する', onPress: handleDeleteAccount, style: 'destructive' },
                   ]);
                 }}
-                buttonText="アカウントを削除"
-                buttonIcon="trash-outline"
-                backgroundColor={WeatherBoardColors.glassBackgroundButton}
-              />
+                style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 16, flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 }}>
+                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="trash-outline" size={22} color="white" />
+                </View>
+                <Text style={{ flex: 1, color: '#EF4444', fontWeight: '700', fontSize: 15 }}>アカウントを削除</Text>
+                <Ionicons name="chevron-forward" size={18} color="rgba(239,68,68,0.5)" />
+              </Pressable>
             </View>
           </View>
         </Pressable>
       </Modal>
 
+      {/* ─── ブロック一覧 modal ─── */}
       <Modal visible={activeModal === 'blockList'} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setActiveModal(null)} className="flex-1">
-          <View className="flex-1 justify-center pt-40 pb-20 px-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1 }}>
+          <View style={{ flex: 1, justifyContent: 'center', paddingTop: 120, paddingBottom: 80, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <FlatList
               data={blockedUsers}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ justifyContent: 'center', flexGrow: 1 }}
               ListEmptyComponent={
-                <Text className="text-base font-bold text-center" style={{ color: WeatherBoardColors.textPrimary }}>
-                  ブロック中のユーザーはいません。
-                </Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', textAlign: 'center', color: 'white' }}>ブロック中のユーザーはいません。</Text>
               }
               renderItem={({ item }) => (
-                <View className="mb-4 p-4 rounded-xl bg-white flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-xl">{item.profiles?.avatar_emoji}</Text>
-                    <Text className="text-base font-semibold">{item.profiles?.nickname}</Text>
+                <View style={{ marginBottom: 12, padding: 16, borderRadius: 16, backgroundColor: 'white', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={{ fontSize: 22 }}>{item.profiles?.avatar_emoji}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: PRIMARY_BROWN }}>{item.profiles?.nickname}</Text>
                   </View>
                   <Pressable
                     onPress={() => {
@@ -453,9 +536,7 @@ export default function Settings() {
                         { text: '解除する', onPress: () => handleUnblock(item.id) },
                       ]);
                     }}>
-                    <Text className="text-base font-bold" style={{ color: WeatherBoardColors.accentBackground }}>
-                      解除する
-                    </Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#6B9BDE' }}>解除する</Text>
                   </Pressable>
                 </View>
               )}
@@ -464,45 +545,157 @@ export default function Settings() {
         </Pressable>
       </Modal>
 
-      <Modal visible={activeModal === 'profileSetup'} animationType="slide" transparent={true}>
-        <Pressable onPress={() => setActiveModal(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
-          <View style={{ width: '100%' }} onStartShouldSetResponder={() => true}>
-            <View className="gap-12">
-              <View>
-                <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                  ニックネームを変更できます。
-                </Text>
-                <Text className="mb-2 text-xs" style={{ color: WeatherBoardColors.textMuted }}>
-                  ニックネームは6文字まででお願いします。
-                </Text>
-                <TextInput ref={nicknameInputRef} value={nickname} onChangeText={setNickname} maxLength={6} placeholder="テキストを入力してください。" autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
-              </View>
-
-              <View>
-                <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                  アバターを選んでください。
-                </Text>
-                <View className="relative overflow-hidden p-4" style={{ borderRadius: 16, height: 280 }}>
-                  <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }} />
-                  <FlatList
-                    data={AVATARS}
-                    keyExtractor={(item) => item}
-                    numColumns={6}
-                    columnWrapperStyle={{ justifyContent: 'center', gap: 8 }}
-                    contentContainerStyle={{ gap: 8 }}
-                    renderItem={({ item }) => (
-                      <Pressable onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6, flex: 1, alignItems: 'center' }}>
-                        <Text style={{ fontSize: 32 }}>{item}</Text>
-                      </Pressable>
-                    )}
-                  />
-                </View>
-              </View>
-
-              <GlassButton onPress={handleSaveProfile} buttonText="保存する" buttonIcon="add-circle-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+      {/* ─── プロフィール編集 modal (full-screen) ─── */}
+      <Modal visible={activeModal === 'profileSetup'} animationType="slide" transparent={false}>
+        <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+          {/* Header */}
+          <View
+            style={{
+              paddingTop: top + 12,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 24,
+            }}>
+            <Pressable
+              onPress={() => setActiveModal(null)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
+              }}>
+              <Ionicons name="chevron-back" size={20} color={PRIMARY_BROWN} />
+            </Pressable>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 18 }}>プロフィール編集 🌿</Text>
             </View>
+            <View style={{ width: 36 }} />
           </View>
-        </Pressable>
+
+          {/* White content card */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'white',
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+            }}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+              keyboardShouldPersistTaps="handled">
+              {/* Nickname section */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Text style={{ fontSize: 16 }}>🌿</Text>
+                <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 16 }}>ニックネームを変更できます</Text>
+              </View>
+              <Text style={{ color: MUTED_BROWN, fontSize: 11, marginBottom: 12 }}>ニックネームは6文字まででお願いします。</Text>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: 'rgba(98,66,33,0.15)',
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+                  marginBottom: 12,
+                }}>
+                <TextInput
+                  ref={nicknameInputRef}
+                  value={nickname}
+                  onChangeText={setNickname}
+                  maxLength={6}
+                  placeholder="ニックネームを入力してください"
+                  autoCapitalize="none"
+                  style={{ flex: 1, color: PRIMARY_BROWN, fontSize: 15 }}
+                />
+                <Text style={{ color: MUTED_BROWN, fontSize: 12 }}>{(nickname ?? '').length}/6</Text>
+              </View>
+
+              {/* Room create row */}
+              <Pressable
+                onPress={() => {
+                  setActiveModal(null);
+                  setTimeout(() => setActiveModal('create'), 400);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  backgroundColor: '#FFF3E4',
+                  borderRadius: 12,
+                  padding: 14,
+                  marginBottom: 28,
+                }}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: PRIMARY_BROWN,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <Ionicons name="add" size={18} color={PRIMARY_BROWN} />
+                </View>
+                <Text style={{ flex: 1, color: PRIMARY_BROWN, fontWeight: '600', fontSize: 14 }}>ルームを作成する</Text>
+                <Ionicons name="chevron-forward" size={16} color={MUTED_BROWN} />
+              </Pressable>
+
+              {/* Avatar section */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <Text style={{ fontSize: 16 }}>🌿</Text>
+                <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 16 }}>アバターを選んでください</Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 28 }}>
+                {AVATARS.map((item) => (
+                  <Pressable
+                    key={item}
+                    onPress={() => setAvatar(item)}
+                    style={{
+                      width: '16.666%',
+                      aspectRatio: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: avatar === item ? 'rgba(98,66,33,0.1)' : 'rgba(0,0,0,0.03)',
+                      borderRadius: 10,
+                      marginBottom: 6,
+                    }}>
+                    <Text style={{ fontSize: 28 }}>{item}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Save button */}
+              <Pressable
+                onPress={handleSaveProfile}
+                style={{
+                  backgroundColor: PRIMARY_BROWN,
+                  borderRadius: 14,
+                  paddingVertical: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}>
+                <Ionicons name="add-circle-outline" size={20} color="white" />
+                <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>保存する</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </ImageBackground>
       </Modal>
     </ImageBackground>
   );
