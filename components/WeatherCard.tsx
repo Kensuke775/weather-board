@@ -27,6 +27,17 @@ type WeatherCardProps = {
   commentStatus: CommentsStatus;
 };
 
+const PRIMARY_BROWN = '#624221';
+const SECONDARY_BROWN = 'rgba(98,66,33,0.75)';
+const MUTED_BROWN = 'rgba(98,66,33,0.55)';
+
+const hexToRgba = (hex: string, alpha: number): string => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
 const handleDeletePost = async (weather_log_id: string, onDeleted: () => void) => {
   const { error } = await supabase.from('weather_logs').delete().eq('id', weather_log_id);
   if (error) {
@@ -51,6 +62,54 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
   const userId = user?.id;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const formattedDate = new Date(updated_at).toLocaleTimeString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const cardColor = WEATHER_CONFIG[weather].cardColor;
+
+  const cardContent = (
+    <View style={{ padding: 14 }}>
+      <View className="flex flex-row items-center gap-1 mb-2">
+        <Text className="text-base">{avatar_emoji}</Text>
+        <Text className="text-[12px] font-semibold flex-1" style={{ color: PRIMARY_BROWN }} numberOfLines={1}>
+          {nickname}
+        </Text>
+        <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
+      </View>
+      <View className="mb-2">
+        <Text className="text-[10px]" style={{ color: SECONDARY_BROWN, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
+          {note}
+        </Text>
+      </View>
+      <View className="flex-row items-center gap-2 flex-wrap overflow-hidden mb-2" style={{ height: CARD_TEXT.tagRowHeight }}>
+        {tags.map((tag) => (
+          <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: MUTED_BROWN }}>
+            #{tag.name}
+          </Text>
+        ))}
+      </View>
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <View className="flex-row gap-1 items-center">
+            <Ionicons name="chatbubble-ellipses-outline" size={12} color={MUTED_BROWN} />
+            <Text className="text-xs font-bold" style={{ color: MUTED_BROWN }}>
+              {commentStatus[weather_log_id]?.count > 0 ? commentStatus[weather_log_id]?.count : 0}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-1">
+            {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
+              <Text key={commenter.user_id} className="text-[10px]">
+                {commenter.emoji}
+              </Text>
+            ))}
+            {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
+              <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>...</Text>
+            )}
+          </View>
+        </View>
+        <Text className="text-[9px]" style={{ color: MUTED_BROWN }}>
+          {formattedDate}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <>
@@ -61,56 +120,26 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           markAsRead(userId, weather_log_id);
         }}
         style={{ flex: 1, maxWidth: '50%' }}>
+        {/* Shadow wrapper */}
         <View
           style={{
-            backgroundColor: WEATHER_CONFIG[weather].cardColor,
             borderRadius: 20,
-            padding: 14,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
-            elevation: 3,
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
           }}>
-          <View className="flex flex-row items-center gap-1 mb-2">
-            <Text className="text-base">{avatar_emoji}</Text>
-            <Text className="text-[12px] font-semibold flex-1" style={{ color: 'rgba(0,0,0,0.8)' }} numberOfLines={1}>
-              {nickname}
-            </Text>
-            <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
-          </View>
-          <View className="mb-2">
-            <Text className="text-[10px]" style={{ color: 'rgba(0,0,0,0.7)', height: CARD_TEXT.noteHeight }} numberOfLines={2}>
-              {note}
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2 flex-wrap overflow-hidden mb-2" style={{ height: CARD_TEXT.tagRowHeight }}>
-            {tags.map((tag) => (
-              <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: 'rgba(0,0,0,0.6)' }}>
-                #{tag.name}
-              </Text>
-            ))}
-          </View>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <View className="flex-row gap-1 items-center">
-                <Ionicons name="chatbubble-ellipses-outline" size={12} color="rgba(0,0,0,0.5)" />
-                <Text className="text-xs font-bold" style={{ color: 'rgba(0,0,0,0.6)' }}>
-                  {commentStatus[weather_log_id]?.count > 0 ? commentStatus[weather_log_id]?.count : 0}
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-1">
-                {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
-                  <Text key={commenter.user_id} className="text-[10px]">
-                    {commenter.emoji}
-                  </Text>
-                ))}
-                {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && <Text className="text-[10px]" style={{ color: 'rgba(0,0,0,0.4)' }}>...</Text>}
-              </View>
-            </View>
-            <Text className="text-[9px]" style={{ color: 'rgba(0,0,0,0.4)' }}>
-              {formattedDate}
-            </Text>
+          {/* Clip wrapper */}
+          <View style={{ borderRadius: 20, overflow: 'hidden', elevation: 4 }}>
+            {Platform.OS === 'ios' ? (
+              <>
+                <BlurView intensity={20} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.65) }} />
+              </>
+            ) : (
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: cardColor }} />
+            )}
+            {cardContent}
           </View>
         </View>
         {unreadCount > 0 && (
