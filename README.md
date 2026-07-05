@@ -18,18 +18,17 @@ Weather Boardは気軽に、正直に共有できる。
 
 ## 技術スタック
 
-- React Native
-- Expo / Expo Router
-- TypeScript
-- Supabase（DB・認証・Realtime・Edge Functions）
-- PostgreSQL
-- Google OAuth（expo-auth-session）
-- Sign in with Apple（expo-apple-authentication）
-- Anthropic Claude API
-- Zod（Edge Functionの入力・外部APIレスポンスのバリデーション）
-- Firebase Cloud Messaging（Android プッシュ通知）
-- Expo Push Notifications（iOS プッシュ通知）
-- NativeWind
+- React Native / Expo / Expo Router — Flutter（Dart習得コスト）やNative（Swift/Kotlinの二重学習コスト）と比較し、もともとJS/TSの知識があったため選択。1コードベースで両OS対応でき、UIもReactライクに書けるため管理しやすい。SupabaseのJS SDKも、別言語向けラッパーを用意せずそのまま利用できる点も決め手
+- TypeScript — 型安全性により実行前にバグを検知できる。Zodのスキーマ定義から型を自動推論できるなど、下記のZod導入とも相性が良いため採用
+- Supabase（DB・認証・Realtime・Edge Functions） — DB・認証・Realtime・サーバーレス関数を1つのBaaSでまとめて使え、個人開発でも無料枠内で運用できるため採用。公式JS SDKがReact Nativeにそのまま組み込める点も決め手
+- PostgreSQL — Supabase採用に伴うデータベース。ルーム・メンバー・投稿・コメントなど多対多のリレーションが多いデータ構造のため、リレーショナルDBが適していると判断
+- Google OAuth（expo-auth-session） — 多くのユーザーが普段使っているGoogleアカウントでログインでき、新規登録のハードルを下げるため導入
+- Sign in with Apple（expo-apple-authentication） — 外部認証(Google等)を提供する場合、App Store審査ガイドライン(Guideline 4.8)によりSign in with Appleの提供が実質必須。実際にApp Review側からも指摘を受け対応した
+- Anthropic Claude API — （検討中）
+- Zod（Edge Functionの入力・外部APIレスポンスのバリデーション） — TypeScriptとの親和性が高く、スキーマ定義から型を自動生成できるため、Edge Functionが受け取る外部データ(プッシュ通知リクエスト、Claude APIレスポンス)の検証に採用
+- Firebase Cloud Messaging（Android プッシュ通知） — （検討中：Expo Pushと分けた経緯）
+- Expo Push Notifications（iOS プッシュ通知） — （検討中：Expo Pushと分けた経緯）
+- NativeWind — UIライブラリはGlueStack UIを優先しつつ、実装が難しい・詰まった箇所のフォールバックとして採用
 
 ## できること
 
