@@ -127,8 +127,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
-        tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
+        tabBarActiveTintColor: '#624221',
+        tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -136,16 +136,16 @@ export default function TabLayout() {
           borderTopWidth: 0,
           position: 'absolute',
           marginHorizontal: 16,
-          marginBottom: Platform.OS === 'android' ? 12 : bottom + 4,
+          marginBottom: Platform.OS === 'android' ? 4 : bottom - 4,
           borderRadius: 28,
           height: 60,
           paddingTop: 6,
           paddingBottom: 6,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          elevation: 6,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.18,
+          shadowRadius: 16,
+          elevation: 10,
         },
         tabBarBackground: () => null,
       }}>
@@ -154,8 +154,8 @@ export default function TabLayout() {
         options={{
           title: 'ホーム',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
-          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
+          tabBarActiveTintColor: '#624221',
+          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
         }}
       />
       <Tabs.Screen
@@ -163,8 +163,8 @@ export default function TabLayout() {
         options={{
           title: 'ポスト',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="square.and.pencil" color={color} />,
-          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
-          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
+          tabBarActiveTintColor: '#624221',
+          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
         }}
       />
       <Tabs.Screen
@@ -173,8 +173,8 @@ export default function TabLayout() {
           title: '通知',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
           tabBarBadge: unreadCount ? unreadCount : undefined,
-          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
-          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
+          tabBarActiveTintColor: '#624221',
+          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
         }}
       />
       <Tabs.Screen
@@ -182,8 +182,8 @@ export default function TabLayout() {
         options={{
           title: 'カレンダー',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
-          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
-          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
+          tabBarActiveTintColor: '#624221',
+          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
         }}
       />
       <Tabs.Screen
@@ -191,8 +191,8 @@ export default function TabLayout() {
         options={{
           title: '分析',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="wand.and.stars" color={color} />,
-          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
-          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
+          tabBarActiveTintColor: '#624221',
+          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
         }}
       />
       <Tabs.Screen
@@ -200,8 +200,8 @@ export default function TabLayout() {
         options={{
           title: '設定',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
-          tabBarActiveTintColor: 'rgba(0,0,0,0.85)',
-          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
+          tabBarActiveTintColor: '#624221',
+          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
         }}
       />
     </Tabs>
