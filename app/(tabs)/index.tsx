@@ -382,7 +382,7 @@ export default function HomeScreen() {
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
-      <View className="pt-20 flex-1 relative">
+      <View style={{ paddingTop: 80, flex: 1, paddingHorizontal: 16 }}>
         <RoomSelectorHeader
           rooms={rooms}
           currentRoomId={currentRoomId}
@@ -392,7 +392,7 @@ export default function HomeScreen() {
           setIsModalVisible={setIsModalVisible}
           onMemberPanelOpen={openMemberPanel}
         />
-        <View className="px-2" style={{ height: height * 0.65 }}>
+        <View style={{ flex: 1 }}>
           {isLoading ? (
             <View className="flex-1 justify-center items-center">
               <ActivityIndicator size="large" color="white" />
@@ -409,13 +409,7 @@ export default function HomeScreen() {
         </View>
         <Pressable
           onPress={openBottomSheet}
-          className="absolute"
-          style={{
-            bottom: tabBarHeight + 10,
-            left: 0,
-            right: 0,
-            alignItems: 'center',
-          }}>
+          style={{ alignItems: 'center', paddingTop: 10, paddingBottom: tabBarHeight + 12 }}>
           <View
             style={{
               backgroundColor: 'rgba(45, 35, 25, 0.82)',
