@@ -36,18 +36,18 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
     <View className="flex-row items-center mb-8 gap-3">
       <View className="flex-1 flex-row rounded-2xl overflow-hidden" style={cardStyle}>
         <Pressable onPress={() => setIsModalVisible(true)} className="flex-1 py-3 px-4">
-          <Text className="text-[9px] font-medium mb-0.5" style={{ color: 'rgba(0,0,0,0.4)' }}>
+          <Text className="text-[9px] font-medium mb-0.5" style={{ color: 'rgba(98,66,33,0.5)' }}>
             ルーム名
           </Text>
           <View className="flex-row items-center gap-1.5">
-            <Text numberOfLines={1} className="text-sm font-bold flex-1" style={{ color: 'rgba(0,0,0,0.8)' }}>
+            <Text numberOfLines={1} className="text-sm font-bold flex-1" style={{ color: '#624221' }}>
               {truncateName(rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name)}
             </Text>
-            <Ionicons name="chevron-down" size={14} color="rgba(0,0,0,0.5)" />
+            <Ionicons name="chevron-down" size={14} color="rgba(98,66,33,0.55)" />
           </View>
         </Pressable>
 
-        <View style={{ width: 1, backgroundColor: 'rgba(0,0,0,0.08)', marginVertical: 8 }} />
+        <View style={{ width: 1, backgroundColor: 'rgba(98,66,33,0.12)', marginVertical: 8 }} />
 
         <Pressable
           onPress={async () => {
@@ -55,14 +55,14 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
             Toast.show({ type: 'success', text1: 'コピーしました。', visibilityTime: TOAST_DURATION.short });
           }}
           className="flex-1 py-3 px-4">
-          <Text className="text-[9px] font-medium mb-0.5" style={{ color: 'rgba(0,0,0,0.4)' }}>
+          <Text className="text-[9px] font-medium mb-0.5" style={{ color: 'rgba(98,66,33,0.5)' }}>
             招待コード
           </Text>
           <View className="flex-row items-center gap-1.5">
-            <Text className="text-sm font-bold flex-1" style={{ color: 'rgba(0,0,0,0.8)' }}>
+            <Text className="text-sm font-bold flex-1" style={{ color: '#624221' }}>
               {inviteCode}
             </Text>
-            <Ionicons name="copy-outline" size={14} color="rgba(0,0,0,0.5)" />
+            <Ionicons name="copy-outline" size={14} color="rgba(98,66,33,0.55)" />
           </View>
         </Pressable>
       </View>
@@ -77,7 +77,7 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
           justifyContent: 'center',
           ...cardStyle,
         }}>
-        <Ionicons name="people-outline" size={22} color="rgba(0,0,0,0.7)" />
+        <Ionicons name="people-outline" size={22} color="rgba(98,66,33,0.7)" />
       </Pressable>
 
       <Modal visible={isModalVisible} transparent={true} animationType="slide">
