@@ -37,8 +37,8 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
       {/* Left ghost spacer — balances the right button so the pill appears centered */}
       <View style={{ width: 44 }} />
 
-      {/* Centered pill */}
-      <View style={{ flex: 1, flexDirection: 'row', borderRadius: 16, overflow: 'hidden', marginHorizontal: 8, ...cardStyle }}>
+      {/* Centered pill — flex:1 prevents overlap; minWidth ensures readability on small screens */}
+      <View style={{ flex: 1, minWidth: 160, flexDirection: 'row', borderRadius: 16, overflow: 'hidden', marginHorizontal: 8, ...cardStyle }}>
         <Pressable onPress={() => setIsModalVisible(true)} style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 14 }}>
           <Text style={{ fontSize: 9, fontWeight: '500', color: 'rgba(98,66,33,0.5)', marginBottom: 2 }}>
             ルーム名
