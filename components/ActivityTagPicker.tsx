@@ -1,8 +1,8 @@
-import { WeatherBoardColors } from '@/constants/theme';
-import { useUser } from '@/context/UserContext';
-import { supabase } from '@/lib/supabase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
 
 export type ActivityTagPickerProps = {
   setSelectedTags: (tag: ActivityTag[]) => void;
@@ -17,8 +17,15 @@ export type ActivityTag = {
   user_id: string | null;
 };
 
+const PRIMARY_BROWN = '#624221';
+const MUTED_BROWN = 'rgba(98,66,33,0.5)';
+const ACCENT_BLUE = '#6B9BDE';
+
 const fetchUserTags = async (userId: string, setter: (data: ActivityTag[]) => void) => {
-  const { data: userTagsData, error: userTagsError } = await supabase.from('activity_tags').select('id, tag_name, user_id').eq('user_id', userId);
+  const { data: userTagsData, error: userTagsError } = await supabase
+    .from('activity_tags')
+    .select('id, tag_name, user_id')
+    .eq('user_id', userId);
   if (userTagsError) {
     console.error('[ActivityTagPicker] fetchUserTags', userTagsError.message);
     Alert.alert('タグの取得に失敗しました。');
@@ -33,17 +40,18 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
   const [inputText, setInputText] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
   const userId = user?.id;
-  const selectedTagIds = useMemo(
-    () => new Set(selectedTags.map((t) => t.id)),
-    [selectedTags]
-  );
+  const selectedTagIds = useMemo(() => new Set(selectedTags.map((t) => t.id)), [selectedTags]);
 
   const handleInsertTag = async () => {
     if (isAddingTag) return;
     setIsAddingTag(true);
     try {
       if (inputText === '') return Alert.alert('入力欄が空です。');
-      const { data: userTagsData, error: userTagsError } = await supabase.from('activity_tags').insert({ tag_name: inputText, user_id: userId }).select('id, tag_name, user_id').single();
+      const { data: userTagsData, error: userTagsError } = await supabase
+        .from('activity_tags')
+        .insert({ tag_name: inputText, user_id: userId })
+        .select('id, tag_name, user_id')
+        .single();
       if (userTagsError) {
         console.error('[ActivityTagPicker] handleInsertTag', userTagsError.message);
         Alert.alert('タグの追加に失敗しました。');
@@ -60,9 +68,10 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
   const handleToggleTag = (tag: ActivityTag) => {
     const isSelected = selectedTags.some((item) => item.id === tag.id);
     if (isSelected) {
-      const filteredId = [...selectedTags].filter((item) => item.id !== tag.id);
-      setSelectedTags(filteredId);
-    } else setSelectedTags([...selectedTags, tag]);
+      setSelectedTags([...selectedTags].filter((item) => item.id !== tag.id));
+    } else {
+      setSelectedTags([...selectedTags, tag]);
+    }
   };
 
   const handleDeleteTag = async (tag: ActivityTag) => {
@@ -72,56 +81,97 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
       Alert.alert('タグの削除に失敗しました。');
       return;
     }
-    const deleteUserTag = userCreatedTags.filter((userTag) => userTag.id !== tag.id);
-    const deleteUserTagId = selectedTags.filter((item) => item.id !== tag.id);
-    setUserCreatedTags(deleteUserTag);
-    setSelectedTags(deleteUserTagId);
+    setUserCreatedTags(userCreatedTags.filter((t) => t.id !== tag.id));
+    setSelectedTags(selectedTags.filter((item) => item.id !== tag.id));
   };
 
   useEffect(() => {
     if (!userId) return;
     fetchUserTags(userId, setUserCreatedTags);
   }, [userId]);
+
   return (
     <View>
-      <View className="mb-4">
-        <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-          今日のアクティビティ
-        </Text>
-        <View className="flex-wrap flex-row gap-3">
-          {userCreatedTags.map((tag) => (
-            <View key={tag.id} className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
-              <Pressable
-                onLongPress={() => {
-                  Alert.alert('タグを削除しますか？', '', [{ text: 'キャンセル' }, { text: 'OK', onPress: () => handleDeleteTag(tag) }]);
-                }}
-                onPress={() => handleToggleTag(tag)}
-                key={tag.id}
-                style={selectedTagIds.has(tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
-                <Text className="text-sm font-bold" style={{ color: 'black' }}>
-                  #{tag.tag_name}
-                </Text>
-              </Pressable>
-            </View>
-          ))}
-
-          <View className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
-            <Pressable onPress={() => setIsInputVisible(!isInputVisible)}>
-              <Text className="text-sm font-bold" style={{ color: 'black' }}>
-                tags +
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+      {/* Section header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+        <Text style={{ fontSize: 15 }}>🌿</Text>
+        <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 14 }}>今日のアクティビティ</Text>
       </View>
 
+      {/* Tags */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 }}>
+        {userCreatedTags.map((tag) => {
+          const isSelected = selectedTagIds.has(tag.id);
+          return (
+            <Pressable
+              key={tag.id}
+              onLongPress={() => {
+                Alert.alert('タグを削除しますか？', '', [
+                  { text: 'キャンセル' },
+                  { text: 'OK', onPress: () => handleDeleteTag(tag) },
+                ]);
+              }}
+              onPress={() => handleToggleTag(tag)}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.92)',
+                borderRadius: 20,
+                paddingVertical: 8,
+                paddingHorizontal: 14,
+                opacity: isSelected ? 1 : 0.5,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 1,
+              }}>
+              <Text style={{ color: PRIMARY_BROWN, fontSize: 13, fontWeight: '600' }}>#{tag.tag_name}</Text>
+            </Pressable>
+          );
+        })}
+
+        {/* tags + button */}
+        <Pressable
+          onPress={() => setIsInputVisible(!isInputVisible)}
+          style={{
+            backgroundColor: ACCENT_BLUE,
+            borderRadius: 20,
+            paddingVertical: 8,
+            paddingHorizontal: 14,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            elevation: 1,
+          }}>
+          <Text style={{ color: 'white', fontSize: 13, fontWeight: '700' }}>tags +</Text>
+        </Pressable>
+      </View>
+
+      {/* Tag input */}
       {isInputVisible && (
-        <View className="flex-row items-center rounded-xl overflow-hidden border" style={{ borderColor: WeatherBoardColors.glassBorder, marginTop: 12, marginBottom: 16 }}>
-          <TextInput value={inputText} onChangeText={setInputText} placeholder="タグ名を入れて追加しよう" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="flex-1 px-1 h-14 bg-white text-sm" />
-          <Pressable onPress={handleInsertTag} className="px-1 flex justify-center items-center h-14" style={{ backgroundColor: WeatherBoardColors.tertiaryBackground }}>
-            <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              追加する
-            </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderRadius: 14,
+            overflow: 'hidden',
+            marginTop: 12,
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            borderWidth: 1,
+            borderColor: 'rgba(98,66,33,0.15)',
+          }}>
+          <TextInput
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="タグ名を入れて追加しよう"
+            placeholderTextColor={MUTED_BROWN}
+            autoCapitalize="none"
+            style={{ flex: 1, paddingHorizontal: 14, height: 48, color: PRIMARY_BROWN, fontSize: 13 }}
+          />
+          <Pressable
+            onPress={handleInsertTag}
+            style={{ paddingHorizontal: 16, height: 48, justifyContent: 'center', backgroundColor: ACCENT_BLUE }}>
+            <Text style={{ color: 'white', fontWeight: '700', fontSize: 13 }}>追加する</Text>
           </Pressable>
         </View>
       )}
