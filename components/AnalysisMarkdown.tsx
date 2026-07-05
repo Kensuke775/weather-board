@@ -1,10 +1,11 @@
-import { WeatherBoardColors } from '@/constants/theme';
 import React from 'react';
 import Markdown from 'react-native-marked';
 
 type AnalysisMarkdownProps = {
   content: string;
 };
+
+const PRIMARY_BROWN = '#624221';
 
 export function AnalysisMarkdown({ content }: AnalysisMarkdownProps) {
   return (
@@ -16,19 +17,19 @@ export function AnalysisMarkdown({ content }: AnalysisMarkdownProps) {
       theme={{
         colors: {
           code: 'transparent',
-          link: WeatherBoardColors.accentBackground,
-          text: WeatherBoardColors.textPrimary,
-          border: WeatherBoardColors.glassBorder,
+          link: '#6B9BDE',
+          text: PRIMARY_BROWN,
+          border: 'rgba(98,66,33,0.15)',
         },
       }}
       styles={{
-        h1: { fontSize: 14, fontWeight: 'bold' },
-        h2: { fontSize: 14, fontWeight: 'bold' },
-        h3: { fontSize: 13, fontWeight: 'bold' },
-        text: { fontSize: 12 },
+        h1: { fontSize: 14, fontWeight: 'bold', color: PRIMARY_BROWN },
+        h2: { fontSize: 14, fontWeight: 'bold', color: PRIMARY_BROWN },
+        h3: { fontSize: 13, fontWeight: 'bold', color: PRIMARY_BROWN },
+        text: { fontSize: 12, color: PRIMARY_BROWN },
         paragraph: { marginBottom: 16 },
-        li: { fontSize: 14, lineHeight: 20 },
-        hr: { borderBottomWidth: 0 },
+        li: { fontSize: 13, lineHeight: 20, color: PRIMARY_BROWN },
+        hr: { borderBottomWidth: 1, borderColor: 'rgba(98,66,33,0.12)' },
       }}
       value={content}
     />
