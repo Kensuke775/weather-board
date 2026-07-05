@@ -33,14 +33,18 @@ const cardStyle = {
 
 export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoomId, inviteCode, isModalVisible, setIsModalVisible, onMemberPanelOpen }: RoomSelectorHeaderProps) {
   return (
-    <View className="flex-row items-center mb-8 gap-3">
-      <View className="flex-1 flex-row rounded-2xl overflow-hidden" style={cardStyle}>
-        <Pressable onPress={() => setIsModalVisible(true)} className="flex-1 py-3 px-4">
-          <Text className="text-[9px] font-medium mb-0.5" style={{ color: 'rgba(98,66,33,0.5)' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 32, gap: 0 }}>
+      {/* Left ghost spacer — balances the right button so the pill appears centered */}
+      <View style={{ width: 44 }} />
+
+      {/* Centered pill */}
+      <View style={{ flex: 1, flexDirection: 'row', borderRadius: 16, overflow: 'hidden', marginHorizontal: 8, ...cardStyle }}>
+        <Pressable onPress={() => setIsModalVisible(true)} style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 14 }}>
+          <Text style={{ fontSize: 9, fontWeight: '500', color: 'rgba(98,66,33,0.5)', marginBottom: 2 }}>
             ルーム名
           </Text>
-          <View className="flex-row items-center gap-1.5">
-            <Text numberOfLines={1} className="text-sm font-bold flex-1" style={{ color: '#624221' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text numberOfLines={1} style={{ flex: 1, fontSize: 14, fontWeight: '700', color: '#624221' }}>
               {truncateName(rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name)}
             </Text>
             <Ionicons name="chevron-down" size={14} color="rgba(98,66,33,0.55)" />
@@ -54,12 +58,12 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
             if (inviteCode) await Clipboard.setStringAsync(inviteCode);
             Toast.show({ type: 'success', text1: 'コピーしました。', visibilityTime: TOAST_DURATION.short });
           }}
-          className="flex-1 py-3 px-4">
-          <Text className="text-[9px] font-medium mb-0.5" style={{ color: 'rgba(98,66,33,0.5)' }}>
+          style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 14 }}>
+          <Text style={{ fontSize: 9, fontWeight: '500', color: 'rgba(98,66,33,0.5)', marginBottom: 2 }}>
             招待コード
           </Text>
-          <View className="flex-row items-center gap-1.5">
-            <Text className="text-sm font-bold flex-1" style={{ color: '#624221' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: '#624221' }}>
               {inviteCode}
             </Text>
             <Ionicons name="copy-outline" size={14} color="rgba(98,66,33,0.55)" />
@@ -67,6 +71,7 @@ export default function RoomSelectorHeader({ rooms, currentRoomId, setCurrentRoo
         </Pressable>
       </View>
 
+      {/* Members button — right edge */}
       <Pressable
         onPress={onMemberPanelOpen}
         style={{
