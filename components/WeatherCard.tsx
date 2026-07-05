@@ -4,7 +4,6 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import CommentSection from '@/components/CommentSection';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
@@ -67,12 +66,31 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
 
   const cardContent = (
     <View style={{ padding: 14 }}>
-      <View className="flex flex-row items-center gap-1 mb-2">
-        <Text className="text-base">{avatar_emoji}</Text>
-        <Text className="text-[12px] font-semibold flex-1" style={{ color: PRIMARY_BROWN }} numberOfLines={1}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        {/* Avatar with badge backing */}
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: 'rgba(255,255,255,0.72)',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255,255,255,0.9)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+          }}>
+          <Text style={{ fontSize: 16, lineHeight: 20 }}>{avatar_emoji}</Text>
+        </View>
+        {/* Centered name */}
+        <Text style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: PRIMARY_BROWN }} numberOfLines={1}>
           {nickname}
         </Text>
-        <Text className="text-lg">{WEATHER_CONFIG[weather].emoji}</Text>
+        {/* Weather emoji */}
+        <Text style={{ fontSize: 18, width: 32, textAlign: 'right' }}>{WEATHER_CONFIG[weather].emoji}</Text>
       </View>
       <View className="mb-2">
         <Text className="text-[10px]" style={{ color: SECONDARY_BROWN, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
@@ -142,21 +160,18 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
             {Platform.OS === 'ios' ? (
               <>
                 <BlurView intensity={20} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-                {/* Right-leaning gradient overlay */}
-                <LinearGradient
-                  colors={[hexToRgba(cardColor, 0.3), hexToRgba(cardColor, 0.78)]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                />
+                {/* Stepped right-leaning gradient (no native module required) */}
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.28) }} />
+                <View style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.18) }} />
+                <View style={{ position: 'absolute', top: 0, left: '55%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.16) }} />
+                <View style={{ position: 'absolute', top: 0, left: '75%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.14) }} />
               </>
             ) : (
-              <LinearGradient
-                colors={[hexToRgba(cardColor, 0.5), cardColor]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-              />
+              <>
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.55) }} />
+                <View style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.2) }} />
+                <View style={{ position: 'absolute', top: 0, left: '60%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.15) }} />
+              </>
             )}
             {cardContent}
           </View>
