@@ -4,6 +4,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import CommentSection from '@/components/CommentSection';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
@@ -129,15 +130,33 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
             shadowOpacity: 0.1,
             shadowRadius: 8,
           }}>
-          {/* Clip wrapper */}
-          <View style={{ borderRadius: 20, overflow: 'hidden', elevation: 4 }}>
+          {/* Clip wrapper with glass border */}
+          <View
+            style={{
+              borderRadius: 20,
+              overflow: 'hidden',
+              elevation: 4,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.55)',
+            }}>
             {Platform.OS === 'ios' ? (
               <>
                 <BlurView intensity={20} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.65) }} />
+                {/* Right-leaning gradient overlay */}
+                <LinearGradient
+                  colors={[hexToRgba(cardColor, 0.3), hexToRgba(cardColor, 0.78)]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                />
               </>
             ) : (
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: cardColor }} />
+              <LinearGradient
+                colors={[hexToRgba(cardColor, 0.5), cardColor]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              />
             )}
             {cardContent}
           </View>
