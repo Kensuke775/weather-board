@@ -131,4 +131,5 @@ export type CommentSectionProps = {
   weather_log_id: string;
   to_user_id: string;
   readOnly?: boolean;
+  cardColor?: string;
 };
