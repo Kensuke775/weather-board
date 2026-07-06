@@ -27,7 +27,6 @@ export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus 
           note={item.note}
           updated_at={item.updated_at}
           weather_log_id={item.id}
-          user_id={item.user_id}
           unreadCount={unreadCounts[item.id] ?? 0}
           tags={item.tags}
           commentStatus={commentStatus}

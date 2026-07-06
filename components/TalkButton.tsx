@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 import { WeatherBoardColors } from '@/constants/theme';
@@ -8,12 +9,15 @@ import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
+const PRIMARY_BROWN = '#624221';
+
 type TalkButtonProps = {
   to_user_id: string;
   weather_log_id: string;
+  variant?: 'dark' | 'light';
 };
 
-export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonProps) {
+export default function TalkButton({ to_user_id, weather_log_id, variant = 'dark' }: TalkButtonProps) {
   const [isActiveButton, setIsActiveButton] = useState(false);
   const { currentRoomId } = useRoom();
   const { user } = useUser();
@@ -57,6 +61,29 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
       setIsSending(false);
     }
   };
+  if (variant === 'light') {
+    return (
+      <Pressable
+        onPress={handleTalk}
+        disabled={isActiveButton || isOwnPost}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          borderRadius: 18,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(98,66,33,0.12)',
+          opacity: isActiveButton ? 0.4 : 1,
+        }}>
+        <Ionicons name="chatbubble-ellipses-outline" size={16} color={PRIMARY_BROWN} />
+        <Text style={{ fontWeight: '700', color: PRIMARY_BROWN, fontSize: 13 }}>TALK</Text>
+      </Pressable>
+    );
+  }
+
   return (
     <View style={{ alignSelf: 'flex-start' }}>
       <Pressable onPress={handleTalk} disabled={isActiveButton || isOwnPost} className="mb-2" style={{ opacity: isActiveButton ? 0.4 : 1 }}>
