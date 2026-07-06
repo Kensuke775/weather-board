@@ -2,13 +2,13 @@ import { RefObject } from 'react';
 import { Text, View } from 'react-native';
 
 import { BlurView } from 'expo-blur';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { ActivityFeedItem } from '@/lib/types';
 
 type ActivityFeedSheetProps = {
-  bottomSheetRef: RefObject<BottomSheet | null>;
+  bottomSheetRef: RefObject<BottomSheetModal | null>;
   activityFeed: ActivityFeedItem[];
   tabBarHeight: number;
 };
@@ -20,12 +20,10 @@ const hasActivityFeedProfiles = (
 
 export default function ActivityFeedSheet({ bottomSheetRef, activityFeed, tabBarHeight }: ActivityFeedSheetProps) {
   return (
-    <BottomSheet
+    <BottomSheetModal
       ref={bottomSheetRef}
-      index={-1}
       snapPoints={['30%']}
       enablePanDownToClose
-      style={{ zIndex: 999 }}
       backgroundStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
       handleIndicatorStyle={{ backgroundColor: 'white' }}
       backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
@@ -48,6 +46,6 @@ export default function ActivityFeedSheet({ bottomSheetRef, activityFeed, tabBar
           )}
         />
       </BlurView>
-    </BottomSheet>
+    </BottomSheetModal>
   );
 }

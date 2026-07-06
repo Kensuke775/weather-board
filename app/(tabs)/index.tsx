@@ -13,7 +13,7 @@ import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { ActivityFeedItem, CommentsStatus, RoomMember, WeatherBoardItem } from '@/lib/types';
-import BottomSheet from '@gorhom/bottom-sheet';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 const { height } = Dimensions.get('window');
@@ -189,7 +189,7 @@ export default function HomeScreen() {
   const [roomMember, setRoomMember] = useState<RoomMember[]>([]);
   const [isMemberVisible, setIsMemberVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(-ROOM_MEMBER_PANEL_WIDTH)).current;
-  const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const tabBarHeight = useBottomTabBarHeight();
 
   useFocusEffect(
@@ -327,7 +327,7 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      bottomSheetRef?.current?.close();
+      bottomSheetRef?.current?.dismiss();
     }, []),
   );
 
@@ -356,7 +356,7 @@ export default function HomeScreen() {
   };
 
   const openBottomSheet = () => {
-    bottomSheetRef.current?.expand();
+    bottomSheetRef.current?.present();
   };
 
   const inviteCode = rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code;
