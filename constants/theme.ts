@@ -14,6 +14,14 @@ export const WeatherBoardColors = {
   glassBackgroundButton: "rgba(120,120,120)",
 };
 
+export const BrownTheme = {
+  primaryText: '#624221',
+  mutedText: 'rgba(98,66,33,0.5)',
+  buttonBackground: '#A67448',
+  cardBackground: '#FCF8F0',
+  contentBorder: '#F5EFEA',
+};
+
 export const Fonts = {
   title: "DancingScript_400Regular",
   titleFont: DancingScript_400Regular,

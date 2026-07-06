@@ -5,9 +5,7 @@ import {
   FlatList,
   ImageBackground,
   Modal,
-  Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -15,7 +13,7 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
@@ -23,7 +21,6 @@ import { Fonts } from '@/constants/theme';
 import { TOAST_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
-import useProfileSetUp from '@/hooks/useProfileSetUp';
 import useRoomCreate from '@/hooks/useRoomCreate';
 import useRoomJoin from '@/hooks/useRoomJoin';
 import { supabase } from '@/lib/supabase';
@@ -32,7 +29,7 @@ type RoomData = {
   rooms: { id: string; name: string; invite_code: string; created_by: string }[];
 };
 
-type ModalName = 'invite' | 'join' | 'create' | 'profileSetup' | 'rename' | 'account' | 'blockList' | null;
+type ModalName = 'invite' | 'join' | 'create' | 'rename' | 'account' | 'blockList' | null;
 
 type BlockedUser = {
   id: string;
@@ -41,18 +38,6 @@ type BlockedUser = {
 };
 
 type LoadingName = 'leaving' | 'loggingOut' | 'deletingAccount' | null;
-
-const AVATARS = [
-  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊',
-  '🐻', '🐼', '🐨', '🐯', '🦁', '🐮',
-  '🐷', '🐸', '🐵', '🐔', '🐧', '🐦',
-  '🦆', '🦉', '🐺', '🐴', '🦄', '🐝',
-  '🦋', '🐢', '🐬', '🦭', '🐙', '🐿️',
-  '🦔', '🍓', '🍑', '🍒', '🍰', '🧁',
-  '🍩', '🍪', '🧸', '🌸', '🌼', '🌻',
-  '🍄', '🌈', '⭐', '🌙', '☁️', '👻',
-  '🤖', '👾', '🎃',
-];
 
 const backgroundImage = require('@/assets/images/weather/settings.png');
 const PRIMARY_BROWN = '#624221';
@@ -97,6 +82,7 @@ function MenuItem({ label, description, iconName, iconBg, onPress }: MenuItemPro
 }
 
 export default function Settings() {
+  const router = useRouter();
   const { user } = useUser();
   const userId = user?.id;
   const { top } = useSafeAreaInsets();
@@ -110,7 +96,6 @@ export default function Settings() {
   const renameInputRef = useRef<TextInput>(null);
   const joinInputRef = useRef<TextInput>(null);
   const createInputRef = useRef<TextInput>(null);
-  const nicknameInputRef = useRef<TextInput>(null);
   const [fontsLoaded] = useFonts({
     DancingScript_400Regular: Fonts.titleFont,
   }) as [boolean, Error | null];
@@ -133,12 +118,6 @@ export default function Settings() {
     Toast.show({ type: 'success', text1: `${roomName}に参加しました。`, visibilityTime: TOAST_DURATION.default });
   });
 
-  const { handleSaveProfile, setNickname, setAvatar, avatar, nickname } = useProfileSetUp(async () => {
-    await fetchProfileData();
-    setActiveModal(null);
-    Toast.show({ type: 'success', text1: `プロフィールを変更しました。`, visibilityTime: TOAST_DURATION.default });
-  });
-
   const fetchInviteData = useCallback(async () => {
     const { data: roomData, error: roomError } = await supabase
       .from('room_members')
@@ -151,20 +130,6 @@ export default function Settings() {
     }
     setRoomData(roomData ?? []);
   }, [userId]);
-
-  const fetchProfileData = useCallback(async () => {
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('nickname, avatar_emoji')
-      .eq('user_id', userId);
-    if (profileError) {
-      console.error('[settings] fetchProfileData', profileError.message);
-      Alert.alert('プロフィールの取得に失敗しました。');
-      return;
-    }
-    setAvatar(profileData[0]?.avatar_emoji);
-    setNickname(profileData[0]?.nickname);
-  }, [userId, setNickname, setAvatar]);
 
   const fetchBlockedUsers = useCallback(async () => {
     const { data: blockedData, error: blockedError } = await supabase
@@ -266,8 +231,7 @@ export default function Settings() {
   useFocusEffect(
     useCallback(() => {
       fetchInviteData();
-      fetchProfileData();
-    }, [fetchProfileData, fetchInviteData]),
+    }, [fetchInviteData]),
   );
 
   if (!fontsLoaded) return null;
@@ -471,7 +435,7 @@ export default function Settings() {
           <View style={{ flex: 1, justifyContent: 'center', paddingTop: 120, paddingBottom: 80, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)' }}>
             <View onStartShouldSetResponder={() => true} style={{ gap: 12 }}>
               <Pressable
-                onPress={() => setActiveModal('profileSetup')}
+                onPress={() => { setActiveModal(null); router.push('/profile-edit'); }}
                 style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 16, flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 }}>
                 <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#A0A0A0', alignItems: 'center', justifyContent: 'center' }}>
                   <Ionicons name="person-outline" size={22} color="white" />
@@ -545,158 +509,6 @@ export default function Settings() {
         </Pressable>
       </Modal>
 
-      {/* ─── プロフィール編集 modal (full-screen) ─── */}
-      <Modal visible={activeModal === 'profileSetup'} animationType="slide" transparent={false}>
-        <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
-          {/* Header */}
-          <View
-            style={{
-              paddingTop: top + 12,
-              paddingHorizontal: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 24,
-            }}>
-            <Pressable
-              onPress={() => setActiveModal(null)}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 2,
-              }}>
-              <Ionicons name="chevron-back" size={20} color={PRIMARY_BROWN} />
-            </Pressable>
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 18 }}>プロフィール編集 🌿</Text>
-            </View>
-            <View style={{ width: 36 }} />
-          </View>
-
-          {/* White content card */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: 'white',
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-            }}>
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
-              keyboardShouldPersistTaps="handled">
-              {/* Nickname section */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <Text style={{ fontSize: 16 }}>🌿</Text>
-                <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 16 }}>ニックネームを変更できます</Text>
-              </View>
-              <Text style={{ color: MUTED_BROWN, fontSize: 11, marginBottom: 12 }}>ニックネームは6文字まででお願いします。</Text>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  borderWidth: 1,
-                  borderColor: 'rgba(98,66,33,0.15)',
-                  borderRadius: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: Platform.OS === 'ios' ? 14 : 10,
-                  marginBottom: 12,
-                }}>
-                <TextInput
-                  ref={nicknameInputRef}
-                  value={nickname}
-                  onChangeText={setNickname}
-                  maxLength={6}
-                  placeholder="ニックネームを入力してください"
-                  autoCapitalize="none"
-                  style={{ flex: 1, color: PRIMARY_BROWN, fontSize: 15 }}
-                />
-                <Text style={{ color: MUTED_BROWN, fontSize: 12 }}>{(nickname ?? '').length}/6</Text>
-              </View>
-
-              {/* Room create row */}
-              <Pressable
-                onPress={() => {
-                  setActiveModal(null);
-                  setTimeout(() => setActiveModal('create'), 400);
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                  backgroundColor: '#FFF3E4',
-                  borderRadius: 12,
-                  padding: 14,
-                  marginBottom: 28,
-                }}>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    borderWidth: 1.5,
-                    borderColor: PRIMARY_BROWN,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                  <Ionicons name="add" size={18} color={PRIMARY_BROWN} />
-                </View>
-                <Text style={{ flex: 1, color: PRIMARY_BROWN, fontWeight: '600', fontSize: 14 }}>ルームを作成する</Text>
-                <Ionicons name="chevron-forward" size={16} color={MUTED_BROWN} />
-              </Pressable>
-
-              {/* Avatar section */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <Text style={{ fontSize: 16 }}>🌿</Text>
-                <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 16 }}>アバターを選んでください</Text>
-              </View>
-
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 28 }}>
-                {AVATARS.map((item) => (
-                  <Pressable
-                    key={item}
-                    onPress={() => setAvatar(item)}
-                    style={{
-                      width: '16.666%',
-                      aspectRatio: 1,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: avatar === item ? 'rgba(98,66,33,0.1)' : 'rgba(0,0,0,0.03)',
-                      borderRadius: 10,
-                      marginBottom: 6,
-                    }}>
-                    <Text style={{ fontSize: 28 }}>{item}</Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              {/* Save button */}
-              <Pressable
-                onPress={handleSaveProfile}
-                style={{
-                  backgroundColor: PRIMARY_BROWN,
-                  borderRadius: 14,
-                  paddingVertical: 16,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}>
-                <Ionicons name="add-circle-outline" size={20} color="white" />
-                <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>保存する</Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-        </ImageBackground>
-      </Modal>
     </ImageBackground>
   );
 }
