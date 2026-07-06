@@ -21,6 +21,22 @@ const { height } = Dimensions.get('window');
 const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
 
+const fetchReactionsData = async (setter: (data: Record<string, number>) => void) => {
+  const { data: reactionsData, error: reactionsError } = await supabase.from('post_reactions').select('weather_log_id, from_user_id');
+  if (reactionsError) {
+    console.error('[index(tab)] fetchReactionsData', reactionsError.message);
+    Alert.alert('リアクションの取得に失敗しました。');
+    return;
+  }
+  const reactorSets = new Map<string, Set<string>>();
+  for (const row of reactionsData) {
+    if (!reactorSets.has(row.weather_log_id)) reactorSets.set(row.weather_log_id, new Set());
+    reactorSets.get(row.weather_log_id)!.add(row.from_user_id);
+  }
+  const countMap = Object.fromEntries(Array.from(reactorSets.entries()).map(([logId, users]) => [logId, users.size]));
+  setter(countMap);
+};
+
 const fetchNotificationsData = async (userId: string, setter: (data: Record<string, number>) => void) => {
   const { data: notificationsData, error: notificationsError } = await supabase.from('notifications').select('weather_log_id').eq('type', 'comment').eq('to_user_id', userId).eq('is_read', false);
   if (notificationsError) {
@@ -49,7 +65,8 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
   const intermediate = new Map<string, { users: Map<string, string | undefined>; count: number }>();
 
   for (const status of commentsData) {
-    const avatars = status.profiles[0]?.avatar_emoji;
+    const profile = Array.isArray(status.profiles) ? status.profiles[0] : status.profiles;
+    const avatars = profile?.avatar_emoji;
     if (!intermediate.has(status.weather_log_id)) {
       intermediate.set(status.weather_log_id, { users: new Map(), count: 0 });
     }
@@ -183,6 +200,7 @@ export default function HomeScreen() {
   const [userData, setUserData] = useState<WeatherBoardItem | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [commentStatus, setCommentStatus] = useState<CommentsStatus>({});
+  const [reactionStatus, setReactionStatus] = useState<Record<string, number>>({});
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -314,6 +332,31 @@ export default function HomeScreen() {
     };
   }, [userId]);
 
+  useEffect(() => {
+    if (!userId) return;
+    let channel: ReturnType<typeof supabase.channel>;
+    let isCancelled = false;
+    const setUp = async () => {
+      const channelName = `reaction-status-${userId}`;
+      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      if (isCancelled) return;
+      await fetchReactionsData(setReactionStatus);
+      if (isCancelled) return;
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, async () => {
+          await fetchReactionsData(setReactionStatus);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      isCancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
@@ -403,7 +446,7 @@ export default function HomeScreen() {
               </Text>
             </View>
           ) : (
-            <WeatherBoard weatherLogs={boardData} unreadCounts={unreadCounts} commentStatus={commentStatus} />
+            <WeatherBoard weatherLogs={boardData} unreadCounts={unreadCounts} commentStatus={commentStatus} reactionStatus={reactionStatus} />
           )}
         </View>
         <Pressable

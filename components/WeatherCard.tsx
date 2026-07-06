@@ -18,6 +18,7 @@ type WeatherCardProps = {
   unreadCount: number;
   tags: { id: string; name: string }[];
   commentStatus: CommentsStatus;
+  reactionCount: number;
 };
 
 const PRIMARY_BROWN = '#624221';
@@ -31,7 +32,7 @@ const hexToRgba = (hex: string, alpha: number): string => {
   return `rgba(${r},${g},${b},${alpha})`;
 };
 
-export default function WeatherCard({ nickname, avatar_emoji, weather, note, updated_at, weather_log_id, unreadCount, tags, commentStatus }: WeatherCardProps): JSX.Element {
+export default function WeatherCard({ nickname, avatar_emoji, weather, note, updated_at, weather_log_id, unreadCount, tags, commentStatus, reactionCount }: WeatherCardProps): JSX.Element {
   const router = useRouter();
   const formattedDate = new Date(updated_at).toLocaleTimeString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   const cardColor = WEATHER_CONFIG[weather].cardColor;
@@ -69,14 +70,16 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           {note}
         </Text>
       </View>
-      <View className="flex-row items-center gap-2 flex-wrap overflow-hidden mb-2" style={{ height: CARD_TEXT.tagRowHeight }}>
+      <View className="flex-row items-center gap-1.5 flex-wrap overflow-hidden mb-2" style={{ height: CARD_TEXT.tagRowHeight }}>
         {tags.map((tag) => (
-          <Text key={tag.id} numberOfLines={1} className="text-[10px]" style={{ color: MUTED_BROWN }}>
-            #{tag.name}
-          </Text>
+          <View key={tag.id} style={{ backgroundColor: hexToRgba(cardColor, 0.5), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+            <Text numberOfLines={1} className="text-[10px]" style={{ color: PRIMARY_BROWN }}>
+              #{tag.name}
+            </Text>
+          </View>
         ))}
       </View>
-      <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center justify-between mb-1">
         <View className="flex-row items-center gap-2">
           <View className="flex-row gap-1 items-center">
             <Ionicons name="chatbubble-ellipses-outline" size={12} color={MUTED_BROWN} />
@@ -84,22 +87,30 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
               {commentStatus[weather_log_id]?.count > 0 ? commentStatus[weather_log_id]?.count : 0}
             </Text>
           </View>
-          <View className="flex-row items-center gap-1">
-            {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
-              <Text key={commenter.user_id} className="text-[10px]">
-                {commenter.emoji}
+          {reactionCount > 0 && (
+            <View className="flex-row gap-1 items-center">
+              <Ionicons name="heart-outline" size={12} color={MUTED_BROWN} />
+              <Text className="text-xs font-bold" style={{ color: MUTED_BROWN }}>
+                {reactionCount}
               </Text>
-            ))}
-            {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
-              <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>
-                ...
-              </Text>
-            )}
-          </View>
+            </View>
+          )}
         </View>
         <Text className="text-[9px]" style={{ color: MUTED_BROWN }}>
           {formattedDate}
         </Text>
+      </View>
+      <View className="flex-row items-center gap-1">
+        {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
+          <Text key={commenter.user_id} className="text-[10px]">
+            {commenter.emoji}
+          </Text>
+        ))}
+        {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
+          <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>
+            ...
+          </Text>
+        )}
       </View>
     </View>
   );
