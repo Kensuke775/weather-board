@@ -210,7 +210,22 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
         <Text style={{ fontSize: 14, fontWeight: '700', color: PRIMARY_BROWN }}>
           コメント（{comments.length}件）
         </Text>
-        <Pressable onPress={handlePressSort} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+        <Pressable
+          onPress={handlePressSort}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 2,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 100,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 4,
+            elevation: 1,
+          }}>
           <Text style={{ fontSize: 12, color: MUTED_BROWN }}>{sortOrder === 'newest' ? '新しい順' : '古い順'}</Text>
           <Ionicons name="chevron-down" size={12} color={MUTED_BROWN} />
         </Pressable>
@@ -218,7 +233,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
 
       <View style={{
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.88)',
+        backgroundColor: '#FFFFFF',
         borderRadius: 20,
         overflow: 'hidden',
         shadowColor: '#000',
@@ -334,13 +349,13 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
           <View
             style={{
               flex: 1,
+              height: 48,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: 'rgba(255,255,255,0.92)',
-              borderRadius: 20,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
               paddingHorizontal: 16,
-              paddingVertical: 10,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.08,
@@ -360,10 +375,11 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
           <Pressable
             onPress={handleSendComment}
             style={{
+              height: 48,
+              justifyContent: 'center',
               backgroundColor: PRIMARY_BROWN,
-              borderRadius: 20,
+              borderRadius: 24,
               paddingHorizontal: 18,
-              paddingVertical: 12,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.1,
