@@ -7,7 +7,25 @@ import ReportBlockMenu from '@/components/ReportBlockMenu';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { CommentItem, CommentSectionProps } from '@/lib/types';
+import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType } from '@/lib/types';
+
+type CommentReactionRow = {
+  comment_id: string;
+  from_user_id: string;
+  reaction_type: ReactionType;
+};
+
+const fetchCommentReactions = async (weatherLogId: string, setter: (rows: CommentReactionRow[]) => void) => {
+  const { data, error } = await supabase
+    .from('comment_reactions')
+    .select('comment_id, from_user_id, reaction_type, comments!inner(weather_log_id)')
+    .eq('comments.weather_log_id', weatherLogId);
+  if (error) {
+    console.error('[CommentSection] fetchCommentReactions', error.message);
+    return;
+  }
+  setter(data.map(({ comment_id, from_user_id, reaction_type }) => ({ comment_id, from_user_id, reaction_type })));
+};
 
 const PRIMARY_BROWN = '#624221';
 const MUTED_BROWN = 'rgba(98,66,33,0.5)';
@@ -43,6 +61,8 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isComenting, setIsCommenting] = useState(false);
+  const [commentReactions, setCommentReactions] = useState<CommentReactionRow[]>([]);
+  const [pendingCommentReactions, setPendingCommentReactions] = useState<Set<string>>(new Set());
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -64,6 +84,53 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
       if (channel) supabase.removeChannel(channel);
     };
   }, [weather_log_id]);
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>;
+    const setUp = async () => {
+      const channelName = `comment-reactions-${weather_log_id}`;
+      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      await fetchCommentReactions(weather_log_id, setCommentReactions);
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'comment_reactions' }, async () => {
+          await fetchCommentReactions(weather_log_id, setCommentReactions);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [weather_log_id]);
+
+  const handleToggleCommentReaction = async (commentId: string, type: ReactionType) => {
+    if (!userId) return;
+    const key = `${commentId}:${type}`;
+    if (pendingCommentReactions.has(key)) return;
+    setPendingCommentReactions((prev) => new Set(prev).add(key));
+    try {
+      const myExisting = commentReactions.find((row) => row.comment_id === commentId && row.from_user_id === userId);
+      if (myExisting?.reaction_type === type) {
+        const { error } = await supabase.from('comment_reactions').delete().eq('from_user_id', userId).eq('comment_id', commentId);
+        if (error) console.error('[CommentSection] handleToggleCommentReaction(delete)', error.message);
+      } else if (myExisting) {
+        const { error } = await supabase.from('comment_reactions').update({ reaction_type: type }).eq('from_user_id', userId).eq('comment_id', commentId);
+        if (error) console.error('[CommentSection] handleToggleCommentReaction(update)', error.message);
+      } else {
+        const { error } = await supabase.from('comment_reactions').insert({ from_user_id: userId, comment_id: commentId, reaction_type: type });
+        if (error && error.code !== '23505') console.error('[CommentSection] handleToggleCommentReaction(insert)', error.message);
+      }
+      await fetchCommentReactions(weather_log_id, setCommentReactions);
+    } finally {
+      setPendingCommentReactions((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
 
   const handleSendComment = async () => {
     if (isComenting) return;
@@ -168,19 +235,45 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
                     {item.profiles.nickname}
                   </Text>
                 </View>
-                {item.user_id === userId ? (
-                  <Pressable
-                    onPress={() => {
-                      Alert.alert('確認', 'このコメントを削除しますか？\n削除すると元に戻せません。', [
-                        { text: 'キャンセル', style: 'cancel' },
-                        { text: '削除する', style: 'destructive', onPress: () => handleDeleteComment(item.id) },
-                      ]);
-                    }}>
-                    <Ionicons name="trash-outline" size={16} color={MUTED_BROWN} />
-                  </Pressable>
-                ) : (
-                  <ReportBlockMenu targetUserId={item.user_id} weatherLogId={weather_log_id} commentId={item.id} variant="compact" />
-                )}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {REACTION_TYPES.map(({ type, emoji }) => {
+                    const rowsForType = commentReactions.filter((row) => row.comment_id === item.id && row.reaction_type === type);
+                    const isSelected = rowsForType.some((row) => row.from_user_id === userId);
+                    const key = `${item.id}:${type}`;
+                    return (
+                      <Pressable
+                        key={type}
+                        onPress={() => handleToggleCommentReaction(item.id, type)}
+                        disabled={pendingCommentReactions.has(key)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 3,
+                          backgroundColor: isSelected ? 'rgba(98,66,33,0.14)' : 'rgba(98,66,33,0.06)',
+                          borderRadius: 100,
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          opacity: pendingCommentReactions.has(key) ? 0.5 : 1,
+                        }}>
+                        <Text style={{ fontSize: 11 }}>{emoji}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: PRIMARY_BROWN }}>{rowsForType.length}</Text>
+                      </Pressable>
+                    );
+                  })}
+                  {item.user_id === userId ? (
+                    <Pressable
+                      onPress={() => {
+                        Alert.alert('確認', 'このコメントを削除しますか？\n削除すると元に戻せません。', [
+                          { text: 'キャンセル', style: 'cancel' },
+                          { text: '削除する', style: 'destructive', onPress: () => handleDeleteComment(item.id) },
+                        ]);
+                      }}>
+                      <Ionicons name="trash-outline" size={16} color={MUTED_BROWN} />
+                    </Pressable>
+                  ) : (
+                    <ReportBlockMenu targetUserId={item.user_id} weatherLogId={weather_log_id} commentId={item.id} variant="compact" />
+                  )}
+                </View>
               </View>
               <Text style={{ fontSize: 13, color: 'rgba(98,66,33,0.85)', paddingLeft: 40 }}>
                 {item.body}
