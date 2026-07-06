@@ -109,7 +109,7 @@ export default function ReportBlockMenu({ targetUserId, weatherLogId, commentId,
     <>
       <Pressable onPress={handleMenuPress} disabled={isSubmitting}>
         {variant === 'compact' ? (
-          <Ionicons name="ellipsis-horizontal" size={16} style={{ color: WeatherBoardColors.textPrimary }} />
+          <Ionicons name="ellipsis-horizontal" size={16} color={PRIMARY_BROWN} />
         ) : variant === 'header' ? (
           <View
             style={{
