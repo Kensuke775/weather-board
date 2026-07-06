@@ -7,9 +7,10 @@ type WeatherBoardProps = {
   weatherLogs: WeatherBoardItem[];
   unreadCounts: Record<string, number>;
   commentStatus: CommentsStatus;
+  reactionStatus: Record<string, number>;
 };
 
-export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus }: WeatherBoardProps) {
+export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus, reactionStatus }: WeatherBoardProps) {
   return (
     <FlatList
       data={weatherLogs}
@@ -30,6 +31,7 @@ export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus 
           unreadCount={unreadCounts[item.id] ?? 0}
           tags={item.tags}
           commentStatus={commentStatus}
+          reactionCount={reactionStatus[item.id] ?? 0}
         />
       )}
     />
