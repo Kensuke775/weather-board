@@ -97,7 +97,7 @@ export default function ScreenHeader({ title, subtitle, avatarEmoji, titleEmoji,
           {subtitle && <Text style={{ color: MUTED_BROWN, fontSize: 11, marginTop: 2 }}>{subtitle}</Text>}
         </View>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>{rightContent}</View>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>{rightContent}</View>
     </View>
   );
 }

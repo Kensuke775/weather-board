@@ -63,24 +63,27 @@ export default function TalkButton({ to_user_id, weather_log_id, variant = 'dark
   };
   if (variant === 'light') {
     return (
-      <Pressable
-        onPress={handleTalk}
-        disabled={isActiveButton || isOwnPost}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6,
-          backgroundColor: 'rgba(255,255,255,0.85)',
-          borderRadius: 18,
-          paddingVertical: 8,
-          paddingHorizontal: 16,
-          borderWidth: 1,
-          borderColor: 'rgba(98,66,33,0.12)',
-          opacity: isActiveButton ? 0.4 : 1,
-        }}>
-        <Ionicons name="chatbubble-ellipses-outline" size={16} color={PRIMARY_BROWN} />
-        <Text style={{ fontWeight: '700', color: PRIMARY_BROWN, fontSize: 13 }}>TALK</Text>
-      </Pressable>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Pressable
+          onPress={handleTalk}
+          disabled={isActiveButton || isOwnPost}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            backgroundColor: 'rgba(255,255,255,0.85)',
+            borderRadius: 18,
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(98,66,33,0.12)',
+            opacity: isActiveButton ? 0.4 : 1,
+          }}>
+          <Ionicons name="chatbubble-ellipses-outline" size={16} color={PRIMARY_BROWN} />
+          <Text style={{ fontWeight: '700', color: PRIMARY_BROWN, fontSize: 13 }}>TALK</Text>
+        </Pressable>
+        <Text style={{ fontSize: 9, color: 'rgba(98,66,33,0.55)', marginTop: 2 }}>{isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}</Text>
+      </View>
     );
   }
 
