@@ -32,6 +32,7 @@ export default function RootLayout() {
                 <Stack>
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                   <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
+                  <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
                 </Stack>
                 <Toast position="bottom" bottomOffset={40} config={toastConfig} />
               </GestureHandlerRootView>
