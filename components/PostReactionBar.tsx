@@ -6,17 +6,10 @@ import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gor
 
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
+import { REACTION_TYPES, ReactionType } from '@/lib/types';
 
 const PRIMARY_BROWN = '#624221';
 const MUTED_BROWN = 'rgba(98,66,33,0.55)';
-
-const REACTION_TYPES = [
-  { type: 'like', emoji: '👍' },
-  { type: 'heart', emoji: '❤️' },
-  { type: 'cheer', emoji: '📢' },
-] as const;
-
-type ReactionType = (typeof REACTION_TYPES)[number]['type'];
 
 // バッジ・タップ判定用の軽量な行（profilesは含まない）
 type ReactionRow = {

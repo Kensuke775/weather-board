@@ -133,3 +133,11 @@ export type CommentSectionProps = {
   readOnly?: boolean;
   cardColor?: string;
 };
+
+export const REACTION_TYPES = [
+  { type: 'like', emoji: '👍' },
+  { type: 'heart', emoji: '❤️' },
+  { type: 'cheer', emoji: '📢' },
+] as const;
+
+export type ReactionType = (typeof REACTION_TYPES)[number]['type'];
