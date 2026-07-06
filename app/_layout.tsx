@@ -3,6 +3,7 @@ import 'react-native-reanimated';
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import Toast, { BaseToast, BaseToastProps } from 'react-native-toast-message';
@@ -29,12 +30,14 @@ export default function RootLayout() {
           <RoomProvider>
             <KeyboardProvider statusBarTranslucent>
               <GestureHandlerRootView style={{ flex: 1 }}>
-                <Stack>
-                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
-                  <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
-                </Stack>
-                <Toast position="bottom" bottomOffset={40} config={toastConfig} />
+                <BottomSheetModalProvider>
+                  <Stack>
+                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
+                    <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
+                  </Stack>
+                  <Toast position="bottom" bottomOffset={40} config={toastConfig} />
+                </BottomSheetModalProvider>
               </GestureHandlerRootView>
             </KeyboardProvider>
           </RoomProvider>

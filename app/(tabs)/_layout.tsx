@@ -136,7 +136,7 @@ export default function TabLayout() {
           borderTopWidth: 0,
           position: 'absolute',
           marginHorizontal: 16,
-          marginBottom: Platform.OS === 'android' ? 4 : bottom - 4,
+          marginBottom: Platform.OS === 'android' ? 4 : Math.max(bottom - 4, 0),
           borderRadius: 28,
           height: 60,
           paddingTop: 6,
