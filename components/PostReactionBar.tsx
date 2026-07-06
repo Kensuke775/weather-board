@@ -1,0 +1,213 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
+
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
+
+const PRIMARY_BROWN = '#624221';
+const MUTED_BROWN = 'rgba(98,66,33,0.55)';
+
+const REACTION_TYPES = [
+  { type: 'like', emoji: '👍' },
+  { type: 'heart', emoji: '❤️' },
+  { type: 'cheer', emoji: '📢' },
+] as const;
+
+type ReactionType = (typeof REACTION_TYPES)[number]['type'];
+
+// バッジ・タップ判定用の軽量な行（profilesは含まない）
+type ReactionRow = {
+  from_user_id: string;
+  reaction_type: ReactionType;
+};
+
+// ボトムシートの反応者一覧用（開いた時だけ取得する）
+type ReactionDetailRow = {
+  from_user_id: string;
+  reaction_type: ReactionType;
+  profiles: { nickname: string; avatar_emoji: string } | { nickname: string; avatar_emoji: string }[];
+};
+
+type PostReactionBarProps = {
+  weatherLogId: string;
+};
+
+const fetchReactions = async (weatherLogId: string, setter: (rows: ReactionRow[]) => void) => {
+  const { data, error } = await supabase.from('post_reactions').select('from_user_id, reaction_type').eq('weather_log_id', weatherLogId);
+  if (error) {
+    console.error('[PostReactionBar] fetchReactions', error.message);
+    return;
+  }
+  setter(data);
+};
+
+const fetchReactionDetails = async (weatherLogId: string, setter: (rows: ReactionDetailRow[]) => void, loadingSetter: (loading: boolean) => void) => {
+  loadingSetter(true);
+  const { data, error } = await supabase.from('post_reactions').select('from_user_id, reaction_type, profiles(nickname, avatar_emoji)').eq('weather_log_id', weatherLogId);
+  if (error) {
+    console.error('[PostReactionBar] fetchReactionDetails', error.message);
+    loadingSetter(false);
+    return;
+  }
+  setter(data);
+  loadingSetter(false);
+};
+
+export default function PostReactionBar({ weatherLogId }: PostReactionBarProps) {
+  const { user } = useUser();
+  const userId = user?.id;
+  const [reactions, setReactions] = useState<ReactionRow[]>([]);
+  const [pendingTypes, setPendingTypes] = useState<Set<ReactionType>>(new Set());
+  const [reactionDetails, setReactionDetails] = useState<ReactionDetailRow[]>([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>;
+    const setUp = async () => {
+      const channelName = `post-reactions-${weatherLogId}`;
+      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      await fetchReactions(weatherLogId, setReactions);
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, async () => {
+          await fetchReactions(weatherLogId, setReactions);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [weatherLogId]);
+
+  const summaries = useMemo(
+    () =>
+      REACTION_TYPES.map(({ type, emoji }) => {
+        const rowsForType = reactions.filter((row) => row.reaction_type === type);
+        return {
+          type,
+          emoji,
+          count: rowsForType.length,
+          reactedByMe: rowsForType.some((row) => row.from_user_id === userId),
+        };
+      }),
+    [reactions, userId],
+  );
+
+  const totalReactorCount = useMemo(() => new Set(reactions.map((row) => row.from_user_id)).size, [reactions]);
+
+  const reactorListData = useMemo(
+    () => REACTION_TYPES.flatMap(({ type, emoji }) => reactionDetails.filter((row) => row.reaction_type === type).map((row) => ({ ...row, emoji }))),
+    [reactionDetails],
+  );
+
+  const handleToggleReaction = async (type: ReactionType, reactedByMe: boolean) => {
+    if (!userId || pendingTypes.has(type)) return;
+    setPendingTypes((prev) => new Set(prev).add(type));
+    try {
+      if (reactedByMe) {
+        const { error } = await supabase.from('post_reactions').delete().eq('from_user_id', userId).eq('weather_log_id', weatherLogId).eq('reaction_type', type);
+        if (error) console.error('[PostReactionBar] handleToggleReaction(delete)', error.message);
+      } else {
+        const { error } = await supabase.from('post_reactions').insert({ from_user_id: userId, weather_log_id: weatherLogId, reaction_type: type });
+        if (error && error.code !== '23505') console.error('[PostReactionBar] handleToggleReaction(insert)', error.message);
+      }
+      await fetchReactions(weatherLogId, setReactions);
+    } finally {
+      setPendingTypes((prev) => {
+        const next = new Set(prev);
+        next.delete(type);
+        return next;
+      });
+    }
+  };
+
+  const handleOpenReactorList = () => {
+    bottomSheetRef.current?.present();
+    fetchReactionDetails(weatherLogId, setReactionDetails, setIsLoadingDetails);
+  };
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+      }}>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {summaries.map(({ type, emoji, count, reactedByMe }) => (
+          <Pressable
+            key={type}
+            onPress={() => handleToggleReaction(type, reactedByMe)}
+            disabled={pendingTypes.has(type)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              backgroundColor: reactedByMe ? 'rgba(98,66,33,0.14)' : 'rgba(98,66,33,0.06)',
+              borderRadius: 100,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              opacity: pendingTypes.has(type) ? 0.5 : 1,
+            }}>
+            <Text style={{ fontSize: 14 }}>{emoji}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: PRIMARY_BROWN }}>{count}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {totalReactorCount > 0 && (
+        <Pressable onPress={handleOpenReactorList} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+          <Text style={{ fontSize: 12, color: MUTED_BROWN }}>{totalReactorCount}人がリアクション</Text>
+          <Ionicons name="chevron-forward" size={14} color={MUTED_BROWN} />
+        </Pressable>
+      )}
+
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        snapPoints={['50%']}
+        enablePanDownToClose
+        backgroundStyle={{ backgroundColor: '#FCF8F0' }}
+        handleIndicatorStyle={{ backgroundColor: MUTED_BROWN }}
+        backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
+        {isLoadingDetails ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={PRIMARY_BROWN} />
+          </View>
+        ) : (
+          <BottomSheetFlatList
+            data={reactorListData}
+            keyExtractor={(item, index) => `${item.from_user_id}-${item.reaction_type}-${index}`}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(98,66,33,0.08)' }} />}
+            renderItem={({ item }) => {
+              const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+              return (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 20 }}>{profile.avatar_emoji}</Text>
+                  <Text style={{ flex: 1, fontSize: 14, color: PRIMARY_BROWN, fontWeight: '600' }}>{profile.nickname}</Text>
+                  <Text style={{ fontSize: 16 }}>{item.emoji}</Text>
+                </View>
+              );
+            }}
+          />
+        )}
+      </BottomSheetModal>
+    </View>
+  );
+}
