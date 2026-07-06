@@ -35,6 +35,7 @@ export default function RootLayout() {
                     <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                     <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
                     <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
+                    <Stack.Screen name="weather-log/[weather_log_id]" options={{ headerShown: false }} />
                   </Stack>
                   <Toast position="bottom" bottomOffset={40} config={toastConfig} />
                 </BottomSheetModalProvider>

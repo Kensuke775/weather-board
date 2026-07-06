@@ -8,12 +8,14 @@ import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
+const PRIMARY_BROWN = '#624221';
+
 export type ReportBlockMenuProps = {
   targetUserId: string;
   weatherLogId: string;
   commentId?: string;
   onBlocked?: () => void;
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'header';
 };
 
 const REPORT_REASONS = ['不適切な投稿内容', '嫌がらせ・誹謗中傷', 'その他'] as const;
@@ -108,6 +110,20 @@ export default function ReportBlockMenu({ targetUserId, weatherLogId, commentId,
       <Pressable onPress={handleMenuPress} disabled={isSubmitting}>
         {variant === 'compact' ? (
           <Ionicons name="ellipsis-horizontal" size={16} style={{ color: WeatherBoardColors.textPrimary }} />
+        ) : variant === 'header' ? (
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: 'rgba(255,255,255,0.85)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(98,66,33,0.12)',
+            }}>
+            <Ionicons name="ellipsis-horizontal" size={18} color={PRIMARY_BROWN} />
+          </View>
         ) : (
           <BlurView intensity={40} tint="dark" style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
             <Ionicons name="ellipsis-horizontal" size={20} style={{ color: WeatherBoardColors.textPrimary }} />

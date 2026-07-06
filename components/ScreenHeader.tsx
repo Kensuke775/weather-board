@@ -11,11 +11,13 @@ const CREAM = '#FCF8F0';
 type ScreenHeaderProps = {
   title: string;
   subtitle?: string;
+  avatarEmoji?: string;
+  titleEmoji?: string;
   onBack: () => void;
   rightContent?: ReactNode;
 };
 
-export default function ScreenHeader({ title, subtitle, onBack, rightContent }: ScreenHeaderProps) {
+export default function ScreenHeader({ title, subtitle, avatarEmoji, titleEmoji, onBack, rightContent }: ScreenHeaderProps) {
   const { top } = useSafeAreaInsets();
 
   const backButton = (
@@ -70,10 +72,28 @@ export default function ScreenHeader({ title, subtitle, onBack, rightContent }: 
       }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
         {backButton}
+        {avatarEmoji && (
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: 'rgba(255,255,255,0.85)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(98,66,33,0.12)',
+            }}>
+            <Text style={{ fontSize: 16 }}>{avatarEmoji}</Text>
+          </View>
+        )}
         <View style={{ flexShrink: 1 }}>
-          <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 17 }} numberOfLines={1}>
-            {title}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 17 }} numberOfLines={1}>
+              {title}
+            </Text>
+            {titleEmoji && <Text style={{ fontSize: 15 }}>{titleEmoji}</Text>}
+          </View>
           {subtitle && <Text style={{ color: MUTED_BROWN, fontSize: 11, marginTop: 2 }}>{subtitle}</Text>}
         </View>
       </View>
