@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -27,9 +27,11 @@ export default function AuthLogin() {
   const [isLastCharVisible, setIsLastCharVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
+    setErrorMessage(null);
     if (text.length > 0) {
       setIsLastCharVisible(true);
       if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -101,23 +103,24 @@ export default function AuthLogin() {
 
   const handleLogin = async () => {
     if (isSubmitting) return;
+    setErrorMessage(null);
     setIsSubmitting('password');
     try {
       if (email.length === 0) {
-        Alert.alert('メールアドレスが空です。');
+        setErrorMessage('メールアドレスを入力してください。');
         return;
       }
       if (password.length === 0) {
-        Alert.alert('パスワードが空です。');
+        setErrorMessage('パスワードを入力してください。');
         return;
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         console.error('[login] handleLogin', error.message);
         if (error.message === 'Network request failed') {
-          Alert.alert('通信エラーが発生しました。ネットワークを確認してください。');
+          setErrorMessage('通信エラーが発生しました。ネットワークを確認してください。');
         } else {
-          Alert.alert('メールアドレスまたはパスワードが正しくありません。');
+          setErrorMessage('メールアドレスまたはパスワードが正しくありません。');
         }
         return;
       }
@@ -170,7 +173,7 @@ export default function AuthLogin() {
                 </View>
                 <TextInput
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(text) => { setEmail(text); setErrorMessage(null); }}
                   placeholder="example@email.com"
                   placeholderTextColor={BrownTheme.mutedText}
                   textContentType="emailAddress"
@@ -224,9 +227,15 @@ export default function AuthLogin() {
                   </Pressable>
                 </View>
               </View>
-              <Text style={{ fontSize: 11, color: BrownTheme.mutedText, marginBottom: 24 }}>
+              <Text style={{ fontSize: 11, color: BrownTheme.mutedText, marginBottom: 12 }}>
                 ※6文字以上で設定してください
               </Text>
+
+              {errorMessage && (
+                <Text style={{ fontSize: 13, color: '#C0392B', marginBottom: 12 }}>
+                  {errorMessage}
+                </Text>
+              )}
 
               {/* ログインボタン */}
               <Pressable onPress={handleLogin} disabled={isSubmitting !== null} style={{ marginBottom: 20, opacity: isSubmitting !== null ? 0.7 : 1 }}>
