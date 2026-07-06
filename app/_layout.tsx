@@ -1,7 +1,9 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import 'react-native-reanimated';
 
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import * as Linking from 'expo-linking';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -13,6 +15,7 @@ import { RoomProvider } from '@/context/RoomContext';
 import { UserProvider } from '@/context/UserContext';
 import '@/global.css';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { supabase } from '@/lib/supabase';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -20,6 +23,26 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    const handlePasswordRecoveryUrl = async (url: string) => {
+      const hash = url.split('#')[1];
+      if (!hash) return;
+      const params = new URLSearchParams(hash);
+      if (params.get('type') !== 'recovery') return;
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (!accessToken || !refreshToken) return;
+      await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      router.replace('/(auth)/reset-password');
+    };
+
+    Linking.getInitialURL().then((url) => { if (url) handlePasswordRecoveryUrl(url); });
+    const subscription = Linking.addEventListener('url', ({ url }) => handlePasswordRecoveryUrl(url));
+    return () => subscription.remove();
+  }, []);
+
   const toastConfig = {
     success: (props: BaseToastProps) => <BaseToast {...props} style={{ width: '90%', marginHorizontal: '5%' }} />,
   };
@@ -36,6 +59,7 @@ export default function RootLayout() {
                     <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
                     <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
                     <Stack.Screen name="weather-log/[weather_log_id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
                   </Stack>
                   <Toast position="bottom" bottomOffset={40} config={toastConfig} />
                 </BottomSheetModalProvider>

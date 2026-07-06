@@ -28,6 +28,21 @@ export default function AuthLogin() {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  const handleForgotPassword = async () => {
+    if (email.length === 0) {
+      setErrorMessage('メールアドレスを入力してからタップしてください。');
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) {
+      console.error('[login] handleForgotPassword', error.message);
+      setErrorMessage('リセットメールの送信に失敗しました。');
+      return;
+    }
+    setResetMessage('パスワードリセットのメールを送信しました。メールをご確認ください。');
+  };
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -227,9 +242,18 @@ export default function AuthLogin() {
                   </Pressable>
                 </View>
               </View>
-              <Text style={{ fontSize: 11, color: BrownTheme.mutedText, marginBottom: 12 }}>
-                ※6文字以上で設定してください
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, color: BrownTheme.mutedText }}>※6文字以上で設定してください</Text>
+                <Pressable onPress={handleForgotPassword} hitSlop={8}>
+                  <Text style={{ fontSize: 12, color: BrownTheme.buttonBackground, textDecorationLine: 'underline' }}>
+                    パスワードをお忘れですか？
+                  </Text>
+                </Pressable>
+              </View>
+
+              {resetMessage && (
+                <Text style={{ fontSize: 13, color: '#27AE60', marginBottom: 12 }}>{resetMessage}</Text>
+              )}
 
               {errorMessage && (
                 <Text style={{ fontSize: 13, color: '#C0392B', marginBottom: 12 }}>
