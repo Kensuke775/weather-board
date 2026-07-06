@@ -8,7 +8,7 @@ import GlassButton from '@/components/GlassButton';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
-const backgroundImage = require('@/assets/images/weather/signup.png');
+const backgroundImage = require('@/assets/images/weather/login.png');
 
 export default function AuthSignUp() {
   const router = useRouter();
