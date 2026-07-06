@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import CommentSection from '@/components/CommentSection';
+import PostReactionBar from '@/components/PostReactionBar';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
 import ScreenHeader from '@/components/ScreenHeader';
 import TalkButton from '@/components/TalkButton';
@@ -221,6 +222,8 @@ export default function WeatherLogDetailScreen() {
             </View>
           )}
         </View>
+
+        <PostReactionBar weatherLogId={detail.id} />
 
         <CommentSection to_user_id={detail.user_id} weather_log_id={detail.id} cardColor={cardColor} />
       </View>
