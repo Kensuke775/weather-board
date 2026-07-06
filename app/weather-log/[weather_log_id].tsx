@@ -19,9 +19,11 @@ const CREAM = '#FCF8F0';
 type WeatherLogDetail = {
   id: string;
   user_id: string;
+  room_id: string;
   weather: WeatherType;
   note: string | null;
   updated_at: string;
+  logged_date: string;
   nickname: string;
   avatar_emoji: string;
   tags: { id: string; name: string }[];
@@ -30,7 +32,7 @@ type WeatherLogDetail = {
 const fetchWeatherLogDetail = async (weatherLogId: string, setter: (data: WeatherLogDetail) => void, loadingSetter: (loading: boolean) => void) => {
   const { data, error } = await supabase
     .from('weather_logs')
-    .select('id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
+    .select('id, user_id, room_id, weather, note, updated_at, logged_date, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
     .eq('id', weatherLogId)
     .single();
   if (error) {
@@ -48,14 +50,36 @@ const fetchWeatherLogDetail = async (weatherLogId: string, setter: (data: Weathe
   setter({
     id: data.id,
     user_id: data.user_id,
+    room_id: data.room_id,
     weather: data.weather,
     note: data.note,
     updated_at: data.updated_at,
+    logged_date: data.logged_date,
     nickname: profile.nickname,
     avatar_emoji: profile.avatar_emoji,
     tags,
   });
   loadingSetter(false);
+};
+
+const countConsecutiveDays = (loggedDates: string[], startDate: string): number => {
+  const dateSet = new Set(loggedDates);
+  let streak = 0;
+  const cursor = new Date(`${startDate}T00:00:00Z`);
+  while (dateSet.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
+};
+
+const fetchStreakCount = async (userId: string, roomId: string, loggedDate: string, setter: (count: number) => void) => {
+  const { data, error } = await supabase.from('weather_logs').select('logged_date').eq('user_id', userId).eq('room_id', roomId).lte('logged_date', loggedDate);
+  if (error) {
+    console.error('[weather-log/[id]] fetchStreakCount', error.message);
+    return;
+  }
+  setter(countConsecutiveDays(data.map((row) => row.logged_date), loggedDate));
 };
 
 const markAsRead = async (userId: string, weatherLogId: string) => {
@@ -82,6 +106,7 @@ export default function WeatherLogDetailScreen() {
   const userId = user?.id;
   const [detail, setDetail] = useState<WeatherLogDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [streakCount, setStreakCount] = useState<number | null>(null);
 
   const loadDetail = useCallback(async () => {
     await fetchWeatherLogDetail(weather_log_id, setDetail, setIsLoading);
@@ -90,6 +115,11 @@ export default function WeatherLogDetailScreen() {
   useEffect(() => {
     loadDetail();
   }, [loadDetail]);
+
+  useEffect(() => {
+    if (!detail) return;
+    fetchStreakCount(detail.user_id, detail.room_id, detail.logged_date, setStreakCount);
+  }, [detail]);
 
   useEffect(() => {
     if (!userId || !weather_log_id) return;
@@ -128,6 +158,25 @@ export default function WeatherLogDetailScreen() {
       />
 
       <View style={{ flex: 1, padding: 20 }}>
+        {streakCount !== null && streakCount > 0 && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              borderRadius: 100,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              marginBottom: 12,
+              gap: 6,
+            }}>
+            <Text style={{ fontSize: 14 }}>🔥</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: PRIMARY_BROWN }}>連続投稿日数</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: PRIMARY_BROWN }}>{streakCount}日</Text>
+            <Ionicons name="chevron-forward" size={14} color={MUTED_BROWN} />
+          </View>
+        )}
         <View
           style={{
             backgroundColor: 'rgba(255,255,255,0.9)',
