@@ -11,7 +11,6 @@ type ActivityFeedSheetProps = {
   bottomSheetRef: RefObject<BottomSheet | null>;
   activityFeed: ActivityFeedItem[];
   tabBarHeight: number;
-  onSheetChange?: (index: number) => void;
 };
 
 const hasActivityFeedProfiles = (
@@ -19,14 +18,14 @@ const hasActivityFeedProfiles = (
 ): item is ActivityFeedItem & { from: NonNullable<ActivityFeedItem['from']>; to: NonNullable<ActivityFeedItem['to']> } =>
   item.from !== null && item.to !== null;
 
-export default function ActivityFeedSheet({ bottomSheetRef, activityFeed, tabBarHeight, onSheetChange }: ActivityFeedSheetProps) {
+export default function ActivityFeedSheet({ bottomSheetRef, activityFeed, tabBarHeight }: ActivityFeedSheetProps) {
   return (
     <BottomSheet
       ref={bottomSheetRef}
       index={-1}
       snapPoints={['30%']}
       enablePanDownToClose
-      onChange={onSheetChange}
+      style={{ zIndex: 999 }}
       backgroundStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
       handleIndicatorStyle={{ backgroundColor: 'white' }}
       backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>

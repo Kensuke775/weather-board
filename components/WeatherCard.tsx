@@ -119,7 +119,9 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
               </Text>
             ))}
             {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
-              <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>...</Text>
+              <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>
+                ...
+              </Text>
             )}
           </View>
         </View>
@@ -188,7 +190,19 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           <BlurView intensity={BLUR_INTENSITY} tint="dark" className="flex-1 p-5" style={{ backgroundColor: Platform.OS === 'ios' ? WEATHER_CONFIG[weather].color : WEATHER_CONFIG[weather].darkColor }}>
             <View className="flex-row justify-between mb-5 mt-20">
               <Pressable onPress={() => setIsModalVisible(false)}>
-                <BlurView intensity={BLUR_INTENSITY} tint="dark" style={{ width: AVATAR_BUTTON.size, height: AVATAR_BUTTON.size, borderRadius: AVATAR_BUTTON.borderRadius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+                <BlurView
+                  intensity={BLUR_INTENSITY}
+                  tint="dark"
+                  style={{
+                    width: AVATAR_BUTTON.size,
+                    height: AVATAR_BUTTON.size,
+                    borderRadius: AVATAR_BUTTON.borderRadius,
+                    overflow: 'hidden',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: WeatherBoardColors.glassBorder,
+                  }}>
                   <Ionicons name="close" size={20} style={{ color: WeatherBoardColors.textPrimary }} />
                 </BlurView>
               </Pressable>
@@ -201,7 +215,19 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
                         { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(weather_log_id, () => setIsModalVisible(false)) },
                       ]);
                     }}>
-                    <BlurView intensity={BLUR_INTENSITY} tint="dark" style={{ width: AVATAR_BUTTON.size, height: AVATAR_BUTTON.size, borderRadius: AVATAR_BUTTON.borderRadius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
+                    <BlurView
+                      intensity={BLUR_INTENSITY}
+                      tint="dark"
+                      style={{
+                        width: AVATAR_BUTTON.size,
+                        height: AVATAR_BUTTON.size,
+                        borderRadius: AVATAR_BUTTON.borderRadius,
+                        overflow: 'hidden',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderWidth: 1,
+                        borderColor: WeatherBoardColors.glassBorder,
+                      }}>
                       <Ionicons name="trash-outline" size={18} style={{ color: WeatherBoardColors.textPrimary }} />
                     </BlurView>
                   </Pressable>

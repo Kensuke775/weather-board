@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Platform, Pressable, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import ActivityFeedSheet from '@/components/ActivityFeedSheet';
 import RoomMemberPanel from '@/components/RoomMemberPanel';
@@ -192,8 +191,6 @@ export default function HomeScreen() {
   const slideAnim = useRef(new Animated.Value(-ROOM_MEMBER_PANEL_WIDTH)).current;
   const bottomSheetRef = useRef<BottomSheet>(null);
   const tabBarHeight = useBottomTabBarHeight();
-  const navigation = useNavigation();
-  const { bottom } = useSafeAreaInsets();
 
   useFocusEffect(
     useCallback(() => {
@@ -445,28 +442,6 @@ export default function HomeScreen() {
       />
       <ActivityFeedSheet
         bottomSheetRef={bottomSheetRef}
-        onSheetChange={(index) => {
-          navigation.setOptions({
-            tabBarStyle: index >= 0
-              ? { display: 'none' }
-              : {
-                  backgroundColor: 'white',
-                  borderTopWidth: 0,
-                  position: 'absolute',
-                  marginHorizontal: 16,
-                  marginBottom: Platform.OS === 'android' ? 4 : bottom - 4,
-                  borderRadius: 28,
-                  height: 60,
-                  paddingTop: 6,
-                  paddingBottom: 6,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 6 },
-                  shadowOpacity: 0.18,
-                  shadowRadius: 16,
-                  elevation: 10,
-                },
-          });
-        }}
         activityFeed={activityFeed}
         tabBarHeight={tabBarHeight}
       />
