@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 
+import { AuthHeader } from '@/components/AuthHeader';
 import { BrownTheme, Fonts } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
@@ -201,8 +202,10 @@ export default function AuthLogin() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
           <ScrollView
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 48 }}
+            contentContainerStyle={{ paddingBottom: 48 }}
             keyboardShouldPersistTaps="handled">
+
+            <AuthHeader title="Log In" />
 
             {/* カード */}
             <View style={{
@@ -217,17 +220,6 @@ export default function AuthLogin() {
               shadowRadius: 20,
               elevation: 10,
             }}>
-
-              {/* ヘッダー */}
-              <View style={{ alignItems: 'center', marginBottom: 24 }}>
-                <Ionicons name="leaf-outline" size={22} color={BrownTheme.primaryText} style={{ marginBottom: 4 }} />
-                <Text style={{ fontFamily: 'DancingScript_400Regular', fontSize: 44, color: BrownTheme.primaryText, lineHeight: 52 }}>
-                  Log In
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', width: '55%', marginTop: 6 }}>
-                  <View style={{ flex: 1, height: 1, backgroundColor: BrownTheme.contentBorder }} />
-                </View>
-              </View>
 
               {/* メールアドレス */}
               <View style={{ marginBottom: 16 }}>
