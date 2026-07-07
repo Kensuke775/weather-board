@@ -1,67 +1,29 @@
 import { useState } from 'react';
-import { Alert, FlatList, ImageBackground, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-import GlassButton from '@/components/GlassButton';
-import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { AuthHeader } from '@/components/AuthHeader';
+import { AvatarItem } from '@/components/AvatarItem';
+import { BrownTheme, Fonts } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
-const backgroundImage = require('@/assets/images/weather/signup.png');
+const backgroundImage = require('@/assets/images/weather/login.png');
+
 const AVATARS = [
   // 動物
-  '🐶',
-  '🐱',
-  '🐭',
-  '🐹',
-  '🐰',
-  '🦊',
-  '🐻',
-  '🐼',
-  '🐨',
-  '🐯',
-  '🦁',
-  '🐮',
-  '🐷',
-  '🐸',
-  '🐵',
-  '🐔',
-  '🐧',
-  '🐦',
-  '🦆',
-  '🦉',
-  '🐺',
-  '🐴',
-  '🦄',
-  '🐝',
-  '🦋',
-  '🐢',
-  '🐬',
-  '🦭',
-  '🐿️',
-  '🦔',
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
+  '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉',
+  '🐺', '🐴', '🦄', '🐝', '🦋', '🐢', '🐬', '🦭', '🐿️', '🦔',
   // 食べ物・かわいい系
-  '🍓',
-  '🍰',
-  '🧁',
-  '🍩',
-  '🍪',
-  '🧸',
+  '🍓', '🍰', '🧁', '🍩', '🍪', '🧸',
   // 自然・植物
-  '🌸',
-  '🌼',
-  '🌻',
-  '🍄',
-  '🌈',
-  '⭐',
-  '🌙',
+  '🌸', '🌼', '🌻', '🍄', '🌈', '⭐', '🌙',
   // キャラ系
-  '👻',
-  '🤖',
-  '👾',
-  '🎃',
+  '👻', '🤖', '👾', '🎃',
 ];
 
 export default function ProfileSetUp() {
@@ -73,33 +35,35 @@ export default function ProfileSetUp() {
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const userId = user?.id;
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSaveProfile = async () => {
     if (isSubmitting) return;
+    setErrorMessage(null);
     setIsSubmitting(true);
-
     try {
-      if (!userId) {
-        Alert.alert('ユーザーが取得できませんでした。');
+      if (!user?.id) {
+        setErrorMessage('ユーザー情報が取得できませんでした。');
         return;
       }
-      if (nickname === '') {
-        Alert.alert('ニックネームの入力欄が空になっています。');
-        return;
-      }
-      if (avatar === '') {
-        Alert.alert('アバターを選んでください。');
+      if (nickname.trim().length === 0) {
+        setErrorMessage('ニックネームを入力してください。');
         return;
       }
       if (nickname.length > 6) {
-        Alert.alert('ニックネームは6文字以内で入力してください。');
+        setErrorMessage('ニックネームは6文字以内で入力してください。');
         return;
       }
-      const { error } = await supabase.from('profiles').upsert({ user_id: userId, nickname, avatar_emoji: avatar }, { onConflict: 'user_id' });
+      if (avatar === '') {
+        setErrorMessage('アバターを選んでください。');
+        return;
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ user_id: user.id, nickname: nickname.trim(), avatar_emoji: avatar }, { onConflict: 'user_id' });
       if (error) {
         console.error('[profile-setup] handleSaveProfile', error.message);
-        Alert.alert('プロフィール作成に失敗しました。');
+        setErrorMessage('プロフィールの保存に失敗しました。');
         return;
       }
       router.replace('/(auth)/room-setup');
@@ -111,53 +75,93 @@ export default function ProfileSetUp() {
   if (!fontsLoaded) return null;
 
   return (
-    <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
-      <ImageBackground source={backgroundImage} className="flex-1 px-6">
-        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }} />
-        <View style={{ flexGrow: 1, gap: 40, paddingVertical: 40 }}>
-          <View className="justify-center flex-1">
-            <Text className="text-4xl text-center mb-10" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-              Profile SetUp
-            </Text>
+    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+          <Pressable onPress={Keyboard.dismiss}>
 
-            <View className="mb-6">
-              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                ニックネームを入力してください。
-              </Text>
-              <Text className="mb-2 text-xs" style={{ color: WeatherBoardColors.textMuted }}>
-                ニックネームは6文字まででお願いします。
-              </Text>
-              <TextInput value={nickname} onChangeText={setNickname} maxLength={6} placeholder="テキストを入力してください。" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="bg-white py-4 px-2 rounded-xl" />
-            </View>
+            <AuthHeader title="はじめまして" subtitle="プロフィールを設定しましょう" />
 
-            <View className="mb-4">
-              <Text className="mb-2 text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                アバターを選んでください。
-              </Text>
+            {/* カード */}
+            <View style={{
+              marginHorizontal: 24,
+              backgroundColor: BrownTheme.cardBackground,
+              borderRadius: 24,
+              paddingHorizontal: 28,
+              paddingVertical: 32,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.12,
+              shadowRadius: 20,
+              elevation: 10,
+            }}>
 
-              <View className="relative overflow-hidden" style={{ borderRadius: 16, height: 280, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
-                <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0)' }} />
-                <FlatList
-                  data={AVATARS}
-                  keyExtractor={(item) => item}
-                  numColumns={6}
-                  nestedScrollEnabled
-                  columnWrapperStyle={{ justifyContent: 'center', gap: 8 }}
-                  contentContainerStyle={{ gap: 8, padding: 8 }}
-                  renderItem={({ item }) => (
-                    <Pressable onPress={() => setAvatar(item)} style={{ opacity: avatar === item ? 1 : 0.6, flex: 1, alignItems: 'center' }}>
-                      <Text style={{ fontSize: 32 }}>{item}</Text>
-                    </Pressable>
-                  )}
+              {/* ♡ デコレーション */}
+              <Text style={{ textAlign: 'center', color: BrownTheme.mutedText, fontSize: 16, marginBottom: 24 }}>♡</Text>
+
+              {/* ニックネーム */}
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <Ionicons name="person-outline" size={15} color={BrownTheme.primaryText} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>名前を決めてください</Text>
+                </View>
+                <TextInput
+                  value={nickname}
+                  onChangeText={(text) => { setNickname(text); setErrorMessage(null); }}
+                  placeholder="ニックネームを入力"
+                  placeholderTextColor={BrownTheme.mutedText}
+                  autoCapitalize="none"
+                  maxLength={6}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 12,
+                    paddingVertical: 13,
+                    paddingHorizontal: 14,
+                    fontSize: 14,
+                    color: BrownTheme.primaryText,
+                    marginBottom: 6,
+                  }}
                 />
+                <Text style={{ fontSize: 11, color: BrownTheme.mutedText }}>※6文字以内で入力してください</Text>
               </View>
+
+              {/* アバター */}
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+                  <Ionicons name="happy-outline" size={15} color={BrownTheme.primaryText} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>アバターを選んでください</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingVertical: 8 }}>
+                  {AVATARS.map((emoji) => (
+                    <AvatarItem
+                      key={emoji}
+                      emoji={emoji}
+                      isSelected={avatar === emoji}
+                      onPress={() => { setAvatar(emoji); setErrorMessage(null); }}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+
+              {errorMessage && (
+                <Text style={{ fontSize: 13, color: '#C0392B', marginBottom: 12 }}>{errorMessage}</Text>
+              )}
+
+              {/* 次へボタン */}
+              <Pressable onPress={handleSaveProfile} disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.7 : 1 }}>
+                <View style={{ backgroundColor: BrownTheme.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="arrow-forward-outline" size={20} color="white" style={{ marginLeft: 16 }} />
+                  <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>次へ</Text>
+                </View>
+              </Pressable>
+
             </View>
-            <View className="flex gap-4">
-              <GlassButton onPress={handleSaveProfile} buttonText="保存する" buttonIcon="checkmark-outline" backgroundColor={WeatherBoardColors.accentBackground} />
-            </View>
-          </View>
-        </View>
-      </ImageBackground>
-    </Pressable>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
