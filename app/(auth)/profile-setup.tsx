@@ -72,6 +72,13 @@ export default function ProfileSetUp() {
     }
   };
 
+  const avatarColumns = AVATARS.reduce<string[][]>((acc, emoji, i) => {
+    const colIndex = Math.floor(i / 2);
+    if (!acc[colIndex]) acc[colIndex] = [];
+    acc[colIndex].push(emoji);
+    return acc;
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (
@@ -80,7 +87,7 @@ export default function ProfileSetUp() {
         <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
           <Pressable onPress={Keyboard.dismiss}>
 
-            <AuthHeader title="はじめまして" subtitle="プロフィールを設定しましょう" />
+            <AuthHeader title="Profile Setup" subtitle="プロフィールを設定しましょう" />
 
             {/* カード */}
             <View style={{
@@ -88,7 +95,8 @@ export default function ProfileSetUp() {
               backgroundColor: BrownTheme.cardBackground,
               borderRadius: 24,
               paddingHorizontal: 28,
-              paddingVertical: 32,
+              paddingTop: 28,
+              paddingBottom: 28,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: 0.12,
@@ -96,14 +104,35 @@ export default function ProfileSetUp() {
               elevation: 10,
             }}>
 
-              {/* ♡ デコレーション */}
-              <Text style={{ textAlign: 'center', color: BrownTheme.mutedText, fontSize: 16, marginBottom: 24 }}>♡</Text>
+              {/* アバタープレビュー */}
+              <View style={{ alignItems: 'center', marginBottom: 24 }}>
+                <View style={{
+                  width: 88,
+                  height: 88,
+                  borderRadius: 44,
+                  backgroundColor: 'white',
+                  borderWidth: 2,
+                  borderColor: avatar ? BrownTheme.buttonBackground : BrownTheme.contentBorder,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                }}>
+                  {avatar ? (
+                    <Text style={{ fontSize: 50 }}>{avatar}</Text>
+                  ) : (
+                    <Ionicons name="person-outline" size={36} color={BrownTheme.mutedText} />
+                  )}
+                </View>
+              </View>
 
               {/* ニックネーム */}
               <View style={{ marginBottom: 24 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                   <Ionicons name="person-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>名前を決めてください</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>ニックネームを入力</Text>
                 </View>
                 <TextInput
                   value={nickname}
@@ -122,10 +151,10 @@ export default function ProfileSetUp() {
                     marginBottom: 6,
                   }}
                 />
-                <Text style={{ fontSize: 11, color: BrownTheme.mutedText }}>※6文字以内で入力してください</Text>
+                <Text style={{ fontSize: 11, color: BrownTheme.mutedText }}>いつでも変更できます</Text>
               </View>
 
-              {/* アバター */}
+              {/* アバター選択（2行横スクロール） */}
               <View style={{ marginBottom: 24 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
                   <Ionicons name="happy-outline" size={15} color={BrownTheme.primaryText} />
@@ -134,14 +163,18 @@ export default function ProfileSetUp() {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingVertical: 8 }}>
-                  {AVATARS.map((emoji) => (
-                    <AvatarItem
-                      key={emoji}
-                      emoji={emoji}
-                      isSelected={avatar === emoji}
-                      onPress={() => { setAvatar(emoji); setErrorMessage(null); }}
-                    />
+                  contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingVertical: 4 }}>
+                  {avatarColumns.map((column, colIndex) => (
+                    <View key={colIndex} style={{ gap: 10 }}>
+                      {column.map((emoji) => (
+                        <AvatarItem
+                          key={emoji}
+                          emoji={emoji}
+                          isSelected={avatar === emoji}
+                          onPress={() => { setAvatar(emoji); setErrorMessage(null); }}
+                        />
+                      ))}
+                    </View>
                   ))}
                 </ScrollView>
               </View>
