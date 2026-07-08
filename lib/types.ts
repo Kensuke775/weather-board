@@ -73,12 +73,15 @@ export type CommentItem = {
 export type Notification = {
   id: string;
   to_user_id: string;
-  type: 'talk' | 'comment';
+  type: 'talk' | 'comment' | 'reaction' | 'room_join';
   from_user_id: string;
-  weather_log_id: string;
+  weather_log_id: string | null;
   is_read: boolean;
   created_at: string;
   profiles: NameAvatar | null;
+  weather: WeatherType | null;
+  note: string | null;
+  tags: { id: string; name: string }[];
 };
 
 export type NameAvatar = {
