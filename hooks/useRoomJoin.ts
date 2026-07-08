@@ -43,6 +43,22 @@ export default function useRoomJoin(onSuccess?: (roomName: string, roomId: strin
         Alert.alert('ルームメンバーの記録に失敗しました。');
         return;
       }
+      const { data: existingMembersData, error: existingMembersError } = await supabase.from('room_members').select('user_id').eq('room_id', roomData.id).neq('user_id', userId);
+      if (existingMembersError) {
+        console.error('[useJoinRoom] handleJoinRoom notify', existingMembersError.message);
+      } else if (existingMembersData.length > 0) {
+        const { error: notifyError } = await supabase.from('notifications').insert(
+          existingMembersData.map((member) => ({
+            to_user_id: member.user_id,
+            from_user_id: userId,
+            type: 'room_join',
+            room_id: roomData.id,
+          })),
+        );
+        if (notifyError) {
+          console.error('[useJoinRoom] handleJoinRoom notify', notifyError.message);
+        }
+      }
       await onSuccess?.(roomData.name, roomData.id);
     } finally {
       setIsJoining(false);
