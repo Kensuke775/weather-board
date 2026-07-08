@@ -136,7 +136,7 @@ export default function PostReactionBar({ weatherLogId }: PostReactionBarProps) 
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.9)',
+        backgroundColor: '#FFFFFF',
         borderRadius: 20,
         paddingHorizontal: 14,
         paddingVertical: 10,

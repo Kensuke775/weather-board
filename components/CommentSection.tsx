@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,21 @@ import ReportBlockMenu from '@/components/ReportBlockMenu';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType } from '@/lib/types';
+import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType, WEATHER_CONFIG, WeatherType } from '@/lib/types';
+
+const fetchCommenterWeathers = async (userIds: string[], roomId: string, setter: (map: Record<string, WeatherType>) => void) => {
+  if (userIds.length === 0) return;
+  const { data, error } = await supabase.from('weather_logs').select('user_id, weather, updated_at').in('user_id', userIds).eq('room_id', roomId).order('updated_at', { ascending: false });
+  if (error) {
+    console.error('[CommentSection] fetchCommenterWeathers', error.message);
+    return;
+  }
+  const map: Record<string, WeatherType> = {};
+  for (const row of data) {
+    if (!(row.user_id in map)) map[row.user_id] = row.weather;
+  }
+  setter(map);
+};
 
 type CommentReactionRow = {
   comment_id: string;
@@ -63,7 +77,29 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
   const [isComenting, setIsCommenting] = useState(false);
   const [commentReactions, setCommentReactions] = useState<CommentReactionRow[]>([]);
   const [pendingCommentReactions, setPendingCommentReactions] = useState<Set<string>>(new Set());
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [commenterWeathers, setCommenterWeathers] = useState<Record<string, WeatherType>>({});
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (!currentRoomId) return;
+    const userIds = Array.from(new Set(comments.map((comment) => comment.user_id)));
+    fetchCommenterWeathers(userIds, currentRoomId, setCommenterWeathers);
+  }, [comments, currentRoomId]);
+
+  const sortedComments = useMemo(() => {
+    const sorted = [...comments];
+    if (sortOrder === 'oldest') sorted.reverse();
+    return sorted;
+  }, [comments, sortOrder]);
+
+  const handlePressSort = () => {
+    Alert.alert('並び替え', '', [
+      { text: '新しい順', onPress: () => setSortOrder('newest') },
+      { text: '古い順', onPress: () => setSortOrder('oldest') },
+      { text: 'キャンセル', style: 'cancel' },
+    ]);
+  };
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
@@ -169,14 +205,35 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
 
   return (
     <View style={{ flex: 1 }}>
-      {/* コメント件数ラベル */}
-      <Text style={{ fontSize: 14, fontWeight: '700', color: PRIMARY_BROWN, marginBottom: 10 }}>
-        コメント（{comments.length}件）
-      </Text>
+      {/* コメント件数ラベル・並び替え */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: PRIMARY_BROWN }}>
+          コメント（{comments.length}件）
+        </Text>
+        <Pressable
+          onPress={handlePressSort}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 2,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 100,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 4,
+            elevation: 1,
+          }}>
+          <Text style={{ fontSize: 12, color: MUTED_BROWN }}>{sortOrder === 'newest' ? '新しい順' : '古い順'}</Text>
+          <Ionicons name="chevron-down" size={12} color={MUTED_BROWN} />
+        </Pressable>
+      </View>
 
       <View style={{
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.88)',
+        backgroundColor: '#FFFFFF',
         borderRadius: 20,
         overflow: 'hidden',
         shadowColor: '#000',
@@ -186,7 +243,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
         elevation: 2,
       }}>
         <FlatList
-          data={comments}
+          data={sortedComments}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(98,66,33,0.08)', marginHorizontal: 16 }} />}
@@ -234,6 +291,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
                   <Text style={{ fontSize: 13, fontWeight: '600', color: PRIMARY_BROWN }}>
                     {item.profiles.nickname}
                   </Text>
+                  {commenterWeathers[item.user_id] && <Text style={{ fontSize: 13 }}>{WEATHER_CONFIG[commenterWeathers[item.user_id]].emoji}</Text>}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {REACTION_TYPES.map(({ type, emoji }) => {
@@ -287,37 +345,46 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
       </View>
 
       {!readOnly && (
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginTop: 12,
-          marginBottom: 8,
-          gap: 8,
-          backgroundColor: 'rgba(255,255,255,0.92)',
-          borderRadius: 20,
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-          elevation: 3,
-        }}>
-          <TextInput
-            value={inputText}
-            onChangeText={setInputText}
-            autoCapitalize="none"
-            placeholder="コメントを書いてみましょう..."
-            placeholderTextColor={MUTED_BROWN}
-            style={{ flex: 1, fontSize: 14, color: PRIMARY_BROWN, paddingVertical: 6 }}
-          />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, marginBottom: 10 }}>
+          <View
+            style={{
+              flex: 1,
+              height: 48,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+              paddingHorizontal: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 3,
+            }}>
+            <Ionicons name="pencil-outline" size={16} color={MUTED_BROWN} />
+            <TextInput
+              value={inputText}
+              onChangeText={setInputText}
+              autoCapitalize="none"
+              placeholder="コメントを書いてみましょう..."
+              placeholderTextColor={MUTED_BROWN}
+              style={{ flex: 1, fontSize: 14, color: PRIMARY_BROWN }}
+            />
+          </View>
           <Pressable
             onPress={handleSendComment}
             style={{
+              height: 48,
+              justifyContent: 'center',
               backgroundColor: PRIMARY_BROWN,
-              borderRadius: 14,
+              borderRadius: 24,
               paddingHorizontal: 18,
-              paddingVertical: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 6,
+              elevation: 3,
             }}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: 'white' }}>送信</Text>
           </Pressable>

@@ -152,80 +152,82 @@ export default function WeatherLogDetailScreen() {
         onBack={() => router.back()}
         rightContent={
           <>
-            <TalkButton to_user_id={detail.user_id} weather_log_id={detail.id} variant="light" />
+            {!isOwnPost && <TalkButton to_user_id={detail.user_id} weather_log_id={detail.id} variant="light" />}
             <ReportBlockMenu targetUserId={detail.user_id} weatherLogId={detail.id} onBlocked={() => router.back()} variant="header" />
           </>
         }
       />
 
-      <View style={{ flex: 1, padding: 20 }}>
-        {streakCount !== null && streakCount > 0 && (
+      <View style={{ flex: 1, backgroundColor: CREAM }}>
+        <View style={{ flex: 1, padding: 20 }}>
+          {streakCount !== null && streakCount > 0 && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 100,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginBottom: 12,
+                gap: 6,
+              }}>
+              <Text style={{ fontSize: 14 }}>🔥</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: PRIMARY_BROWN }}>連続投稿日数</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: PRIMARY_BROWN }}>{streakCount}日</Text>
+              <Ionicons name="chevron-forward" size={14} color={MUTED_BROWN} />
+            </View>
+          )}
           <View
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              backgroundColor: 'rgba(255,255,255,0.9)',
-              borderRadius: 100,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              marginBottom: 12,
-              gap: 6,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 16,
+              marginBottom: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+              elevation: 2,
             }}>
-            <Text style={{ fontSize: 14 }}>🔥</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: PRIMARY_BROWN }}>連続投稿日数</Text>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: PRIMARY_BROWN }}>{streakCount}日</Text>
-            <Ionicons name="chevron-forward" size={14} color={MUTED_BROWN} />
-          </View>
-        )}
-        <View
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            borderRadius: 20,
-            padding: 16,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-          }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <View style={{ backgroundColor: 'rgba(98,66,33,0.08)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: PRIMARY_BROWN }}>ひとことメモ</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <View style={{ backgroundColor: 'rgba(98,66,33,0.08)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: PRIMARY_BROWN }}>ひとことメモ</Text>
+              </View>
+              {isOwnPost && (
+                <Pressable
+                  onPress={() => {
+                    Alert.alert('確認', 'この投稿を削除しますか？\n削除すると元に戻せません。', [
+                      { text: 'キャンセル', style: 'cancel' },
+                      { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(detail.id, () => router.back()) },
+                    ]);
+                  }}>
+                  <Ionicons name="trash-outline" size={18} color={MUTED_BROWN} />
+                </Pressable>
+              )}
             </View>
-            {isOwnPost && (
-              <Pressable
-                onPress={() => {
-                  Alert.alert('確認', 'この投稿を削除しますか？\n削除すると元に戻せません。', [
-                    { text: 'キャンセル', style: 'cancel' },
-                    { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(detail.id, () => router.back()) },
-                  ]);
-                }}>
-                <Ionicons name="trash-outline" size={18} color={MUTED_BROWN} />
-              </Pressable>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <Text style={{ fontSize: 20 }}>{WEATHER_CONFIG[detail.weather].emoji}</Text>
+              <Text style={{ fontSize: 15, color: PRIMARY_BROWN, flex: 1 }}>{detail.note}</Text>
+            </View>
+
+            {detail.tags.length > 0 && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {detail.tags.map((tag) => (
+                  <Text key={tag.id} style={{ fontSize: 12, color: MUTED_BROWN }}>
+                    #{tag.name}
+                  </Text>
+                ))}
+              </View>
             )}
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <Text style={{ fontSize: 20 }}>{WEATHER_CONFIG[detail.weather].emoji}</Text>
-            <Text style={{ fontSize: 15, color: PRIMARY_BROWN, flex: 1 }}>{detail.note}</Text>
-          </View>
+          <PostReactionBar weatherLogId={detail.id} />
 
-          {detail.tags.length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {detail.tags.map((tag) => (
-                <Text key={tag.id} style={{ fontSize: 12, color: MUTED_BROWN }}>
-                  #{tag.name}
-                </Text>
-              ))}
-            </View>
-          )}
+          <CommentSection to_user_id={detail.user_id} weather_log_id={detail.id} cardColor={cardColor} />
         </View>
-
-        <PostReactionBar weatherLogId={detail.id} />
-
-        <CommentSection to_user_id={detail.user_id} weather_log_id={detail.id} cardColor={cardColor} />
       </View>
     </View>
   );

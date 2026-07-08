@@ -12,7 +12,7 @@ export const AVATAR_BUTTON = {
 
 export const CARD_TEXT = {
   noteHeight: 30,
-  tagRowHeight: 13,
+  tagRowHeight: 20,
 } as const;
 
 export const SLIDE_ANIMATION_DURATION = 300;
