@@ -1,22 +1,26 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import Toast from 'react-native-toast-message';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
 import GlassButton from '@/components/GlassButton';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { TOAST_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG } from '@/lib/types';
 
 const backgroundImage = require('@/assets/images/weather/post.png');
+const MAX_NOTE_LENGTH = 200;
+export const MAX_SELECTED_TAGS = 5;
 
 export default function Post() {
   const router = useRouter();
@@ -33,9 +37,26 @@ export default function Post() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPosting, setIsPosting] = useState(false);
+  const [hasPostedToday, setHasPostedToday] = useState(false);
   const { width } = Dimensions.get('window');
   const ITEM_WIDTH = 80;
   const PADDING = (width - ITEM_WIDTH) / 2;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId || !currentRoomId) return;
+      const checkTodayPost = async () => {
+        const today = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase.from('weather_logs').select('id').eq('user_id', userId).eq('room_id', currentRoomId).eq('logged_date', today).maybeSingle();
+        if (error) {
+          console.error('[post] checkTodayPost', error.message);
+          return;
+        }
+        setHasPostedToday(data !== null);
+      };
+      checkTodayPost();
+    }, [userId, currentRoomId]),
+  );
 
   const handlePost = async () => {
     if (isPosting) return;
@@ -104,6 +125,7 @@ export default function Post() {
       setWeather('');
       setNote('');
       setSelectedTags([]);
+      Toast.show({ type: 'success', text1: '投稿しました！', visibilityTime: TOAST_DURATION.default });
       router.replace('/(tabs)');
     } finally {
       setIsPosting(false);
@@ -121,6 +143,14 @@ export default function Post() {
           <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
             {`How's your weather today?`}
           </Text>
+          {hasPostedToday && (
+            <View className="self-center mt-2 mb-1 px-3 py-1.5 flex-row items-center gap-1.5 rounded-full" style={{ backgroundColor: 'rgba(251,191,36,0.9)' }}>
+              <Ionicons name="warning-outline" size={13} color="#78350F" />
+              <Text className="text-xs font-bold" style={{ color: '#78350F' }}>
+                本日投稿済み・上書きされます
+              </Text>
+            </View>
+          )}
           <FlatList
             data={Object.entries(WEATHER_CONFIG)}
             keyExtractor={([key]) => key}
@@ -208,7 +238,7 @@ export default function Post() {
               </View>
 
               <View className="mb-10">
-                <ActivityTagPicker selectedTags={selectedTags} setSelectedTags={setSelectedTags} isInputVisible={isInputVisible} setIsInputVisible={setIsInputVisible} />
+                <ActivityTagPicker selectedTags={selectedTags} setSelectedTags={setSelectedTags} isInputVisible={isInputVisible} setIsInputVisible={setIsInputVisible} maxSelected={MAX_SELECTED_TAGS} />
               </View>
 
               <View className="mb-12">
@@ -222,11 +252,15 @@ export default function Post() {
                   multiline
                   blurOnSubmit={true}
                   numberOfLines={2}
+                  maxLength={MAX_NOTE_LENGTH}
                   placeholder="今日の気分を一言メモ…"
                   placeholderTextColor="rgba(0,0,0,0.4)"
                   className="py-4 px-2 rounded-xl bg-white border"
                   style={{ borderColor: WeatherBoardColors.glassBorder }}
                 />
+                <Text className="text-right text-[10px] mt-1" style={{ color: WeatherBoardColors.textMuted }}>
+                  {note.length}/{MAX_NOTE_LENGTH}
+                </Text>
               </View>
 
               <View className="mb-24">

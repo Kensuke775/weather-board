@@ -9,6 +9,7 @@ export type ActivityTagPickerProps = {
   selectedTags: ActivityTag[];
   isInputVisible: boolean;
   setIsInputVisible: (value: boolean) => void;
+  maxSelected?: number;
 };
 
 export type ActivityTag = {
@@ -27,7 +28,7 @@ const fetchUserTags = async (userId: string, setter: (data: ActivityTag[]) => vo
   setter(userTagsData);
 };
 
-export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInputVisible, setIsInputVisible }: ActivityTagPickerProps) {
+export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInputVisible, setIsInputVisible, maxSelected }: ActivityTagPickerProps) {
   const { user } = useUser();
   const [userCreatedTags, setUserCreatedTags] = useState<ActivityTag[]>([]);
   const [inputText, setInputText] = useState('');
@@ -62,7 +63,13 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
     if (isSelected) {
       const filteredId = [...selectedTags].filter((item) => item.id !== tag.id);
       setSelectedTags(filteredId);
-    } else setSelectedTags([...selectedTags, tag]);
+      return;
+    }
+    if (maxSelected !== undefined && selectedTags.length >= maxSelected) {
+      Alert.alert(`タグは${maxSelected}個まで選択できます。`);
+      return;
+    }
+    setSelectedTags([...selectedTags, tag]);
   };
 
   const handleDeleteTag = async (tag: ActivityTag) => {
@@ -89,21 +96,26 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
           今日のアクティビティ
         </Text>
         <View className="flex-wrap flex-row gap-3">
-          {userCreatedTags.map((tag) => (
-            <View key={tag.id} className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
-              <Pressable
-                onLongPress={() => {
-                  Alert.alert('タグを削除しますか？', '', [{ text: 'キャンセル' }, { text: 'OK', onPress: () => handleDeleteTag(tag) }]);
-                }}
-                onPress={() => handleToggleTag(tag)}
-                key={tag.id}
-                style={selectedTagIds.has(tag.id) ? { opacity: 1 } : { opacity: 0.4 }}>
-                <Text className="text-sm font-bold" style={{ color: 'black' }}>
-                  #{tag.tag_name}
-                </Text>
-              </Pressable>
-            </View>
-          ))}
+          {userCreatedTags.map((tag) => {
+            const isSelected = selectedTagIds.has(tag.id);
+            const isLimitReached = maxSelected !== undefined && selectedTags.length >= maxSelected;
+            const isDisabled = !isSelected && isLimitReached;
+            return (
+              <View key={tag.id} className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
+                <Pressable
+                  onLongPress={() => {
+                    Alert.alert('タグを削除しますか？', '', [{ text: 'キャンセル' }, { text: 'OK', onPress: () => handleDeleteTag(tag) }]);
+                  }}
+                  onPress={() => handleToggleTag(tag)}
+                  key={tag.id}
+                  style={{ opacity: isSelected ? 1 : isDisabled ? 0.2 : 0.4 }}>
+                  <Text className="text-sm font-bold" style={{ color: 'black' }}>
+                    #{tag.tag_name}
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          })}
 
           <View className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
             <Pressable onPress={() => setIsInputVisible(!isInputVisible)}>
