@@ -79,39 +79,37 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           </View>
         ))}
       </View>
-      <View className="flex-row items-center justify-between mb-1">
-        <View className="flex-row items-center gap-2">
+      <View className="flex-row items-center gap-2 mb-1">
+        <View className="flex-row gap-1 items-center">
+          <Ionicons name="chatbubble-ellipses-outline" size={12} color={MUTED_BROWN} />
+          <Text className="text-xs font-bold" style={{ color: MUTED_BROWN }}>
+            {commentStatus[weather_log_id]?.count > 0 ? commentStatus[weather_log_id]?.count : 0}
+          </Text>
+        </View>
+        {reactionCount > 0 && (
           <View className="flex-row gap-1 items-center">
-            <Ionicons name="chatbubble-ellipses-outline" size={12} color={MUTED_BROWN} />
+            <Ionicons name="heart-outline" size={12} color={MUTED_BROWN} />
             <Text className="text-xs font-bold" style={{ color: MUTED_BROWN }}>
-              {commentStatus[weather_log_id]?.count > 0 ? commentStatus[weather_log_id]?.count : 0}
+              {reactionCount}
             </Text>
           </View>
-          {reactionCount > 0 && (
-            <View className="flex-row gap-1 items-center">
-              <Ionicons name="heart-outline" size={12} color={MUTED_BROWN} />
-              <Text className="text-xs font-bold" style={{ color: MUTED_BROWN }}>
-                {reactionCount}
-              </Text>
-            </View>
+        )}
+        <View className="flex-row items-center gap-1">
+          {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
+            <Text key={commenter.user_id} className="text-[10px]">
+              {commenter.emoji}
+            </Text>
+          ))}
+          {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
+            <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>
+              ...
+            </Text>
           )}
         </View>
-        <Text className="text-[9px]" style={{ color: MUTED_BROWN }}>
-          {formattedDate}
-        </Text>
       </View>
-      <View className="flex-row items-center gap-1">
-        {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
-          <Text key={commenter.user_id} className="text-[10px]">
-            {commenter.emoji}
-          </Text>
-        ))}
-        {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
-          <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>
-            ...
-          </Text>
-        )}
-      </View>
+      <Text className="text-[9px] text-right" style={{ color: MUTED_BROWN }}>
+        {formattedDate}
+      </Text>
     </View>
   );
 
