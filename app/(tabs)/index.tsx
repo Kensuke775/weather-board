@@ -233,14 +233,11 @@ export default function HomeScreen() {
       let channel: ReturnType<typeof supabase.channel>;
       let isCancelled = false;
       const setUp = async () => {
-        const channelName = `board-${currentRoomId}`;
-        const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-        if (existing) await supabase.removeChannel(existing);
         if (isCancelled) return;
         await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
         if (isCancelled) return;
         channel = supabase
-          .channel(channelName)
+          .channel(`board-${currentRoomId}-${Date.now()}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'weather_logs' }, async () => {
             await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
           })
@@ -259,16 +256,13 @@ export default function HomeScreen() {
     let channel: ReturnType<typeof supabase.channel>;
     let isCancelled = false;
     const setUp = async () => {
-      const channelName = `unreadCounts-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
       if (isCancelled) return;
       await fetchNotificationsData(userId, setUnreadCounts);
       if (isCancelled) return;
       await fetchActivityFeed(currentRoomId, setActivityFeed);
       if (isCancelled) return;
       channel = supabase
-        .channel(channelName)
+        .channel(`unreadCounts-${userId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
           await fetchNotificationsData(userId, setUnreadCounts);
           await fetchActivityFeed(currentRoomId, setActivityFeed);
@@ -287,12 +281,9 @@ export default function HomeScreen() {
     let channel: ReturnType<typeof supabase.channel>;
     let isCancelled = false;
     const setUp = async () => {
-      const channelName = `blocks-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
       if (isCancelled) return;
       channel = supabase
-        .channel(channelName)
+        .channel(`blocks-${userId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'blocks' }, async () => {
           await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
           await fetchCommentsData(setCommentStatus);
@@ -312,14 +303,11 @@ export default function HomeScreen() {
     let channel: ReturnType<typeof supabase.channel>;
     let isCancelled = false;
     const setUp = async () => {
-      const channelName = `comment-status-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
       if (isCancelled) return;
       await fetchCommentsData(setCommentStatus);
       if (isCancelled) return;
       channel = supabase
-        .channel(channelName)
+        .channel(`comment-status-${userId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async () => {
           await fetchCommentsData(setCommentStatus);
         })
@@ -337,14 +325,11 @@ export default function HomeScreen() {
     let channel: ReturnType<typeof supabase.channel>;
     let isCancelled = false;
     const setUp = async () => {
-      const channelName = `reaction-status-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
       if (isCancelled) return;
       await fetchReactionsData(setReactionStatus);
       if (isCancelled) return;
       channel = supabase
-        .channel(channelName)
+        .channel(`reaction-status-${userId}-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, async () => {
           await fetchReactionsData(setReactionStatus);
         })
