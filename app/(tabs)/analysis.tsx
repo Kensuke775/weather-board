@@ -18,7 +18,7 @@ export type AnalysisData = {
   id: string;
 };
 
-const backgroundImage = require('@/assets/images/weather/analysis.png');
+const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 const PRIMARY_BROWN = '#624221';
 const MUTED_BROWN = 'rgba(98,66,33,0.5)';
 const ACCENT_BLUE = '#6B9BDE';

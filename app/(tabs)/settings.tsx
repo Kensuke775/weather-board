@@ -39,7 +39,7 @@ type BlockedUser = {
 
 type LoadingName = 'leaving' | 'loggingOut' | 'deletingAccount' | null;
 
-const backgroundImage = require('@/assets/images/weather/settings.png');
+const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 const PRIMARY_BROWN = '#624221';
 const SECONDARY_BROWN = 'rgba(98,66,33,0.75)';
 const MUTED_BROWN = 'rgba(98,66,33,0.5)';

@@ -10,7 +10,7 @@ import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WeatherType } from '@/lib/types';
 
-const backgroundImage = require('@/assets/images/weather/history.png');
+const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
 function initialMonthStart() {
   const now = new Date();
