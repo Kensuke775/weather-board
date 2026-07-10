@@ -25,7 +25,7 @@ const AVATARS = [
   '🤖', '👾', '🎃',
 ];
 
-const backgroundImage = require('@/assets/images/weather/settings.png');
+const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 const PRIMARY_BROWN = '#624221';
 const MUTED_BROWN = 'rgba(98,66,33,0.5)';
 const CREAM = '#FCF8F0';

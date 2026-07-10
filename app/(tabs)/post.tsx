@@ -18,7 +18,7 @@ import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG } from '@/lib/types';
 
-const backgroundImage = require('@/assets/images/weather/post.png');
+const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 const MAX_NOTE_LENGTH = 200;
 export const MAX_SELECTED_TAGS = 5;
 

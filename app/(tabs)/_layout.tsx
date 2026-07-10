@@ -15,7 +15,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
-const backgroundImage = require('@/assets/images/weather/sunny.png');
+const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
 if (!(isExpoGo && Platform.OS === 'android')) {
   Notifications.setNotificationHandler({
