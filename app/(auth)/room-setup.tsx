@@ -472,7 +472,7 @@ export default function RoomSetup() {
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                      <Text style={{ fontSize: 28 }}>⛅</Text>
+                      <Text style={{ fontSize: 28 }}>{item.rooms.icon_emoji ?? '⛅'}</Text>
                     </View>
 
                     {/* ルーム名 */}
