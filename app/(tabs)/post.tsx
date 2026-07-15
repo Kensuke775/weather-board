@@ -194,11 +194,11 @@ export default function Post() {
           </View>
         </BlurView>
 
-        <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-10" contentContainerStyle={{ flexGrow: 1, paddingTop: 60, paddingBottom: 30 }}>
-          <View>
-              <View className="mb-10">
+        <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-5" contentContainerStyle={{ flexGrow: 1, paddingTop: 24, paddingBottom: 30 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20 }}>
+              <View className="mb-8">
                 <Pressable onPress={() => setIsModalVisible(true)}>
-                  <View className="flex-row items-center gap-2 py-3 px-4 overflow-hidden" style={{ borderRadius: 100, backgroundColor: 'white' }}>
+                  <View className="flex-row items-center gap-2">
                     <Ionicons name="home" size={18} color="black" />
                     <Text className="text-base font-bold flex-1" style={{ color: 'black' }}>
                       {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
@@ -224,11 +224,11 @@ export default function Post() {
                 </Modal>
               </View>
 
-              <View className="mb-10">
+              <View className="mb-8">
                 <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
                   選択中
                 </Text>
-                <View className="flex-row flex-wrap items-center gap-2 py-3 px-4 overflow-hidden" style={{ borderRadius: 16, backgroundColor: 'white' }}>
+                <View className="flex-row flex-wrap items-center gap-2">
                   {selectedTags.length === 0 ? (
                     <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.placeholderDark }}>
                       選択中のタグはありません。
@@ -249,11 +249,11 @@ export default function Post() {
                 </View>
               </View>
 
-              <View className="mb-10">
+              <View className="mb-8">
                 <ActivityTagPicker selectedTags={selectedTags} setSelectedTags={setSelectedTags} isInputVisible={isInputVisible} setIsInputVisible={setIsInputVisible} maxSelected={MAX_SELECTED_TAGS} />
               </View>
 
-              <View className="mb-12">
+              <View className="mb-8">
                 <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
                   ひとことメモ
                 </Text>
@@ -267,33 +267,31 @@ export default function Post() {
                   maxLength={MAX_NOTE_LENGTH}
                   placeholder="今日の気分を一言メモ…"
                   placeholderTextColor="rgba(0,0,0,0.4)"
-                  className="py-4 px-2 rounded-xl bg-white border"
-                  style={{ borderColor: WeatherBoardColors.glassBorder }}
+                  className="py-4 px-3 rounded-xl"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
                 />
                 <Text className="text-right text-[10px] mt-1" style={{ color: WeatherBoardColors.textMuted }}>
                   {note.length}/{MAX_NOTE_LENGTH}
                 </Text>
               </View>
 
-              <View className="mb-24">
-                <Pressable
-                  onPress={handlePost}
-                  disabled={isPosting}
-                  className="w-full flex-row justify-center items-center gap-3 py-4"
-                  style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground, opacity: isPosting ? 0.7 : 1 }}>
-                  <Ionicons name="sunny-outline" size={22} color="white" />
-                  <Text className="text-base font-bold text-white">天気を投稿する</Text>
-                </Pressable>
-                {showPostedConfirmation && (
-                  <View className="self-center mt-2 flex-row items-center gap-1.5 px-3 py-1.5" style={{ borderRadius: 100, backgroundColor: 'rgba(0,0,0,0.75)' }}>
-                    <Ionicons name="checkmark" size={14} color="white" />
-                    <Text className="text-xs font-bold text-white">投稿しました！</Text>
-                  </View>
-                )}
-                <Text className="text-center text-xs mt-2" style={{ color: WeatherBoardColors.textMuted }}>
-                  投稿内容はWeekly分析に反映されます
-                </Text>
-              </View>
+              <Pressable
+                onPress={handlePost}
+                disabled={isPosting}
+                className="w-full flex-row justify-center items-center gap-3 py-4"
+                style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground, opacity: isPosting ? 0.7 : 1 }}>
+                <Ionicons name="sunny-outline" size={22} color="white" />
+                <Text className="text-base font-bold text-white">天気を投稿する</Text>
+              </Pressable>
+              {showPostedConfirmation && (
+                <View className="self-center mt-2 flex-row items-center gap-1.5 px-3 py-1.5" style={{ borderRadius: 100, backgroundColor: 'rgba(0,0,0,0.75)' }}>
+                  <Ionicons name="checkmark" size={14} color="white" />
+                  <Text className="text-xs font-bold text-white">投稿しました！</Text>
+                </View>
+              )}
+              <Text className="text-center text-xs mt-2" style={{ color: WeatherBoardColors.textMuted }}>
+                投稿内容はWeekly分析に反映されます
+              </Text>
           </View>
         </KeyboardAwareScrollView>
       </View>
