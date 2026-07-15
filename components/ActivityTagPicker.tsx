@@ -101,26 +101,35 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
             const isLimitReached = maxSelected !== undefined && selectedTags.length >= maxSelected;
             const isDisabled = !isSelected && isLimitReached;
             return (
-              <View key={tag.id} className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
+              <View
+                key={tag.id}
+                className="overflow-hidden"
+                style={{
+                  borderRadius: 100,
+                  backgroundColor: isSelected ? WeatherBoardColors.accentBackground : 'white',
+                  borderWidth: isSelected ? 0 : 1,
+                  borderColor: 'rgba(0,0,0,0.15)',
+                  opacity: isDisabled ? 0.3 : 1,
+                }}>
                 <Pressable
                   onLongPress={() => {
                     Alert.alert('タグを削除しますか？', '', [{ text: 'キャンセル' }, { text: 'OK', onPress: () => handleDeleteTag(tag) }]);
                   }}
                   onPress={() => handleToggleTag(tag)}
-                  key={tag.id}
-                  style={{ opacity: isSelected ? 1 : isDisabled ? 0.2 : 0.4 }}>
-                  <Text className="text-sm font-bold" style={{ color: 'black' }}>
-                    #{tag.tag_name}
+                  disabled={isDisabled}
+                  className="px-4 py-2.5">
+                  <Text className="text-sm font-bold" style={{ color: isSelected ? 'white' : 'black' }}>
+                    {tag.tag_name}
                   </Text>
                 </Pressable>
               </View>
             );
           })}
 
-          <View className="flex items-center gap-2 p-2 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
-            <Pressable onPress={() => setIsInputVisible(!isInputVisible)}>
+          <View className="overflow-hidden" style={{ borderRadius: 100, backgroundColor: 'white', borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)' }}>
+            <Pressable onPress={() => setIsInputVisible(!isInputVisible)} className="px-4 py-2.5">
               <Text className="text-sm font-bold" style={{ color: 'black' }}>
-                tags +
+                + tag
               </Text>
             </Pressable>
           </View>
@@ -128,12 +137,12 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
       </View>
 
       {isInputVisible && (
-        <View className="flex-row items-center rounded-xl overflow-hidden border" style={{ borderColor: WeatherBoardColors.glassBorder, marginTop: 12, marginBottom: 16 }}>
-          <TextInput value={inputText} onChangeText={setInputText} placeholder="タグ名を入れて追加しよう" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="flex-1 px-1 h-14 bg-white text-sm" />
-          <Pressable onPress={handleInsertTag} className="px-1 flex justify-center items-center h-14" style={{ backgroundColor: WeatherBoardColors.tertiaryBackground }}>
-            <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-              追加する
-            </Text>
+        <View className="flex-row items-center gap-2 mt-3 mb-4">
+          <View className="flex-1 overflow-hidden" style={{ borderRadius: 16, backgroundColor: 'white' }}>
+            <TextInput value={inputText} onChangeText={setInputText} placeholder="タグ名を入れて追加しよう" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="px-4 h-14 text-sm" />
+          </View>
+          <Pressable onPress={handleInsertTag} className="px-5 justify-center items-center" style={{ height: 56, borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground }}>
+            <Text className="text-sm font-bold text-white">追加する</Text>
           </Pressable>
         </View>
       )}
