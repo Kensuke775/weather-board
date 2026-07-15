@@ -162,17 +162,16 @@ export default function History() {
           <Text className="text-xs mt-0.5" style={{ color: BrownTheme.mutedText }}>あなたの記録を振り返りましょう</Text>
         </View>
 
+        {/* Streak badge — right-aligned, outside card */}
+        <View className="flex-row justify-end mb-2">
+          <View className="flex-row items-center gap-1 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(166,116,72,0.15)' }}>
+            <Text>🔥</Text>
+            <Text className="text-sm font-bold" style={{ color: BrownTheme.primaryText }}>連続投稿日数 {streak}日</Text>
+          </View>
+        </View>
+
         {/* Single unified card */}
         <View className="rounded-2xl overflow-hidden" style={{ backgroundColor: BrownTheme.cardBackground }}>
-
-          {/* Streak row */}
-          <View className="flex-row items-center justify-between px-4 py-3">
-            <Text className="text-xs font-semibold" style={{ color: BrownTheme.mutedText }}>今月の記録</Text>
-            <View className="flex-row items-center gap-1">
-              <Text>🔥</Text>
-              <Text className="text-sm font-bold" style={{ color: BrownTheme.primaryText }}>連続投稿日数 {streak}日</Text>
-            </View>
-          </View>
 
           <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder }} />
 
