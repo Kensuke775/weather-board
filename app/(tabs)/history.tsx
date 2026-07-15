@@ -34,7 +34,7 @@ export default function History() {
   useFocusEffect(
     useCallback(() => {
       const fetchHistory = async () => {
-        if (!userId) return;
+        if (!userId || !currentRoomId) return;
         const { data: historyData, error: historyError } = await supabase
           .from('weather_logs')
           .select('id, user_id, weather, logged_date, profiles(avatar_emoji)')
