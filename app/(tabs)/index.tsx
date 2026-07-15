@@ -119,14 +119,13 @@ const fetchFeedPage = async (page: number, setter: (data: WeatherBoardItem[]) =>
   loadingSetter(false);
 };
 
-const fetchActivityFeed = async (roomId: string | null, setter: (data: ActivityFeedItem[]) => void) => {
-  if (!roomId) return;
+const fetchActivityFeed = async (userId: string, setter: (data: ActivityFeedItem[]) => void) => {
   const { data: activityFeedData, error: activityFeedError } = await supabase
     .from('notifications')
     .select('id, to_user_id, from_user_id, created_at, from:profiles!from_user_id(nickname, avatar_emoji), to:profiles!to_user_id(nickname, avatar_emoji)')
     .order('created_at', { ascending: false })
     .eq('type', 'comment')
-    .eq('room_id', roomId)
+    .eq('to_user_id', userId)
     .limit(10);
   if (activityFeedError) {
     console.error('[index(tab)] fetchActivityFeed', activityFeedError.message);
@@ -231,13 +230,13 @@ export default function HomeScreen() {
       if (isCancelled) return;
       await fetchNotificationsData(userId, setUnreadCounts);
       if (isCancelled) return;
-      await fetchActivityFeed(currentRoomId, setActivityFeed);
+      await fetchActivityFeed(userId, setActivityFeed);
       if (isCancelled) return;
       channel = supabase
         .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
           await fetchNotificationsData(userId, setUnreadCounts);
-          await fetchActivityFeed(currentRoomId, setActivityFeed);
+          await fetchActivityFeed(userId, setActivityFeed);
         })
         .subscribe();
     };
@@ -246,7 +245,7 @@ export default function HomeScreen() {
       isCancelled = true;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [currentRoomId, userId]);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;

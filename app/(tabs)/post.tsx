@@ -1,9 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Dimensions, FlatList, ImageBackground, Pressable, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -11,7 +10,6 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
 import { BrownTheme, Fonts, WeatherBoardColors } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG } from '@/lib/types';
@@ -27,14 +25,12 @@ export default function Post() {
   const router = useRouter();
   const { user } = useUser();
   const userId = user?.id;
-  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [fontsLoaded] = useFonts({
     DancingScript_400Regular: Fonts.titleFont,
   }) as [boolean, Error | null];
   const [weather, setWeather] = useState('sunny');
   const [note, setNote] = useState('');
   const [selectedTags, setSelectedTags] = useState<ActivityTag[]>([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPosting, setIsPosting] = useState(false);
   const [hasPostedToday, setHasPostedToday] = useState(false);
@@ -46,10 +42,10 @@ export default function Post() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!userId || !currentRoomId) return;
+      if (!userId) return;
       const checkTodayPost = async () => {
         const today = new Date().toISOString().split('T')[0];
-        const { data, error } = await supabase.from('weather_logs').select('id').eq('user_id', userId).eq('room_id', currentRoomId).eq('logged_date', today).maybeSingle();
+        const { data, error } = await supabase.from('weather_logs').select('id').eq('user_id', userId).eq('logged_date', today).maybeSingle();
         if (error) {
           console.error('[post] checkTodayPost', error.message);
           return;
@@ -57,7 +53,7 @@ export default function Post() {
         setHasPostedToday(data !== null);
       };
       checkTodayPost();
-    }, [userId, currentRoomId]),
+    }, [userId]),
   );
 
   const handlePost = async () => {
@@ -71,7 +67,7 @@ export default function Post() {
       }
       const { data: logData, error: logError } = await supabase
         .from('weather_logs')
-        .upsert({ user_id: userId, weather, note, room_id: currentRoomId, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,room_id,logged_date' })
+        .upsert({ user_id: userId, weather, note, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,logged_date' })
         .select('id')
         .single();
       if (logError) {
@@ -199,36 +195,6 @@ export default function Post() {
 
         <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-5" contentContainerStyle={{ flexGrow: 1, paddingTop: 24, paddingBottom: tabBarHeight + 24 }}>
           <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20 }}>
-              <View>
-                <Pressable onPress={() => setIsModalVisible(true)}>
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="home" size={18} color="black" />
-                    <Text className="text-base font-bold flex-1" style={{ color: 'black' }}>
-                      {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
-                    </Text>
-                    <Ionicons name="chevron-down" size={20} color="black" />
-                  </View>
-                </Pressable>
-                <Modal visible={isModalVisible} transparent={true} animationType="slide">
-                  <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
-                    <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
-                      <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
-                      <Picker
-                        selectedValue={currentRoomId}
-                        onValueChange={(value) => {
-                          setCurrentRoomId(value);
-                        }}>
-                        {rooms.map((room) => (
-                          <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
-                        ))}
-                      </Picker>
-                    </View>
-                  </Pressable>
-                </Modal>
-              </View>
-
-              <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginVertical: 20 }} />
-
               <View>
                 <Text className="text-sm font-bold mb-4" style={{ color: DARK_TEXT }}>
                   選択中

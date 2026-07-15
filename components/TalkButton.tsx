@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 import { WeatherBoardColors } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
@@ -19,7 +18,6 @@ type TalkButtonProps = {
 
 export default function TalkButton({ to_user_id, weather_log_id, variant = 'dark' }: TalkButtonProps) {
   const [isActiveButton, setIsActiveButton] = useState(false);
-  const { currentRoomId } = useRoom();
   const { user } = useUser();
   const userId = user?.id;
   const [isSending, setIsSending] = useState(false);
@@ -49,7 +47,7 @@ export default function TalkButton({ to_user_id, weather_log_id, variant = 'dark
         return;
       }
       if (userId !== to_user_id) {
-        const { error: notificationError } = await supabase.from('notifications').insert({ type: 'talk', from_user_id: userId, to_user_id, weather_log_id, is_read: false, room_id: currentRoomId });
+        const { error: notificationError } = await supabase.from('notifications').insert({ type: 'talk', from_user_id: userId, to_user_id, weather_log_id, is_read: false });
         if (notificationError) {
           console.error('[TalkButton] handleTalk', notificationError.message);
           Alert.alert('通知の書き込みに失敗しました。');

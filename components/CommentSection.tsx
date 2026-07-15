@@ -4,14 +4,13 @@ import { Alert, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 
 import ReportBlockMenu from '@/components/ReportBlockMenu';
-import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType, WEATHER_CONFIG, WeatherType } from '@/lib/types';
 
-const fetchCommenterWeathers = async (userIds: string[], roomId: string, setter: (map: Record<string, WeatherType>) => void) => {
+const fetchCommenterWeathers = async (userIds: string[], setter: (map: Record<string, WeatherType>) => void) => {
   if (userIds.length === 0) return;
-  const { data, error } = await supabase.from('weather_logs').select('user_id, weather, updated_at').in('user_id', userIds).eq('room_id', roomId).order('updated_at', { ascending: false });
+  const { data, error } = await supabase.from('weather_logs').select('user_id, weather, updated_at').in('user_id', userIds).order('updated_at', { ascending: false });
   if (error) {
     console.error('[CommentSection] fetchCommenterWeathers', error.message);
     return;
@@ -68,7 +67,6 @@ const fetchComments = async (weatherLogId: string, setter: (data: CommentItem[])
 };
 
 export default function CommentSection({ weather_log_id, to_user_id, readOnly, cardColor = '#EDE0CC' }: CommentSectionProps) {
-  const { currentRoomId } = useRoom();
   const { user } = useUser();
   const userId = user?.id;
   const [inputText, setInputText] = useState('');
@@ -82,10 +80,9 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    if (!currentRoomId) return;
     const userIds = Array.from(new Set(comments.map((comment) => comment.user_id)));
-    fetchCommenterWeathers(userIds, currentRoomId, setCommenterWeathers);
-  }, [comments, currentRoomId]);
+    fetchCommenterWeathers(userIds, setCommenterWeathers);
+  }, [comments]);
 
   const sortedComments = useMemo(() => {
     const sorted = [...comments];
@@ -180,7 +177,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
         return;
       }
       if (userId !== to_user_id) {
-        const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, from_user_id: userId, room_id: currentRoomId, is_read: false });
+        const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, from_user_id: userId, is_read: false });
         if (notificationError) {
           console.error('[CommentSection] handleSendComment', notificationError.message);
           Alert.alert('コメントの書き込みに失敗しました。');
