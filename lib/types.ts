@@ -47,7 +47,7 @@ export const WEATHER_CONFIG = {
   cloudy: { label: 'Feeling Blah', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)', darkColor: 'rgba(111, 122, 138, 0.95)', cardColor: '#EDE0CC' },
   rainy: { label: 'A Little Down', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)', darkColor: 'rgba(72, 124, 188, 0.95)', cardColor: '#B8D4F0' },
   stormy: { label: 'Rough Day', emoji: '⛈️', color: 'rgba(99, 102, 241, 0.3)', darkColor: 'rgba(74, 77, 181, 0.95)', cardColor: '#C8B8E0' },
-  snowy: { label: 'Under the Weather', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)', darkColor: 'rgba(140, 173, 190, 0.85)', cardColor: '#C8E0F0' },
+  snowy: { label: 'Feeling Sick', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)', darkColor: 'rgba(140, 173, 190, 0.85)', cardColor: '#C8E0F0' },
   foggy: { label: 'Foggy & Sleepy', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)', darkColor: 'rgba(157, 160, 164, 0.85)', cardColor: '#DCDCD0' },
 };
 
