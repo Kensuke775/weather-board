@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Dimensions, FlatList, ImageBackground, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import Toast from 'react-native-toast-message';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -10,9 +9,7 @@ import { useFonts } from 'expo-font';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
-import GlassButton from '@/components/GlassButton';
 import { Fonts, WeatherBoardColors } from '@/constants/theme';
-import { TOAST_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -21,6 +18,7 @@ import { WEATHER_CONFIG } from '@/lib/types';
 const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 const MAX_NOTE_LENGTH = 200;
 export const MAX_SELECTED_TAGS = 5;
+const POSTED_CONFIRMATION_DELAY = 900;
 
 export default function Post() {
   const router = useRouter();
@@ -38,6 +36,7 @@ export default function Post() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPosting, setIsPosting] = useState(false);
   const [hasPostedToday, setHasPostedToday] = useState(false);
+  const [showPostedConfirmation, setShowPostedConfirmation] = useState(false);
   const { width } = Dimensions.get('window');
   const ITEM_WIDTH = 80;
   const PADDING = (width - ITEM_WIDTH) / 2;
@@ -125,8 +124,10 @@ export default function Post() {
       setWeather('');
       setNote('');
       setSelectedTags([]);
-      Toast.show({ type: 'success', text1: '投稿しました！', visibilityTime: TOAST_DURATION.default });
-      router.replace('/(tabs)');
+      setShowPostedConfirmation(true);
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, POSTED_CONFIRMATION_DELAY);
     } finally {
       setIsPosting(false);
     }
@@ -165,15 +166,27 @@ export default function Post() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 32, paddingHorizontal: PADDING, alignItems: 'center' }}
             style={{ height: 95 }}
-            renderItem={({ item: [key, value], index }) => (
-              <View style={{ width: ITEM_WIDTH, opacity: index === selectedIndex ? 1 : 0.4, transform: [{ scale: index === selectedIndex ? 1.3 : 0.8 }], justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ fontSize: 50, lineHeight: 55 }}>{value.emoji}</Text>
-
-                <Text className="text-[8px]" style={{ color: WeatherBoardColors.textMuted }}>
-                  {value.label}
-                </Text>
-              </View>
-            )}></FlatList>
+            renderItem={({ item: [key, value], index }) => {
+              const isSelected = index === selectedIndex;
+              return (
+                <View
+                  style={{
+                    width: ITEM_WIDTH,
+                    height: 84,
+                    borderRadius: 16,
+                    backgroundColor: isSelected ? 'white' : 'rgba(255,255,255,0.1)',
+                    opacity: isSelected ? 1 : 0.55,
+                    transform: [{ scale: isSelected ? 1.05 : 0.9 }],
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                  <Text style={{ fontSize: 30, lineHeight: 34 }}>{value.emoji}</Text>
+                  <Text className="text-[9px] font-bold mt-1" style={{ color: isSelected ? 'black' : WeatherBoardColors.textMuted }}>
+                    {value.label}
+                  </Text>
+                </View>
+              );
+            }}></FlatList>
           <View>
             <Text className="text-right pr-4 text-[10px]" style={{ color: WeatherBoardColors.textMuted, letterSpacing: 0.5 }}>
               {now}
@@ -183,54 +196,53 @@ export default function Post() {
 
         <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-10" contentContainerStyle={{ flexGrow: 1, paddingTop: 60, paddingBottom: 30 }}>
           <View>
-              <View className="mb-12">
-                <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-                  投稿するルームを選ぼう
-                </Text>
-
-                <View>
-                  <Pressable onPress={() => setIsModalVisible(true)}>
-                    <View className="flex-row items-center justify-between gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
-                      <Text className="text-base font-bold" style={{ color: 'black' }}>
-                        {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
-                      </Text>
-                      <Ionicons name="chevron-down" size={20} color="black" />
+              <View className="mb-10">
+                <Pressable onPress={() => setIsModalVisible(true)}>
+                  <View className="flex-row items-center gap-2 py-3 px-4 overflow-hidden" style={{ borderRadius: 100, backgroundColor: 'white' }}>
+                    <Ionicons name="home" size={18} color="black" />
+                    <Text className="text-base font-bold flex-1" style={{ color: 'black' }}>
+                      {rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.name}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="black" />
+                  </View>
+                </Pressable>
+                <Modal visible={isModalVisible} transparent={true} animationType="slide">
+                  <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
+                    <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
+                      <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
+                      <Picker
+                        selectedValue={currentRoomId}
+                        onValueChange={(value) => {
+                          setCurrentRoomId(value);
+                        }}>
+                        {rooms.map((room) => (
+                          <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
+                        ))}
+                      </Picker>
                     </View>
                   </Pressable>
-                  <Modal visible={isModalVisible} transparent={true} animationType="slide">
-                    <Pressable style={{ flex: 1 }} onPress={() => setIsModalVisible(false)}>
-                      <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
-                        <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
-                        <Picker
-                          selectedValue={currentRoomId}
-                          onValueChange={(value) => {
-                            setCurrentRoomId(value);
-                          }}>
-                          {rooms.map((room) => (
-                            <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
-                          ))}
-                        </Picker>
-                      </View>
-                    </Pressable>
-                  </Modal>
-                </View>
+                </Modal>
               </View>
 
               <View className="mb-10">
                 <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
-                  選択中:
+                  選択中
                 </Text>
-                <View className="flex-row flex-wrap items-center gap-2 py-2 px-4 border overflow-hidden" style={{ borderRadius: 16, borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'white' }}>
+                <View className="flex-row flex-wrap items-center gap-2 py-3 px-4 overflow-hidden" style={{ borderRadius: 16, backgroundColor: 'white' }}>
                   {selectedTags.length === 0 ? (
                     <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.placeholderDark }}>
                       選択中のタグはありません。
                     </Text>
                   ) : (
                     selectedTags.map((tag) => (
-                      <View key={tag.id}>
-                        <Text className="text-sm font-bold" style={{ color: 'black' }}>
-                          #{tag.tag_name}
-                        </Text>
+                      <View
+                        key={tag.id}
+                        className="flex-row items-center gap-1.5 px-3 py-1.5"
+                        style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground }}>
+                        <Text className="text-xs font-bold text-white">{tag.tag_name}</Text>
+                        <Pressable onPress={() => setSelectedTags(selectedTags.filter((item) => item.id !== tag.id))} hitSlop={6}>
+                          <Ionicons name="close" size={13} color="white" />
+                        </Pressable>
                       </View>
                     ))
                   )}
@@ -264,7 +276,20 @@ export default function Post() {
               </View>
 
               <View className="mb-24">
-                <GlassButton onPress={handlePost} buttonText="天気を投稿する" buttonIcon="sunny-outline" backgroundColor={WeatherBoardColors.accentBackground} />
+                <Pressable
+                  onPress={handlePost}
+                  disabled={isPosting}
+                  className="w-full flex-row justify-center items-center gap-3 py-4"
+                  style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground, opacity: isPosting ? 0.7 : 1 }}>
+                  <Ionicons name="sunny-outline" size={22} color="white" />
+                  <Text className="text-base font-bold text-white">天気を投稿する</Text>
+                </Pressable>
+                {showPostedConfirmation && (
+                  <View className="self-center mt-2 flex-row items-center gap-1.5 px-3 py-1.5" style={{ borderRadius: 100, backgroundColor: 'rgba(0,0,0,0.75)' }}>
+                    <Ionicons name="checkmark" size={14} color="white" />
+                    <Text className="text-xs font-bold text-white">投稿しました！</Text>
+                  </View>
+                )}
                 <Text className="text-center text-xs mt-2" style={{ color: WeatherBoardColors.textMuted }}>
                   投稿内容はWeekly分析に反映されます
                 </Text>
