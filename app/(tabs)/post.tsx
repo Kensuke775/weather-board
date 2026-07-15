@@ -7,9 +7,10 @@ import { Picker } from '@react-native-picker/picker';
 import { BlurView } from 'expo-blur';
 import { useFonts } from 'expo-font';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
-import { Fonts, WeatherBoardColors } from '@/constants/theme';
+import { BrownTheme, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +20,8 @@ const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 const MAX_NOTE_LENGTH = 200;
 export const MAX_SELECTED_TAGS = 5;
 const POSTED_CONFIRMATION_DELAY = 900;
+const DARK_TEXT = 'rgba(0,0,0,0.85)';
+const DARK_MUTED = 'rgba(0,0,0,0.45)';
 
 export default function Post() {
   const router = useRouter();
@@ -30,13 +33,13 @@ export default function Post() {
   }) as [boolean, Error | null];
   const [weather, setWeather] = useState('sunny');
   const [note, setNote] = useState('');
-  const [isInputVisible, setIsInputVisible] = useState(false);
   const [selectedTags, setSelectedTags] = useState<ActivityTag[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPosting, setIsPosting] = useState(false);
   const [hasPostedToday, setHasPostedToday] = useState(false);
   const [showPostedConfirmation, setShowPostedConfirmation] = useState(false);
+  const tabBarHeight = useBottomTabBarHeight();
   const { width } = Dimensions.get('window');
   const ITEM_WIDTH = 80;
   const PADDING = (width - ITEM_WIDTH) / 2;
@@ -194,9 +197,9 @@ export default function Post() {
           </View>
         </BlurView>
 
-        <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-5" contentContainerStyle={{ flexGrow: 1, paddingTop: 24, paddingBottom: 30 }}>
+        <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-5" contentContainerStyle={{ flexGrow: 1, paddingTop: 24, paddingBottom: tabBarHeight + 24 }}>
           <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20 }}>
-              <View className="mb-8">
+              <View>
                 <Pressable onPress={() => setIsModalVisible(true)}>
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="home" size={18} color="black" />
@@ -224,8 +227,10 @@ export default function Post() {
                 </Modal>
               </View>
 
-              <View className="mb-8">
-                <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+              <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginVertical: 20 }} />
+
+              <View>
+                <Text className="text-sm font-bold mb-4" style={{ color: DARK_TEXT }}>
                   選択中
                 </Text>
                 <View className="flex-row flex-wrap items-center gap-2">
@@ -249,12 +254,14 @@ export default function Post() {
                 </View>
               </View>
 
-              <View className="mb-8">
-                <ActivityTagPicker selectedTags={selectedTags} setSelectedTags={setSelectedTags} isInputVisible={isInputVisible} setIsInputVisible={setIsInputVisible} maxSelected={MAX_SELECTED_TAGS} />
-              </View>
+              <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginVertical: 20 }} />
 
-              <View className="mb-8">
-                <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+              <ActivityTagPicker selectedTags={selectedTags} setSelectedTags={setSelectedTags} maxSelected={MAX_SELECTED_TAGS} />
+
+              <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginVertical: 20 }} />
+
+              <View>
+                <Text className="text-sm font-bold mb-4" style={{ color: DARK_TEXT }}>
                   ひとことメモ
                 </Text>
                 <TextInput
@@ -268,12 +275,14 @@ export default function Post() {
                   placeholder="今日の気分を一言メモ…"
                   placeholderTextColor="rgba(0,0,0,0.4)"
                   className="py-4 px-3 rounded-xl"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.04)', color: DARK_TEXT }}
                 />
-                <Text className="text-right text-[10px] mt-1" style={{ color: WeatherBoardColors.textMuted }}>
+                <Text className="text-right text-[10px] mt-1" style={{ color: DARK_MUTED }}>
                   {note.length}/{MAX_NOTE_LENGTH}
                 </Text>
               </View>
+
+              <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginVertical: 20 }} />
 
               <Pressable
                 onPress={handlePost}
@@ -289,7 +298,7 @@ export default function Post() {
                   <Text className="text-xs font-bold text-white">投稿しました！</Text>
                 </View>
               )}
-              <Text className="text-center text-xs mt-2" style={{ color: WeatherBoardColors.textMuted }}>
+              <Text className="text-center text-xs mt-2" style={{ color: DARK_MUTED }}>
                 投稿内容はWeekly分析に反映されます
               </Text>
           </View>
