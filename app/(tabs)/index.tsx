@@ -1,25 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, ImageBackground, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ImageBackground, Pressable, Text, View } from 'react-native';
 
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import ActivityFeedSheet from '@/components/ActivityFeedSheet';
-import RoomMemberPanel from '@/components/RoomMemberPanel';
-import RoomSelectorHeader from '@/components/RoomSelectorHeader';
 import WeatherBoard from '@/components/WeatherBoard';
-import { WeatherBoardColors } from '@/constants/theme';
-import { ROOM_MEMBER_PANEL_WIDTH, SLIDE_ANIMATION_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { ActivityFeedItem, CommentsStatus, RoomMember, WeatherBoardItem } from '@/lib/types';
+import { ActivityFeedItem, CommentsStatus, WeatherBoardItem } from '@/lib/types';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
-const { height } = Dimensions.get('window');
-
 const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
+const FEED_PAGE_SIZE = 20;
 
 const fetchReactionsData = async (setter: (data: Record<string, number>) => void) => {
   const { data: reactionsData, error: reactionsError } = await supabase.from('post_reactions').select('weather_log_id, from_user_id');
@@ -91,40 +86,22 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
   setter(commentersMap);
 };
 
-const fetchBoardData = async (roomId: string | null, setter: (data: WeatherBoardItem[]) => void, loadingSetter: (loading: boolean) => void) => {
-  const { data: roomMembersData, error: roomMembersError } = await supabase.from('room_members').select('user_id').eq('room_id', roomId);
-  if (roomMembersError) {
-    console.error('[index(tab)] fetchBoardData', roomMembersError.message);
-    Alert.alert('天気・タグ・プロフィールの取得に失敗しました。');
-    return;
-  }
-  const userIds = roomMembersData.map((data) => data.user_id);
+const fetchFeedPage = async (page: number, setter: (data: WeatherBoardItem[]) => void, loadingSetter: (loading: boolean) => void) => {
+  const from = page * FEED_PAGE_SIZE;
+  const to = from + FEED_PAGE_SIZE - 1;
   const { data: weatherLogsData, error: weatherLogsError } = await supabase
     .from('weather_logs')
     .select('id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
-    .in('user_id', userIds)
-    .eq('room_id', roomId)
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .range(from, to);
 
   if (weatherLogsError) {
-    console.error('[index(tab)] fetchBoardData', weatherLogsError.message);
-    Alert.alert('ログの取得に失敗しました。');
+    console.error('[index(tab)] fetchFeedPage', weatherLogsError.message);
+    Alert.alert('投稿の取得に失敗しました。');
     return;
   }
 
-  const mostNewLogs = weatherLogsData.reduce(
-    (acc, item) => {
-      if (!acc[item.user_id]) {
-        acc[item.user_id] = item;
-      } else {
-        if (item.updated_at > acc[item.user_id].updated_at) acc[item.user_id] = item;
-      }
-      return acc;
-    },
-    {} as Record<string, (typeof weatherLogsData)[0]>,
-  );
-
-  const formattedData = Object.values(mostNewLogs).map((log) => ({
+  const formattedData = weatherLogsData.map((log) => ({
     ...log,
     profiles: Array.isArray(log.profiles) ? log.profiles[0] : log.profiles,
     tags: log.weather_log_activities
@@ -165,50 +142,35 @@ const fetchActivityFeed = async (roomId: string | null, setter: (data: ActivityF
   setter(formattedData);
 };
 
-
-const fetchRoomMember = async (roomId: string, userId: string, setter: (data: RoomMember[]) => void) => {
-  if (!roomId) return;
-  const { data: roomMemberData, error: roomMemberError } = await supabase.from('room_members').select('user_id').eq('room_id', roomId);
-  if (roomMemberError) {
-    console.error('[index(tab)] fetchRoomMember', roomMemberError.message);
-    Alert.alert('ルームメンバーの取得に失敗しました。');
-    return;
-  }
-  const userIds = roomMemberData.map((item) => item.user_id);
-  const { data: profileData, error: profileError } = await supabase.from('profiles').select('nickname, avatar_emoji, user_id').in('user_id', userIds);
-  if (profileError) {
-    console.error('[index(tab)] fetchRoomMember', profileError.message);
-    Alert.alert('プロフィールの取得に失敗しました。');
-    return;
-  }
-  const { data: blockedData, error: blockedError } = await supabase.from('blocks').select('blocked_id').eq('blocker_id', userId);
-  if (blockedError) {
-    console.error('[index(tab)] fetchRoomMember', blockedError.message);
-    Alert.alert('ブロック情報の取得に失敗しました。');
-    return;
-  }
-  const blockedIds = new Set(blockedData.map((item) => item.blocked_id));
-  setter(profileData.filter((item) => !blockedIds.has(item.user_id)));
-};
-
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useUser();
   const userId = user?.id;
-  const { currentRoomId, setCurrentRoomId, rooms, isLoading: roomIsLoading } = useRoom();
+  const { currentRoomId, setCurrentRoomId, isLoading: roomIsLoading } = useRoom();
   const [boardData, setBoardData] = useState<WeatherBoardItem[]>([]);
-  const [userData, setUserData] = useState<WeatherBoardItem | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [commentStatus, setCommentStatus] = useState<CommentsStatus>({});
   const [reactionStatus, setReactionStatus] = useState<Record<string, number>>({});
-  const [isModalVisible, setIsModalVisible] = useState(false);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [roomMember, setRoomMember] = useState<RoomMember[]>([]);
-  const [isMemberVisible, setIsMemberVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-ROOM_MEMBER_PANEL_WIDTH)).current;
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasNewPosts, setHasNewPosts] = useState(false);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const tabBarHeight = useBottomTabBarHeight();
+
+  const loadFeedPage = useCallback(async (pageToLoad: number, append: boolean) => {
+    await fetchFeedPage(
+      pageToLoad,
+      (data) => {
+        setBoardData((prev) => (append ? [...prev, ...data] : data));
+        setHasMore(data.length === FEED_PAGE_SIZE);
+      },
+      setIsLoading,
+    );
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -229,30 +191,34 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!currentRoomId) return;
-      let channel: ReturnType<typeof supabase.channel>;
-      let isCancelled = false;
-      const setUp = async () => {
-        const channelName = `board-${currentRoomId}`;
-        const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-        if (existing) await supabase.removeChannel(existing);
-        if (isCancelled) return;
-        await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
-        if (isCancelled) return;
-        channel = supabase
-          .channel(channelName)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'weather_logs' }, async () => {
-            await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
-          })
-          .subscribe();
-      };
-      setUp();
-      return () => {
-        isCancelled = true;
-        if (channel) supabase.removeChannel(channel);
-      };
-    }, [currentRoomId]),
+      if (!userId) return;
+      setPage(0);
+      loadFeedPage(0, false);
+    }, [userId, loadFeedPage]),
   );
+
+  useEffect(() => {
+    if (!userId) return;
+    let channel: ReturnType<typeof supabase.channel>;
+    let isCancelled = false;
+    const setUp = async () => {
+      const channelName = `feed-new-posts-${userId}`;
+      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      if (isCancelled) return;
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'weather_logs' }, () => {
+          setHasNewPosts(true);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      isCancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -283,7 +249,7 @@ export default function HomeScreen() {
   }, [currentRoomId, userId]);
 
   useEffect(() => {
-    if (!userId || !currentRoomId) return;
+    if (!userId) return;
     let channel: ReturnType<typeof supabase.channel>;
     let isCancelled = false;
     const setUp = async () => {
@@ -294,9 +260,9 @@ export default function HomeScreen() {
       channel = supabase
         .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'blocks' }, async () => {
-          await fetchBoardData(currentRoomId, setBoardData, setIsLoading);
+          setPage(0);
+          await loadFeedPage(0, false);
           await fetchCommentsData(setCommentStatus);
-          await fetchRoomMember(currentRoomId, userId, setRoomMember);
         })
         .subscribe();
     };
@@ -305,7 +271,7 @@ export default function HomeScreen() {
       isCancelled = true;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [currentRoomId, userId]);
+  }, [userId, loadFeedPage]);
 
   useEffect(() => {
     if (!userId) return;
@@ -359,64 +325,39 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!userId) return;
-      const fetchUserData = () => {
-        const userLogs = boardData.filter((data) => data.user_id === userId);
-        if (userLogs.length > 0) setUserData(userLogs[0]);
-      };
-      fetchUserData();
-    }, [boardData, userId]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
       bottomSheetRef?.current?.dismiss();
     }, []),
   );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!currentRoomId || !userId) return;
-      fetchRoomMember(currentRoomId, userId, setRoomMember);
-    }, [currentRoomId, userId]),
-  );
-
-  const openMemberPanel = () => {
-    setIsMemberVisible(true);
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: SLIDE_ANIMATION_DURATION,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const closeMemberPanel = () => {
-    Animated.timing(slideAnim, {
-      toValue: -ROOM_MEMBER_PANEL_WIDTH,
-      duration: SLIDE_ANIMATION_DURATION,
-      useNativeDriver: true,
-    }).start(() => setIsMemberVisible(false));
-  };
 
   const openBottomSheet = () => {
     bottomSheetRef.current?.present();
   };
 
-  const inviteCode = rooms.find((data) => data.rooms.id === currentRoomId)?.rooms.invite_code;
+  const handleLoadMore = () => {
+    if (isLoadingMore || !hasMore || isLoading) return;
+    const nextPage = page + 1;
+    setIsLoadingMore(true);
+    loadFeedPage(nextPage, true).finally(() => {
+      setIsLoadingMore(false);
+      setPage(nextPage);
+    });
+  };
 
-  if (roomIsLoading || !currentRoomId) {
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setHasNewPosts(false);
+    setPage(0);
+    await loadFeedPage(0, false);
+    setIsRefreshing(false);
+  };
+
+  if (roomIsLoading) {
     return (
       <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center px-10">
         <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }} />
-        {roomIsLoading ? (
-          <View className="flex-1 justify-center items-center">
-            <ActivityIndicator size="large" color="white" />
-          </View>
-        ) : (
-          <Text className="text-base font-bold text-center" style={{ color: 'white' }}>
-            現在参加しているルームはありません。{'\n'}設定からルームを作成・参加してください。
-          </Text>
-        )}
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="white" />
+        </View>
       </ImageBackground>
     );
   }
@@ -425,15 +366,20 @@ export default function HomeScreen() {
     <ImageBackground source={backgroundImage} className="flex-1">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
       <View style={{ paddingTop: 80, flex: 1, paddingHorizontal: 16 }}>
-        <RoomSelectorHeader
-          rooms={rooms}
-          currentRoomId={currentRoomId}
-          setCurrentRoomId={setCurrentRoomId}
-          inviteCode={inviteCode}
-          isModalVisible={isModalVisible}
-          setIsModalVisible={setIsModalVisible}
-          onMemberPanelOpen={openMemberPanel}
-        />
+        {hasNewPosts && (
+          <Pressable
+            onPress={handleRefresh}
+            style={{
+              alignSelf: 'center',
+              marginBottom: 12,
+              paddingVertical: 8,
+              paddingHorizontal: 16,
+              borderRadius: 100,
+              backgroundColor: 'rgba(98,66,33,0.92)',
+            }}>
+            <Text className="text-xs font-bold text-white">新着があります・タップで更新</Text>
+          </Pressable>
+        )}
         <View style={{ flex: 1 }}>
           {isLoading ? (
             <View className="flex-1 justify-center items-center">
@@ -446,7 +392,16 @@ export default function HomeScreen() {
               </Text>
             </View>
           ) : (
-            <WeatherBoard weatherLogs={boardData} unreadCounts={unreadCounts} commentStatus={commentStatus} reactionStatus={reactionStatus} />
+            <WeatherBoard
+              weatherLogs={boardData}
+              unreadCounts={unreadCounts}
+              commentStatus={commentStatus}
+              reactionStatus={reactionStatus}
+              onEndReached={handleLoadMore}
+              isLoadingMore={isLoadingMore}
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+            />
           )}
         </View>
         <Pressable
@@ -476,13 +431,6 @@ export default function HomeScreen() {
           </View>
         </Pressable>
       </View>
-      <RoomMemberPanel
-        roomMember={roomMember}
-        userId={userId}
-        visible={isMemberVisible}
-        slideAnim={slideAnim}
-        onClose={closeMemberPanel}
-      />
       <ActivityFeedSheet
         bottomSheetRef={bottomSheetRef}
         activityFeed={activityFeed}
