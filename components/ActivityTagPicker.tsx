@@ -1,4 +1,5 @@
-import { WeatherBoardColors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { BrownTheme, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,8 +8,6 @@ import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 export type ActivityTagPickerProps = {
   setSelectedTags: (tag: ActivityTag[]) => void;
   selectedTags: ActivityTag[];
-  isInputVisible: boolean;
-  setIsInputVisible: (value: boolean) => void;
   maxSelected?: number;
 };
 
@@ -28,7 +27,7 @@ const fetchUserTags = async (userId: string, setter: (data: ActivityTag[]) => vo
   setter(userTagsData);
 };
 
-export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInputVisible, setIsInputVisible, maxSelected }: ActivityTagPickerProps) {
+export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSelected }: ActivityTagPickerProps) {
   const { user } = useUser();
   const [userCreatedTags, setUserCreatedTags] = useState<ActivityTag[]>([]);
   const [inputText, setInputText] = useState('');
@@ -51,7 +50,6 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
         return;
       }
       setUserCreatedTags([...userCreatedTags, userTagsData]);
-      setIsInputVisible(false);
       setInputText('');
     } finally {
       setIsAddingTag(false);
@@ -92,8 +90,11 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
   return (
     <View>
       <View className="mb-4">
-        <Text className="text-sm font-bold mb-4" style={{ color: WeatherBoardColors.textPrimary }}>
+        <Text className="text-sm font-bold mb-1" style={{ color: 'rgba(0,0,0,0.85)' }}>
           今日のアクティビティ
+        </Text>
+        <Text className="text-[10px] mb-3" style={{ color: 'rgba(0,0,0,0.4)' }}>
+          長押しでタグを削除できます
         </Text>
         <View className="flex-wrap flex-row gap-3">
           {userCreatedTags.map((tag) => {
@@ -125,27 +126,27 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, isInp
               </View>
             );
           })}
-
-          <View className="overflow-hidden" style={{ borderRadius: 100, backgroundColor: 'white', borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)' }}>
-            <Pressable onPress={() => setIsInputVisible(!isInputVisible)} className="px-4 py-2.5">
-              <Text className="text-sm font-bold" style={{ color: 'black' }}>
-                + tag
-              </Text>
-            </Pressable>
-          </View>
         </View>
       </View>
 
-      {isInputVisible && (
-        <View className="flex-row items-center gap-2 mt-3 mb-4">
-          <View className="flex-1 overflow-hidden" style={{ borderRadius: 16, backgroundColor: 'white' }}>
-            <TextInput value={inputText} onChangeText={setInputText} placeholder="タグ名を入れて追加しよう" placeholderTextColor={WeatherBoardColors.placeholderDark} autoCapitalize="none" className="px-4 h-14 text-sm" />
-          </View>
-          <Pressable onPress={handleInsertTag} className="px-5 justify-center items-center" style={{ height: 56, borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground }}>
-            <Text className="text-sm font-bold text-white">追加する</Text>
-          </Pressable>
+      <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginBottom: 16 }} />
+
+      <View className="flex-row items-center gap-2">
+        <View className="flex-1 overflow-hidden" style={{ borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.04)' }}>
+          <TextInput
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="タグ名を入れて追加しよう"
+            placeholderTextColor={WeatherBoardColors.placeholderDark}
+            autoCapitalize="none"
+            className="px-4 h-12 text-sm"
+            style={{ color: 'rgba(0,0,0,0.85)' }}
+          />
         </View>
-      )}
+        <Pressable onPress={handleInsertTag} className="items-center justify-center" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: WeatherBoardColors.accentBackground }}>
+          <Ionicons name="add" size={22} color="white" />
+        </Pressable>
+      </View>
     </View>
   );
 }
