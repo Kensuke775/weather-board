@@ -5,8 +5,7 @@ import Svg, { Circle, Polyline } from 'react-native-svg';
 import { useFocusEffect } from 'expo-router';
 
 import WeatherCalendar from '@/components/WeatherCalendar';
-import { BrownTheme, Fonts } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
+import { BrownTheme, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WEATHER_CONFIG, WeatherType } from '@/lib/types';
@@ -31,7 +30,6 @@ function initialMonthStart() {
 }
 
 export default function History() {
-  const { currentRoomId } = useRoom();
   const { user } = useUser();
   const userId = user?.id;
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -47,14 +45,14 @@ export default function History() {
   useFocusEffect(
     useCallback(() => {
       const fetchAll = async () => {
-        if (!userId || !currentRoomId) return;
+        if (!userId) return;
 
         const { data: monthData, error: monthError } = await supabase
           .from('weather_logs')
           .select('id, user_id, weather, logged_date, profiles(avatar_emoji)')
           .gte('logged_date', currentMonth)
           .lte('logged_date', monthEnd)
-          .eq('room_id', currentRoomId)
+          .eq('user_id', userId)
           .order('updated_at', { ascending: false });
 
         if (monthError) {
@@ -83,7 +81,6 @@ export default function History() {
           .select('weather, note, profiles(avatar_emoji)')
           .eq('logged_date', today)
           .eq('user_id', userId)
-          .eq('room_id', currentRoomId)
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -96,7 +93,7 @@ export default function History() {
         }
       };
       fetchAll();
-    }, [currentMonth, monthEnd, currentRoomId, userId]),
+    }, [currentMonth, monthEnd, userId]),
   );
 
   const streak = useMemo(() => {
@@ -153,25 +150,25 @@ export default function History() {
 
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255,248,240,0.2)' }} />
+      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 60, paddingHorizontal: 16, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <View className="items-center mb-4">
-          <Text style={{ fontFamily: Fonts.title, fontSize: 42, color: BrownTheme.primaryText }}>History</Text>
-          <Text className="text-xs mt-0.5" style={{ color: BrownTheme.mutedText }}>あなたの記録を振り返りましょう</Text>
+          <Text style={{ fontFamily: Fonts.title, fontSize: 36, color: WeatherBoardColors.textPrimary, textAlign: 'center' }}>History</Text>
+          <Text className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>あなたの記録を振り返りましょう</Text>
         </View>
 
         {/* Streak badge — right-aligned, outside card */}
         <View className="flex-row justify-end mb-2">
-          <View className="flex-row items-center gap-1 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(166,116,72,0.15)' }}>
+          <View className="flex-row items-center gap-1 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}>
             <Text>🔥</Text>
             <Text className="text-sm font-bold" style={{ color: BrownTheme.primaryText }}>連続投稿日数 {streak}日</Text>
           </View>
         </View>
 
         {/* Single unified card */}
-        <View className="rounded-2xl overflow-hidden" style={{ backgroundColor: BrownTheme.cardBackground }}>
+        <View className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'white' }}>
 
           <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder }} />
 

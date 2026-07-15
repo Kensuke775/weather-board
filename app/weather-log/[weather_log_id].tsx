@@ -20,7 +20,6 @@ const CREAM = '#FCF8F0';
 type WeatherLogDetail = {
   id: string;
   user_id: string;
-  room_id: string;
   weather: WeatherType;
   note: string | null;
   updated_at: string;
@@ -33,7 +32,7 @@ type WeatherLogDetail = {
 const fetchWeatherLogDetail = async (weatherLogId: string, setter: (data: WeatherLogDetail) => void, loadingSetter: (loading: boolean) => void) => {
   const { data, error } = await supabase
     .from('weather_logs')
-    .select('id, user_id, room_id, weather, note, updated_at, logged_date, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
+    .select('id, user_id, weather, note, updated_at, logged_date, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
     .eq('id', weatherLogId)
     .single();
   if (error) {
@@ -51,7 +50,6 @@ const fetchWeatherLogDetail = async (weatherLogId: string, setter: (data: Weathe
   setter({
     id: data.id,
     user_id: data.user_id,
-    room_id: data.room_id,
     weather: data.weather,
     note: data.note,
     updated_at: data.updated_at,
@@ -74,8 +72,8 @@ const countConsecutiveDays = (loggedDates: string[], startDate: string): number 
   return streak;
 };
 
-const fetchStreakCount = async (userId: string, roomId: string, loggedDate: string, setter: (count: number) => void) => {
-  const { data, error } = await supabase.from('weather_logs').select('logged_date').eq('user_id', userId).eq('room_id', roomId).lte('logged_date', loggedDate);
+const fetchStreakCount = async (userId: string, loggedDate: string, setter: (count: number) => void) => {
+  const { data, error } = await supabase.from('weather_logs').select('logged_date').eq('user_id', userId).lte('logged_date', loggedDate);
   if (error) {
     console.error('[weather-log/[id]] fetchStreakCount', error.message);
     return;
@@ -119,7 +117,7 @@ export default function WeatherLogDetailScreen() {
 
   useEffect(() => {
     if (!detail) return;
-    fetchStreakCount(detail.user_id, detail.room_id, detail.logged_date, setStreakCount);
+    fetchStreakCount(detail.user_id, detail.logged_date, setStreakCount);
   }, [detail]);
 
   useEffect(() => {

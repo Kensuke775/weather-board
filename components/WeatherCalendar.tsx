@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Platform, Pressable, Text, View } from 'react-native';
 
 import { BlurView } from 'expo-blur';
 import { Calendar } from 'react-native-calendars';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 
 import CommentSection from '@/components/CommentSection';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
 import { BrownTheme, WeatherBoardColors } from '@/constants/theme';
 import { AVATAR_BUTTON, BLUR_INTENSITY, CARD_TEXT } from '@/constants/ui';
-import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WEATHER_CONFIG, WeatherType } from '@/lib/types';
 
@@ -27,7 +25,6 @@ type HistoryDayItem = {
   weather: WeatherType;
   note: string | null;
   updated_at: string;
-  room_id: string;
   profiles: { avatar_emoji: string; nickname: string } | null;
   weather_log_activities: {
     activity_tag_id: string;
@@ -49,13 +46,11 @@ const formatNote = (note: string | null | undefined) => {
 };
 
 export default function WeatherCalendar({ historyData, currentUserId, setDisplayMonth }: WeatherCalendarProps) {
-  const { currentRoomId, setCurrentRoomId, rooms } = useRoom();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [historyItem, setHistoryItem] = useState<HistoryDayItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<HistoryDayItem | null>(null);
   const [isCommentVisible, setIsCommentVisible] = useState(false);
-  const [isPickerVisible, setIsPickerVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDayPressing, setIsDayPressing] = useState(false);
 
@@ -76,9 +71,9 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
     try {
       const { data: historyDayData, error: historyDayError } = await supabase
         .from('weather_logs')
-        .select('id, user_id, weather, note, updated_at, room_id, profiles(avatar_emoji, nickname), weather_log_activities(activity_tag_id, activity_tags(tag_name)), comments(id, user_id, profiles(avatar_emoji))')
+        .select('id, user_id, weather, note, updated_at, profiles(avatar_emoji, nickname), weather_log_activities(activity_tag_id, activity_tags(tag_name)), comments(id, user_id, profiles(avatar_emoji))')
         .eq('logged_date', date)
-        .eq('room_id', currentRoomId);
+        .eq('user_id', currentUserId);
       if (historyDayError) {
         console.error('[WeatherCalendar] handleDayPress', historyDayError.message);
         Alert.alert('ログの取得に失敗しました。');
@@ -107,15 +102,6 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
     }
   };
 
-  useEffect(() => {
-    if (isModalVisible && selectedDate) {
-      handleDayPress(selectedDate);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentRoomId]);
-
-  const currentRoomName = rooms?.find((item) => item?.rooms.id === currentRoomId)?.rooms.name;
-
   const dayLogByDate = useMemo(() => {
     const dateRecord = new Map<string, { myLog: HistoryLog | undefined; otherLogs: HistoryLog[] }>();
     for (const log of historyData) {
@@ -134,10 +120,6 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
   return (
     <>
       <View>
-        <Pressable onPress={() => setIsPickerVisible(true)} className="flex-row items-center gap-1 py-1 px-2 rounded-xl self-start mb-2" style={{ backgroundColor: BrownTheme.contentBorder }}>
-          <Text className="text-[11px] font-bold" style={{ color: BrownTheme.primaryText }}>{currentRoomName && currentRoomName.length > 5 ? `${currentRoomName.slice(0, 5)}...` : currentRoomName}</Text>
-          <Ionicons name="chevron-down" size={10} color={BrownTheme.primaryText} />
-        </Pressable>
         <Calendar
           onMonthChange={(date) => {
             const month = String(date.month).padStart(2, '0');
@@ -194,10 +176,6 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
             <View className="pt-40 pb-20 px-4">
               <View className="pb-4 flex-row items-center justify-between">
                 <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textMuted }}>{`履歴: ${selectedDate ?? ''}`}</Text>
-                <Pressable onPress={() => setIsPickerVisible(true)} className="flex-row items-center gap-2 mb-2 py-2 px-2 bg-black/30 self-start rounded-xl border" style={{ borderColor: WeatherBoardColors.glassBorder }}>
-                  <Text className="text-sm text-white font-bold">{`部屋: ${currentRoomName}`}</Text>
-                  <Ionicons name="chevron-down" size={16} color="white" />
-                </Pressable>
               </View>
               <FlatList
                 data={historyItem}
@@ -343,23 +321,6 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
             </View>
           </Pressable>
         </View>
-      </Modal>
-
-      <Modal visible={isPickerVisible} transparent={true} animationType="slide">
-        <Pressable style={{ flex: 1 }} onPress={() => setIsPickerVisible(false)}>
-          <View onStartShouldSetResponder={() => true} className="pb-32" style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'white' }}>
-            <Text className="text-center font-bold pt-8">部屋を選んでください</Text>
-            <Picker
-              selectedValue={currentRoomId}
-              onValueChange={(value) => {
-                setCurrentRoomId(value);
-              }}>
-              {rooms.map((room) => (
-                <Picker.Item key={room.rooms.id} label={room.rooms.name} value={room.rooms.id} />
-              ))}
-            </Picker>
-          </View>
-        </Pressable>
       </Modal>
     </>
   );
