@@ -1,4 +1,4 @@
-import { FlatList, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 
 import WeatherCard from '@/components/WeatherCard';
 import { CommentsStatus, WeatherBoardItem } from '@/lib/types';
@@ -8,18 +8,26 @@ type WeatherBoardProps = {
   unreadCounts: Record<string, number>;
   commentStatus: CommentsStatus;
   reactionStatus: Record<string, number>;
+  onEndReached?: () => void;
+  isLoadingMore?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 };
 
-export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus, reactionStatus }: WeatherBoardProps) {
+export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus, reactionStatus, onEndReached, isLoadingMore, refreshing, onRefresh }: WeatherBoardProps) {
   return (
     <FlatList
       data={weatherLogs}
       keyExtractor={(item) => item.id}
       numColumns={2}
       columnWrapperStyle={{ gap: 14, justifyContent: 'flex-start' }}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16, paddingTop: 16 ,paddingHorizontal: '2.5%'}}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: 16, paddingTop: 16, paddingHorizontal: '2.5%' }}
       showsVerticalScrollIndicator={false}
       ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.4}
+      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} tintColor="white" /> : undefined}
+      ListFooterComponent={isLoadingMore ? () => <ActivityIndicator size="small" color="white" style={{ marginTop: 16 }} /> : undefined}
       renderItem={({ item }) => (
         <WeatherCard
           nickname={item.profiles.nickname}
