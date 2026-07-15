@@ -9,7 +9,7 @@ import { Picker } from '@react-native-picker/picker';
 
 import CommentSection from '@/components/CommentSection';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
-import { WeatherBoardColors } from '@/constants/theme';
+import { BrownTheme, WeatherBoardColors } from '@/constants/theme';
 import { AVATAR_BUTTON, BLUR_INTENSITY, CARD_TEXT } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
@@ -114,18 +114,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRoomId]);
 
-  const weatherHistogram = useMemo(() => {
-    const histogram: Record<string, number> = Object.fromEntries(Object.keys(WEATHER_CONFIG).map((key) => [key, 0]));
-    for (const data of historyData) {
-      if (data.user_id !== currentUserId) continue;
-      histogram[data.weather] += 1;
-    }
-    return histogram;
-  }, [historyData, currentUserId]);
-  const weatherEntries = Object.entries(weatherHistogram);
-  const mostWeather = weatherEntries.length > 0 ? weatherEntries.reduce((max, current) => (max[1] < current[1] ? current : max))[0] : null;
   const currentRoomName = rooms?.find((item) => item?.rooms.id === currentRoomId)?.rooms.name;
-  const hasCurrentUserRecord = Object.values(weatherHistogram).some((count) => count > 0);
 
   const dayLogByDate = useMemo(() => {
     const dateRecord = new Map<string, { myLog: HistoryLog | undefined; otherLogs: HistoryLog[] }>();
@@ -144,30 +133,24 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
 
   return (
     <>
-      <View className="border p-2" style={{ borderRadius: 16, borderColor: WeatherBoardColors.glassBorder, backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <View style={{ position: 'relative' }}>
-          <Pressable onPress={() => setIsPickerVisible(true)} className="flex-row items-center gap-1 py-1 px-2 bg-black/30 rounded-xl border" style={{ position: 'absolute', top: 0, left: 0, borderColor: WeatherBoardColors.glassBorder, zIndex: 1 }}>
-            <Text className="text-[10px] text-white font-bold">{currentRoomName && currentRoomName.length > 3 ? `${currentRoomName.slice(0, 3)}...` : currentRoomName}</Text>
-            <Ionicons name="chevron-down" size={10} color="white" />
-          </Pressable>
-          <Text className="text-sm font-bold text-center" style={{ color: WeatherBoardColors.textMuted }}>
-            {hasCurrentUserRecord ? `${WEATHER_CONFIG[mostWeather as WeatherType].emoji} Most Weather ${WEATHER_CONFIG[mostWeather as WeatherType].emoji}` : 'No Record'}
-          </Text>
-        </View>
+      <View>
+        <Pressable onPress={() => setIsPickerVisible(true)} className="flex-row items-center gap-1 py-1 px-2 rounded-xl self-start mb-2" style={{ backgroundColor: BrownTheme.contentBorder }}>
+          <Text className="text-[11px] font-bold" style={{ color: BrownTheme.primaryText }}>{currentRoomName && currentRoomName.length > 5 ? `${currentRoomName.slice(0, 5)}...` : currentRoomName}</Text>
+          <Ionicons name="chevron-down" size={10} color={BrownTheme.primaryText} />
+        </Pressable>
         <Calendar
           onMonthChange={(date) => {
             const month = String(date.month).padStart(2, '0');
             setDisplayMonth(`${date.year}-${month}-01`);
           }}
           hideExtraDays={true}
-          style={{ marginBottom: -14 }}
           theme={{
             backgroundColor: 'transparent',
             calendarBackground: 'transparent',
-            dayTextColor: '#ffffff',
-            textDisabledColor: 'rgba(255,255,255, 0.3)',
-            monthTextColor: '#ffffff',
-            arrowColor: '#ffffff',
+            dayTextColor: BrownTheme.primaryText,
+            textDisabledColor: BrownTheme.mutedText,
+            monthTextColor: BrownTheme.primaryText,
+            arrowColor: BrownTheme.primaryText,
           }}
           dayComponent={({ date }) => {
             const { myLog, otherLogs } = dayLogByDate.get(date?.dateString ?? '') ?? { myLog: undefined, otherLogs: [] };
@@ -179,7 +162,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                   handleDayPress(date?.dateString);
                 }}
                 className="relative w-[40px] h-[40px]">
-                <Text className="absolute left-0 right-0 text-[8px]" style={{ color: '#ffffff' }}>
+                <Text className="absolute left-0 right-0 text-[8px]" style={{ color: BrownTheme.mutedText }}>
                   {date?.day}
                 </Text>
                 <View className="absolute inset-0 items-center justify-center">
@@ -203,21 +186,6 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
           }}
         />
 
-        <View className="px-4 pb-2">
-          <Text className="text-sm font-bold text-center mb-2" style={{ color: WeatherBoardColors.textMuted }}>
-            Histgram
-          </Text>
-          <View className="flex-row justify-between items-center">
-            {Object.entries(weatherHistogram).map(([key, value]) => (
-              <View key={key} className="flex flex-row items-center gap-1">
-                <Text className="text-base font-bold">{WEATHER_CONFIG[key as WeatherType].emoji}</Text>
-                <Text className="text-base font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-                  {value === 0 ? null : value}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
       </View>
 
       <Modal visible={isModalVisible} transparent={true} animationType={'slide'}>
