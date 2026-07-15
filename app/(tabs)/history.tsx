@@ -162,71 +162,83 @@ export default function History() {
           <Text className="text-xs mt-0.5" style={{ color: BrownTheme.mutedText }}>あなたの記録を振り返りましょう</Text>
         </View>
 
-        {/* Streak badge */}
-        <View className="flex-row justify-end mb-3">
-          <View className="flex-row items-center gap-1 px-3 py-1.5 rounded-full" style={{ backgroundColor: BrownTheme.cardBackground }}>
-            <Text>🔥</Text>
-            <Text className="text-sm font-bold" style={{ color: BrownTheme.primaryText }}>連続投稿日数 {streak}日</Text>
-          </View>
-        </View>
+        {/* Single unified card */}
+        <View className="rounded-2xl overflow-hidden" style={{ backgroundColor: BrownTheme.cardBackground }}>
 
-        {/* 2-column: Today's Highlight | Most Weather */}
-        <View className="flex-row mb-3" style={{ minHeight: 130 }}>
-          <View className="flex-1 rounded-2xl p-3 mr-1.5" style={{ backgroundColor: BrownTheme.cardBackground }}>
-            <Text className="text-[11px] font-semibold mb-2" style={{ color: BrownTheme.mutedText }}>{"Today's Highlight"}</Text>
-            {todayLog ? (
-              <>
-                <View className="flex-row items-center gap-1 mb-2">
-                  <Text className="text-2xl">{WEATHER_CONFIG[todayLog.weather].emoji}</Text>
-                  <Text className="text-xs font-bold" style={{ color: BrownTheme.primaryText }}>{WEATHER_CONFIG[todayLog.weather].label}</Text>
-                </View>
-                <View className="flex-row items-start gap-1">
-                  <Text className="text-base">{todayLog.avatarEmoji}</Text>
-                  <Text className="text-[11px] flex-1 leading-5" style={{ color: BrownTheme.primaryText }} numberOfLines={4}>{todayLog.note}</Text>
-                </View>
-              </>
-            ) : (
-              <View className="flex-1 items-center justify-center">
-                <Text className="text-2xl mb-1">📭</Text>
-                <Text className="text-[10px] text-center" style={{ color: BrownTheme.mutedText }}>今日の記録がありません</Text>
-              </View>
-            )}
+          {/* Streak row */}
+          <View className="flex-row items-center justify-between px-4 py-3">
+            <Text className="text-xs font-semibold" style={{ color: BrownTheme.mutedText }}>今月の記録</Text>
+            <View className="flex-row items-center gap-1">
+              <Text>🔥</Text>
+              <Text className="text-sm font-bold" style={{ color: BrownTheme.primaryText }}>連続投稿日数 {streak}日</Text>
+            </View>
           </View>
 
-          <View className="flex-1 rounded-2xl p-3 ml-1.5" style={{ backgroundColor: BrownTheme.cardBackground }}>
-            <Text className="text-[11px] font-semibold mb-2" style={{ color: BrownTheme.mutedText }}>Most Weather</Text>
-            {mostWeather ? (
-              <>
-                <Text className="text-3xl font-bold" style={{ color: BrownTheme.primaryText }}>{mostWeather.topCount}日</Text>
-                <Text className="text-[11px] mb-2" style={{ color: BrownTheme.mutedText }}>{WEATHER_CONFIG[mostWeather.topWeather].label}が一番多いです</Text>
-                <View className="flex-row flex-wrap gap-x-2 gap-y-1">
-                  {(Object.entries(mostWeather.breakdown) as [WeatherType, number][])
-                    .filter(([, c]) => c > 0)
-                    .sort(([, a], [, b]) => b - a)
-                    .slice(0, 4)
-                    .map(([w, c]) => (
-                      <Text key={w} className="text-[11px]" style={{ color: BrownTheme.mutedText }}>
-                        {WEATHER_CONFIG[w].emoji}{c}日
-                      </Text>
-                    ))}
+          <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder }} />
+
+          {/* 2-column: Today's Highlight | Most Weather */}
+          <View className="flex-row" style={{ minHeight: 130 }}>
+            <View className="flex-1 p-4">
+              <Text className="text-[11px] font-semibold mb-2" style={{ color: BrownTheme.mutedText }}>{"Today's Highlight"}</Text>
+              {todayLog ? (
+                <>
+                  <View className="flex-row items-center gap-1 mb-2">
+                    <Text className="text-2xl">{WEATHER_CONFIG[todayLog.weather].emoji}</Text>
+                    <Text className="text-xs font-bold" style={{ color: BrownTheme.primaryText }}>{WEATHER_CONFIG[todayLog.weather].label}</Text>
+                  </View>
+                  <View className="flex-row items-start gap-1">
+                    <Text className="text-base">{todayLog.avatarEmoji}</Text>
+                    <Text className="text-[11px] flex-1 leading-5" style={{ color: BrownTheme.primaryText }} numberOfLines={4}>{todayLog.note}</Text>
+                  </View>
+                </>
+              ) : (
+                <View className="flex-1 items-center justify-center">
+                  <Text className="text-2xl mb-1">📭</Text>
+                  <Text className="text-[10px] text-center" style={{ color: BrownTheme.mutedText }}>今日の記録がありません</Text>
                 </View>
-              </>
-            ) : (
-              <View className="flex-1 items-center justify-center">
-                <Text className="text-xs text-center" style={{ color: BrownTheme.mutedText }}>記録がありません</Text>
-              </View>
-            )}
+              )}
+            </View>
+
+            <View style={{ width: 1, backgroundColor: BrownTheme.contentBorder }} />
+
+            <View className="flex-1 p-4">
+              <Text className="text-[11px] font-semibold mb-2" style={{ color: BrownTheme.mutedText }}>Most Weather</Text>
+              {mostWeather ? (
+                <>
+                  <Text className="text-3xl font-bold" style={{ color: BrownTheme.primaryText }}>{mostWeather.topCount}日</Text>
+                  <Text className="text-[11px] mb-2" style={{ color: BrownTheme.mutedText }}>{WEATHER_CONFIG[mostWeather.topWeather].label}が一番多いです</Text>
+                  <View className="flex-row flex-wrap gap-x-2 gap-y-1">
+                    {(Object.entries(mostWeather.breakdown) as [WeatherType, number][])
+                      .filter(([, c]) => c > 0)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 4)
+                      .map(([w, c]) => (
+                        <Text key={w} className="text-[11px]" style={{ color: BrownTheme.mutedText }}>
+                          {WEATHER_CONFIG[w].emoji}{c}日
+                        </Text>
+                      ))}
+                  </View>
+                </>
+              ) : (
+                <View className="flex-1 items-center justify-center">
+                  <Text className="text-xs text-center" style={{ color: BrownTheme.mutedText }}>記録がありません</Text>
+                </View>
+              )}
+            </View>
           </View>
-        </View>
 
-        {/* Calendar card */}
-        <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: BrownTheme.cardBackground }}>
-          <WeatherCalendar historyData={historyData} currentUserId={currentUserId} setDisplayMonth={setCurrentMonth} />
-        </View>
+          <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder }} />
 
-        {/* 2-column: Emotion trend | Tags TOP3 */}
-        <View className="flex-row">
-          <View className="flex-1 rounded-2xl p-3 mr-1.5" style={{ backgroundColor: BrownTheme.cardBackground }}>
+          {/* Calendar */}
+          <View className="p-4">
+            <WeatherCalendar historyData={historyData} currentUserId={currentUserId} setDisplayMonth={setCurrentMonth} />
+          </View>
+
+          <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder }} />
+
+          {/* 2-column: Emotion trend | Tags TOP3 */}
+          <View className="flex-row">
+            <View className="flex-1 p-4">
             <Text className="text-[11px] font-semibold mb-2" style={{ color: BrownTheme.mutedText }}>感情の推移</Text>
             {emotionTrend.length > 1 ? (
               <View>
@@ -261,12 +273,16 @@ export default function History() {
                 <Text className="text-xs text-center" style={{ color: BrownTheme.mutedText }}>データが足りません</Text>
               </View>
             )}
+            </View>
+
+            <View style={{ width: 1, backgroundColor: BrownTheme.contentBorder }} />
+
+            <View className="flex-1 p-4">
+              <Text className="text-[11px] font-semibold mb-2" style={{ color: BrownTheme.mutedText }}>よく使うタグ TOP3</Text>
+              <Text className="text-xs leading-5" style={{ color: BrownTheme.mutedText }}>タグ機能は{'\n'}近日公開予定です</Text>
+            </View>
           </View>
 
-          <View className="flex-1 rounded-2xl p-3 ml-1.5" style={{ backgroundColor: BrownTheme.cardBackground }}>
-            <Text className="text-[11px] font-semibold mb-2" style={{ color: BrownTheme.mutedText }}>よく使うタグ TOP3</Text>
-            <Text className="text-xs leading-5" style={{ color: BrownTheme.mutedText }}>タグ機能は{'\n'}近日公開予定です</Text>
-          </View>
         </View>
 
       </ScrollView>
