@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -9,10 +9,10 @@ import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthHeader } from '@/components/AuthHeader';
-import { BrownTheme, Fonts } from '@/constants/theme';
+import { EulaContent } from '@/components/EulaContent';
+import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
-const backgroundImage = require('@/assets/images/weather/login.png');
 const redirectTo = makeRedirectUri();
 
 type SubmittingName = 'password' | 'google' | 'apple' | null;
@@ -50,6 +50,7 @@ export default function AuthSignUp() {
   const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const emailValid = isValidEmail(email);
   const strength = getPasswordStrength(password);
@@ -133,6 +134,10 @@ export default function AuthSignUp() {
         setErrorMessage('パスワードが一致していません。');
         return;
       }
+      if (!agreed) {
+        setErrorMessage('利用規約への同意が必要です。');
+        return;
+      }
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
         console.error('[signup] handleSignUp', error.message);
@@ -144,7 +149,7 @@ export default function AuthSignUp() {
         return;
       }
       if (data.session) {
-        router.replace('/(auth)/eula');
+        router.replace('/(auth)/profile-setup');
       } else {
         setSignUpSuccess(true);
       }
@@ -156,54 +161,49 @@ export default function AuthSignUp() {
   if (!fontsLoaded) return null;
 
   return (
-    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <ScrollView
+        <AuthHeader title="Sign Up" subtitle="アカウントを作成して、はじめましょう" />
+        <ScrollView
             contentContainerStyle={{ paddingBottom: 48 }}
             keyboardShouldPersistTaps="handled">
           <Pressable onPress={Keyboard.dismiss}>
 
-            <AuthHeader title="Sign Up" subtitle="アカウントを作成して、はじめましょう" />
-
-            {/* カード */}
+            {/* カード（島） */}
             <View style={{
+              ...CardStyle,
               marginHorizontal: 24,
-              backgroundColor: BrownTheme.cardBackground,
+              marginTop: 20,
               borderRadius: 24,
               paddingHorizontal: 28,
               paddingVertical: 32,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.12,
-              shadowRadius: 20,
-              elevation: 10,
             }}>
 
               {/* メールアドレス */}
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Ionicons name="mail-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>メールアドレス</Text>
+                  <Ionicons name="mail-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>メールアドレス</Text>
                 </View>
-                <View style={{
-                  backgroundColor: 'white',
-                  borderRadius: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: 14,
-                }}>
-                  <TextInput
-                    value={email}
-                    onChangeText={(text) => { setEmail(text); setErrorMessage(null); }}
-                    placeholder="example@gmail.com"
-                    placeholderTextColor={BrownTheme.mutedText}
-                    textContentType="emailAddress"
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: BrownTheme.primaryText }}
-                  />
-                  {emailValid && <Ionicons name="checkmark" size={18} color="#27AE60" />}
-                </View>
+                <TextInput
+                  value={email}
+                  onChangeText={(text) => { setEmail(text); setErrorMessage(null); }}
+                  placeholder="example@gmail.com"
+                  placeholderTextColor={WeatherBoardColors.textMutedBlack}
+                  textContentType="emailAddress"
+                  autoCapitalize="none"
+                  keyboardType="ascii-capable"
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(0,0,0,0.12)',
+                    paddingVertical: 13,
+                    paddingHorizontal: 14,
+                    fontSize: 14,
+                    color: WeatherBoardColors.textPrimaryDark,
+                  }}
+                />
                 {email.length > 0 && !emailValid && (
                   <Text style={{ fontSize: 12, color: '#C0392B', marginTop: 6 }}>不正なメールアドレスです</Text>
                 )}
@@ -212,12 +212,14 @@ export default function AuthSignUp() {
               {/* パスワード */}
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Ionicons name="lock-closed-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>パスワード</Text>
+                  <Ionicons name="lock-closed-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>パスワード</Text>
                 </View>
                 <View style={{
                   backgroundColor: 'white',
                   borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(0,0,0,0.12)',
                   flexDirection: 'row',
                   alignItems: 'center',
                   paddingHorizontal: 14,
@@ -227,14 +229,14 @@ export default function AuthSignUp() {
                     value={password}
                     onChangeText={handlePasswordChange}
                     placeholder="パスワード"
-                    placeholderTextColor={BrownTheme.mutedText}
+                    placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="newPassword"
                     secureTextEntry={!isPasswordVisible && !isLastCharVisible}
                     autoCapitalize="none"
-                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: BrownTheme.primaryText }}
+                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
                   />
                   <Pressable onPress={() => setIsPasswordVisible((v) => !v)} hitSlop={8}>
-                    <Ionicons name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={BrownTheme.mutedText} />
+                    <Ionicons name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={WeatherBoardColors.textMutedBlack} />
                   </Pressable>
                 </View>
                 {password.length > 0 && (
@@ -245,7 +247,7 @@ export default function AuthSignUp() {
                           flex: 1,
                           height: 4,
                           borderRadius: 2,
-                          backgroundColor: i <= strength.level ? strengthColors[strength.level] : BrownTheme.contentBorder,
+                          backgroundColor: i <= strength.level ? strengthColors[strength.level] : 'rgba(0,0,0,0.1)',
                         }} />
                       ))}
                     </View>
@@ -259,12 +261,14 @@ export default function AuthSignUp() {
               {/* パスワード確認 */}
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Ionicons name="lock-closed-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>パスワード確認</Text>
+                  <Ionicons name="lock-closed-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>パスワード確認</Text>
                 </View>
                 <View style={{
                   backgroundColor: 'white',
                   borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(0,0,0,0.12)',
                   flexDirection: 'row',
                   alignItems: 'center',
                   paddingHorizontal: 14,
@@ -274,16 +278,16 @@ export default function AuthSignUp() {
                     value={confirmPassword}
                     onChangeText={(text) => { setConfirmPassword(text); setErrorMessage(null); }}
                     placeholder="パスワードを再入力"
-                    placeholderTextColor={BrownTheme.mutedText}
+                    placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="newPassword"
                     secureTextEntry={!isConfirmPasswordVisible}
                     autoCapitalize="none"
-                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: BrownTheme.primaryText }}
+                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
                   />
-                  <Pressable onPress={() => setIsConfirmPasswordVisible((v) => !v)} hitSlop={8} style={{ marginRight: 8 }}>
-                    <Ionicons name={isConfirmPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={BrownTheme.mutedText} />
+                  <Pressable onPress={() => setIsConfirmPasswordVisible((v) => !v)} hitSlop={8}>
+                    <Ionicons name={isConfirmPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={WeatherBoardColors.textMutedBlack} />
                   </Pressable>
-                  {passwordsMatch && <Ionicons name="checkmark" size={18} color="#27AE60" />}
+                  {passwordsMatch && <Ionicons name="checkmark" size={18} color="#27AE60" style={{ marginLeft: 8 }} />}
                 </View>
                 {passwordsMatch && (
                   <Text style={{ fontSize: 11, color: '#27AE60' }}>パスワードが一致しています</Text>
@@ -293,7 +297,7 @@ export default function AuthSignUp() {
               {/* パスワード要件チェックリスト */}
               {password.length > 0 && (
                 <View style={{
-                  backgroundColor: BrownTheme.contentBorder,
+                  backgroundColor: 'rgba(0,0,0,0.05)',
                   borderRadius: 12,
                   padding: 14,
                   marginBottom: 20,
@@ -305,12 +309,35 @@ export default function AuthSignUp() {
                     { label: '他のサービスで使用していないパスワードを推奨します', met: req6chars },
                   ].map(({ label, met }) => (
                     <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Ionicons name="checkmark-circle" size={16} color={met ? '#27AE60' : BrownTheme.mutedText} />
-                      <Text style={{ fontSize: 12, color: met ? BrownTheme.primaryText : BrownTheme.mutedText, flex: 1 }}>{label}</Text>
+                      <Ionicons name="checkmark-circle" size={16} color={met ? '#27AE60' : WeatherBoardColors.textMutedBlack} />
+                      <Text style={{ fontSize: 12, color: met ? WeatherBoardColors.textPrimaryDark : WeatherBoardColors.textMutedBlack, flex: 1 }}>{label}</Text>
                     </View>
                   ))}
                 </View>
               )}
+
+              {/* 利用規約 */}
+              <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginBottom: 20 }} />
+              <View style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+                  <Ionicons name="document-text-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>利用規約</Text>
+                </View>
+                <EulaContent />
+                <Pressable
+                  onPress={() => { setAgreed((v) => !v); setErrorMessage(null); }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                  <Ionicons
+                    name={agreed ? 'checkbox-outline' : 'square-outline'}
+                    size={24}
+                    color={agreed ? WeatherBoardColors.buttonBackground : WeatherBoardColors.textMutedBlack}
+                  />
+                  <Text style={{ fontSize: 14, color: WeatherBoardColors.textPrimaryDark, fontWeight: '500' }}>
+                    上記の内容に同意します
+                  </Text>
+                </Pressable>
+              </View>
+              <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginBottom: 20 }} />
 
               {errorMessage && (
                 <Text style={{ fontSize: 13, color: '#C0392B', marginBottom: 12 }}>{errorMessage}</Text>
@@ -318,7 +345,7 @@ export default function AuthSignUp() {
 
               {/* 新規登録ボタン */}
               <Pressable onPress={handleSignUp} disabled={isSubmitting !== null} style={{ marginBottom: 20, opacity: isSubmitting !== null ? 0.7 : 1 }}>
-                <View style={{ backgroundColor: BrownTheme.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="person-add-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>新規登録</Text>
                 </View>
@@ -326,17 +353,17 @@ export default function AuthSignUp() {
 
               {/* または */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: BrownTheme.contentBorder }} />
-                <Text style={{ marginHorizontal: 12, fontSize: 12, color: BrownTheme.mutedText }}>または</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: BrownTheme.contentBorder }} />
+                <View style={{ flex: 1, height: 1, backgroundColor: WeatherBoardColors.divider }} />
+                <Text style={{ marginHorizontal: 12, fontSize: 12, color: WeatherBoardColors.textMutedBlack }}>または</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: WeatherBoardColors.divider }} />
               </View>
 
               <View style={{ gap: 10, marginBottom: 16 }}>
                 {/* Google */}
                 <Pressable onPress={handleGoogleSignUp} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
-                  <View style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: BrownTheme.contentBorder, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginLeft: 16 }} />
-                    <Text style={{ flex: 1, textAlign: 'center', color: BrownTheme.primaryText, fontSize: 15, fontWeight: '600', marginRight: 36 }}>Google で登録</Text>
+                    <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textPrimaryDark, fontSize: 15, fontWeight: '600', marginRight: 36 }}>Google で登録</Text>
                   </View>
                 </Pressable>
 
@@ -367,16 +394,16 @@ export default function AuthSignUp() {
                   <Ionicons name="mail-outline" size={22} color="#27AE60" />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: '600', color: '#27AE60', marginBottom: 2 }}>確認メールを送りました</Text>
-                    <Text style={{ fontSize: 12, color: BrownTheme.mutedText }}>メールをご確認のうえ、登録を完了してください。</Text>
+                    <Text style={{ fontSize: 12, color: WeatherBoardColors.textMutedBlack }}>メールをご確認のうえ、登録を完了してください。</Text>
                   </View>
                 </View>
               )}
 
               {/* 戻る */}
               <Pressable onPress={() => router.replace('/(auth)/login')}>
-                <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: BrownTheme.mutedText, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="arrow-back-outline" size={20} color={BrownTheme.mutedText} style={{ marginLeft: 16 }} />
-                  <Text style={{ flex: 1, textAlign: 'center', color: BrownTheme.mutedText, fontSize: 15, fontWeight: '600', marginRight: 36 }}>戻る</Text>
+                <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: WeatherBoardColors.textMutedBlack, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="arrow-back-outline" size={20} color={WeatherBoardColors.textMutedBlack} style={{ marginLeft: 16 }} />
+                  <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '600', marginRight: 36 }}>戻る</Text>
                 </View>
               </Pressable>
 
@@ -384,6 +411,6 @@ export default function AuthSignUp() {
           </Pressable>
           </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }

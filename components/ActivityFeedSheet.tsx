@@ -23,6 +23,7 @@ export default function ActivityFeedSheet({ bottomSheetRef, activityFeed, tabBar
     <BottomSheetModal
       ref={bottomSheetRef}
       snapPoints={['30%']}
+      enableDynamicSizing={false}
       enablePanDownToClose
       backgroundStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
       handleIndicatorStyle={{ backgroundColor: 'white' }}

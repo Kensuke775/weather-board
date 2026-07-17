@@ -16,7 +16,7 @@ type RoomProviderType = {
 const RoomContext = createContext<RoomProviderType>(null!);
 
 const fetchRoomsData = async (userId: string, setterRoom: (roomData: RoomItem[]) => void, setterCurrentRoomId: (rooIdData: string | null) => void, setterLoding: (value: boolean) => void) => {
-  const { data: roomsData, error: roomsError } = await supabase.from('room_members').select('rooms(id, name, invite_code, icon_emoji)').eq('user_id', userId);
+  const { data: roomsData, error: roomsError } = await supabase.from('room_members').select('rooms(id, name, invite_code, icon_emoji, created_by)').eq('user_id', userId);
   if (roomsError) {
     console.error('[RoomContext] fetchRoomsData', roomsError.message);
     Alert.alert('ロームメンバー取得に失敗しました。');
@@ -24,7 +24,7 @@ const fetchRoomsData = async (userId: string, setterRoom: (roomData: RoomItem[])
   }
   const formattedRoomData = roomsData.map((item) => {
     const room = Array.isArray(item.rooms) ? item.rooms[0] : item.rooms;
-    return { rooms: room as { id: string; name: string; invite_code?: string; icon_emoji?: string } };
+    return { rooms: room as { id: string; name: string; invite_code?: string; icon_emoji?: string; created_by?: string } };
   });
   setterRoom(formattedRoomData);
   setterCurrentRoomId(formattedRoomData[0]?.rooms.id ?? null);

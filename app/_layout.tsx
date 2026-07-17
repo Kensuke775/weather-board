@@ -56,10 +56,42 @@ export default function RootLayout() {
                 <BottomSheetModalProvider>
                   <Stack>
                     <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
-                    <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none', title: '設定' }} />
+                    <Stack.Screen
+                      name="profile-edit"
+                      options={{
+                        title: 'プロフィール編集',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
                     <Stack.Screen name="weather-log/[weather_log_id]" options={{ headerShown: false }} />
                     <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
+                    <Stack.Screen
+                      name="room-setup"
+                      options={{
+                        title: 'ルーム設定',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="block-list"
+                      options={{
+                        title: 'ブロック一覧',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
                   </Stack>
                   <Toast position="bottom" bottomOffset={40} config={toastConfig} />
                 </BottomSheetModalProvider>

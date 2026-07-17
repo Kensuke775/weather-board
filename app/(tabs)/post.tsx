@@ -8,17 +8,14 @@ import { useFocusEffect, useRouter } from 'expo-router';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
 import IconHeader from '@/components/IconHeader';
-import { BrownTheme, WeatherBoardColors } from '@/constants/theme';
+import { BrownTheme, CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG } from '@/lib/types';
 
-const SCREEN_BACKGROUND = '#EAEAE8';
 const MAX_NOTE_LENGTH = 200;
 export const MAX_SELECTED_TAGS = 5;
 const POSTED_CONFIRMATION_DELAY = 900;
-const DARK_TEXT = 'rgba(0,0,0,0.85)';
-const DARK_MUTED = 'rgba(0,0,0,0.45)';
 
 export default function Post() {
   const router = useRouter();
@@ -129,7 +126,7 @@ export default function Post() {
 
   const now = new Date().toLocaleString('ja-JP', { month: '2-digit', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
   return (
-    <View style={{ flex: 1, backgroundColor: SCREEN_BACKGROUND }}>
+    <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <IconHeader icon="partly-sunny-outline" title="Post" subtitle="他のユーザと気分を共有しよう！！">
         {hasPostedToday && (
           <View className="self-center flex-row items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(251,191,36,0.9)', marginTop: 12 }}>
@@ -142,16 +139,16 @@ export default function Post() {
       </IconHeader>
 
       <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-5" contentContainerStyle={{ flexGrow: 1, paddingTop: 24, paddingBottom: tabBarHeight + 24 }}>
-        <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 20 }}>
+        <View style={{ ...CardStyle, borderRadius: 24, padding: 20 }}>
           <View>
             <View className="flex-row items-center justify-between mb-4">
               <View className="flex-row items-center gap-1.5">
-                <Ionicons name="sunny-outline" size={16} color={DARK_TEXT} />
-                <Text className="text-sm font-bold" style={{ color: DARK_TEXT }}>
+                <Ionicons name="sunny-outline" size={16} color={WeatherBoardColors.textPrimaryDark} />
+                <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimaryDark }}>
                   今の気分
                 </Text>
               </View>
-              <Text className="text-[10px]" style={{ color: DARK_MUTED, letterSpacing: 0.5 }}>
+              <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMutedBlack, letterSpacing: 0.5 }}>
                 {now}
               </Text>
             </View>
@@ -180,7 +177,7 @@ export default function Post() {
                       alignItems: 'center',
                     }}>
                     <Text style={{ fontSize: 30, lineHeight: 34 }}>{value.emoji}</Text>
-                    <Text className="text-[9px] font-bold mt-1" style={{ color: isSelected ? 'white' : DARK_MUTED }}>
+                    <Text className="text-[9px] font-bold mt-1" style={{ color: isSelected ? 'white' : WeatherBoardColors.textMutedBlack }}>
                       {value.label}
                     </Text>
                   </Pressable>
@@ -192,8 +189,8 @@ export default function Post() {
 
           <View>
             <View className="flex-row items-center gap-1.5 mb-4">
-              <Ionicons name="checkmark-circle-outline" size={16} color={DARK_TEXT} />
-              <Text className="text-sm font-bold" style={{ color: DARK_TEXT }}>
+              <Ionicons name="checkmark-circle-outline" size={16} color={WeatherBoardColors.textPrimaryDark} />
+              <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimaryDark }}>
                 選択中
               </Text>
             </View>
@@ -223,8 +220,8 @@ export default function Post() {
 
           <View>
             <View className="flex-row items-center gap-1.5 mb-4">
-              <Ionicons name="create-outline" size={16} color={DARK_TEXT} />
-              <Text className="text-sm font-bold" style={{ color: DARK_TEXT }}>
+              <Ionicons name="create-outline" size={16} color={WeatherBoardColors.textPrimaryDark} />
+              <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimaryDark }}>
                 ひとことメモ
               </Text>
             </View>
@@ -239,9 +236,9 @@ export default function Post() {
               placeholder="今日の気分を一言メモ…"
               placeholderTextColor="rgba(0,0,0,0.4)"
               className="py-4 px-3 rounded-xl"
-              style={{ backgroundColor: 'rgba(0,0,0,0.04)', color: DARK_TEXT }}
+              style={{ backgroundColor: 'rgba(0,0,0,0.04)', color: WeatherBoardColors.textPrimaryDark }}
             />
-            <Text className="text-right text-[10px] mt-1" style={{ color: DARK_MUTED }}>
+            <Text className="text-right text-[10px] mt-1" style={{ color: WeatherBoardColors.textMutedBlack }}>
               {note.length}/{MAX_NOTE_LENGTH}
             </Text>
           </View>
@@ -258,7 +255,7 @@ export default function Post() {
               <Text className="text-xs font-bold text-white">投稿しました！</Text>
             </View>
           )}
-          <Text className="text-center text-xs mt-2" style={{ color: DARK_MUTED }}>
+          <Text className="text-center text-xs mt-2" style={{ color: WeatherBoardColors.textMutedBlack }}>
             投稿内容はWeekly分析に反映されます
           </Text>
         </View>

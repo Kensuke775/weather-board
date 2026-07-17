@@ -13,8 +13,6 @@ export const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'room', label: 'ルーム' },
 ];
 
-const DARK_TEXT = 'rgba(0,0,0,0.85)';
-
 type NotificationsHeaderProps = {
   activeFilter: FilterKey;
   onFilterChange: (key: FilterKey) => void;
@@ -33,10 +31,10 @@ export default function NotificationsHeader({ activeFilter, onFilterChange, filt
           <Pressable
             onPress={onMarkAllRead}
             style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="checkmark-done-outline" size={18} color={DARK_TEXT} />
+            <Ionicons name="checkmark-done-outline" size={18} color={WeatherBoardColors.textPrimaryDark} />
           </Pressable>
           <Pressable style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="settings-outline" size={18} color={DARK_TEXT} />
+            <Ionicons name="settings-outline" size={18} color={WeatherBoardColors.textPrimaryDark} />
           </Pressable>
         </View>
       }>
@@ -59,7 +57,7 @@ export default function NotificationsHeader({ activeFilter, onFilterChange, filt
                 backgroundColor: isActive ? WeatherBoardColors.buttonBackground : 'transparent',
               }}>
               <Text
-                style={{ fontSize: 11, fontWeight: '700', color: isActive ? '#FFFFFF' : DARK_TEXT, flexShrink: 1 }}
+                style={{ fontSize: 11, fontWeight: '700', color: isActive ? '#FFFFFF' : WeatherBoardColors.textPrimaryDark, flexShrink: 1 }}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}>
@@ -75,7 +73,7 @@ export default function NotificationsHeader({ activeFilter, onFilterChange, filt
                   justifyContent: 'center',
                   backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.08)',
                 }}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: isActive ? '#FFFFFF' : DARK_TEXT }}>{filterCounts[key]}</Text>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: isActive ? '#FFFFFF' : WeatherBoardColors.textPrimaryDark }}>{filterCounts[key]}</Text>
               </View>
             </Pressable>
           );

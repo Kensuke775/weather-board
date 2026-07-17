@@ -87,13 +87,6 @@ export default function TabLayout() {
           return;
         }
         if (!profileData) return router.replace('/(auth)/eula');
-        const { data: roomData, error: roomError } = await supabase.from('room_members').select('user_id').eq('user_id', userId);
-        if (roomError) {
-          console.error('[_layout(tabs)] fetchSession', roomError.message);
-          Alert.alert('ルームの取得に失敗しました。');
-          return;
-        }
-        if (!roomData || roomData.length === 0) return router.replace('/(auth)/room-setup');
         const { status: notificationsStatus } = await Notifications.requestPermissionsAsync();
         if (notificationsStatus !== 'granted') return;
         try {

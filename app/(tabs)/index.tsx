@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ImageBackground, Pressable, Text, View } from 'react-native';
 
-import { useFocusEffect, useRouter } from 'expo-router';
+import { WeatherBoardColors } from '@/constants/theme';
+
+import { useFocusEffect } from 'expo-router';
 
 import ActivityFeedSheet from '@/components/ActivityFeedSheet';
 import WeatherBoard from '@/components/WeatherBoard';
@@ -142,7 +144,6 @@ const fetchActivityFeed = async (userId: string, setter: (data: ActivityFeedItem
 };
 
 export default function HomeScreen() {
-  const router = useRouter();
   const { user } = useUser();
   const userId = user?.id;
   const { currentRoomId, setCurrentRoomId, isLoading: roomIsLoading } = useRoom();
@@ -181,11 +182,11 @@ export default function HomeScreen() {
           Alert.alert('ルームの取得に失敗しました。');
           return;
         }
-        if (roomData.length === 0) return router.replace('/(auth)/room-setup');
+        if (roomData.length === 0) return;
         if (!currentRoomId) setCurrentRoomId(roomData[0]?.room_id);
       };
       fetchCurrentRoom();
-    }, [setCurrentRoomId, router, userId, currentRoomId]),
+    }, [setCurrentRoomId, userId, currentRoomId]),
   );
 
   useFocusEffect(
@@ -322,12 +323,6 @@ export default function HomeScreen() {
     };
   }, [userId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      bottomSheetRef?.current?.dismiss();
-    }, []),
-  );
-
   const openBottomSheet = () => {
     bottomSheetRef.current?.present();
   };
@@ -423,7 +418,7 @@ export default function HomeScreen() {
               shadowRadius: 12,
               elevation: 6,
             }}>
-            <Text className="text-sm font-bold" style={{ color: '#624221' }}>
+            <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimaryDark }}>
               Activity Feed
             </Text>
             <Text>💬</Text>
