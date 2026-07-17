@@ -9,6 +9,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
+import ScreenTitle from '@/components/ScreenTitle';
 import { BrownTheme, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
@@ -140,10 +141,7 @@ export default function Post() {
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }} />
       <View className="flex-1 pb-8">
         <BlurView intensity={10} tint="light" className="pt-20 pb-2 overflow-visible" style={{ borderBottomWidth: 1, borderColor: WeatherBoardColors.glassBorder }}>
-          <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
-            {`How's your weather today?`}
-          </Text>
-          <Text className="text-xs text-center mt-0.5" style={{ color: WeatherBoardColors.textMuted }}>天気を投稿しよう</Text>
+          <ScreenTitle title={`How's your weather today?`} subtitle="天気を投稿しよう" />
           {hasPostedToday && (
             <View className="self-center mt-2 mb-1 px-3 py-1.5 flex-row items-center gap-1.5 rounded-full" style={{ backgroundColor: 'rgba(251,191,36,0.9)' }}>
               <Ionicons name="warning-outline" size={13} color="#78350F" />
