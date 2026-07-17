@@ -90,9 +90,12 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
   return (
     <View>
       <View className="mb-4">
-        <Text className="text-sm font-bold mb-1" style={{ color: 'rgba(0,0,0,0.85)' }}>
-          今日のアクティビティ
-        </Text>
+        <View className="flex-row items-center gap-1.5 mb-1">
+          <Ionicons name="pricetag-outline" size={16} color="rgba(0,0,0,0.85)" />
+          <Text className="text-sm font-bold" style={{ color: 'rgba(0,0,0,0.85)' }}>
+            今日のアクティビティ
+          </Text>
+        </View>
         <Text className="text-[10px] mb-3" style={{ color: 'rgba(0,0,0,0.4)' }}>
           長押しでタグを削除できます
         </Text>

@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, ImageBackground, Pressable, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 
 import NotificationsHeader, { FILTERS, FilterKey } from '@/components/NotificationsHeader';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { Notification, WEATHER_CONFIG } from '@/lib/types';
 
-const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
-const PRIMARY_BROWN = '#624221';
-const MUTED_BROWN = 'rgba(98,66,33,0.55)';
+const SCREEN_BACKGROUND = '#EAEAE8';
+const DARK_TEXT = 'rgba(0,0,0,0.85)';
+const DARK_MUTED = 'rgba(0,0,0,0.45)';
 const CREAM = '#FCF8F0';
 
 const TYPE_LABEL: Record<Notification['type'], string> = {
@@ -68,7 +68,7 @@ const fetchNotifications = async (userId: string, setter: (data: Notification[])
 };
 
 const handleMarkAllRead = async (userId: string) => {
-  const { error } = await supabase.from('notifications').update({ is_read: true }).eq('to_user_id', userId).eq('is_read', false);
+  const { error } = await supabase.from('notifications').update({ is_read: true }).eq('to_user_id', userId).not('is_read', 'is', true);
   if (error) {
     console.error('[notifications] handleMarkAllRead', error.message);
     Alert.alert('既読の更新に失敗しました。');
@@ -147,7 +147,7 @@ export default function Notifications() {
   }, [filteredNotifications]);
 
   return (
-    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: SCREEN_BACKGROUND }}>
       <NotificationsHeader
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
@@ -159,12 +159,12 @@ export default function Notifications() {
         data={rows}
         keyExtractor={(row, index) => (row.kind === 'section' ? `section-${row.label}-${index}` : row.item.id)}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        ListEmptyComponent={() => <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', textAlign: 'center', padding: 20 }}>まだ通知がありません。</Text>}
+        ListEmptyComponent={() => <Text style={{ color: DARK_TEXT, fontWeight: '700', textAlign: 'center', padding: 20 }}>まだ通知がありません。</Text>}
         contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
         renderItem={({ item: row }) => {
           if (row.kind === 'section') {
             return (
-              <Text style={{ fontSize: 13, fontWeight: '700', color: PRIMARY_BROWN, marginTop: 6, marginBottom: 2, marginHorizontal: 20 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: DARK_TEXT, marginTop: 6, marginBottom: 2, marginHorizontal: 20 }}>
                 {row.label}
               </Text>
             );
@@ -179,6 +179,8 @@ export default function Notifications() {
                 gap: 10,
                 backgroundColor: '#FFFFFF',
                 borderRadius: 16,
+                borderWidth: 1,
+                borderColor: 'rgba(0,0,0,0.08)',
                 padding: 14,
                 marginHorizontal: 20,
               }}>
@@ -188,7 +190,7 @@ export default function Notifications() {
                   width: 40,
                   height: 40,
                   borderRadius: 20,
-                  backgroundColor: 'rgba(98,66,33,0.06)',
+                  backgroundColor: 'rgba(0,0,0,0.06)',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
@@ -196,37 +198,39 @@ export default function Notifications() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ color: PRIMARY_BROWN, fontWeight: '700', fontSize: 14 }}>{item.profiles?.nickname}</Text>
+                  <Text style={{ color: DARK_TEXT, fontWeight: '700', fontSize: 14 }}>{item.profiles?.nickname}</Text>
                   {item.weather && <Text style={{ fontSize: 13 }}>{WEATHER_CONFIG[item.weather].emoji}</Text>}
                   <View style={{ backgroundColor: TYPE_PILL_COLOR[item.type], borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: PRIMARY_BROWN }}>{TYPE_LABEL[item.type]}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: DARK_TEXT }}>{TYPE_LABEL[item.type]}</Text>
                   </View>
+                  <Text style={{ color: DARK_MUTED, fontSize: 11, marginLeft: 'auto' }}>
+                    {dateSectionLabel(item.created_at) === '今日'
+                      ? new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                      : new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                 </View>
-                <Text style={{ color: 'rgba(98,66,33,0.85)', fontSize: 12.5 }} numberOfLines={2}>
-                  {item.note ?? (item.type === 'room_join' ? 'ルームに参加しました' : '')}
-                </Text>
-                {item.tags.length > 0 && (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                    {item.tags.map((tag) => (
-                      <View key={tag.id} style={{ backgroundColor: CREAM, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ fontSize: 10, color: MUTED_BROWN }}>#{tag.name}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: DARK_TEXT, fontSize: 12.5 }} numberOfLines={2}>
+                      {item.note ?? (item.type === 'room_join' ? 'ルームに参加しました' : '')}
+                    </Text>
+                    {item.tags.length > 0 && (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                        {item.tags.map((tag) => (
+                          <View key={tag.id} style={{ backgroundColor: CREAM, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', paddingHorizontal: 6, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 10, color: DARK_MUTED }}>#{tag.name}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
+                    )}
                   </View>
-                )}
-              </View>
-              <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                <Text style={{ color: MUTED_BROWN, fontSize: 11 }}>
-                  {dateSectionLabel(item.created_at) === '今日'
-                    ? new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-                    : new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={MUTED_BROWN} />
+                  {item.weather_log_id && <Ionicons name="chevron-forward" size={16} color={DARK_MUTED} />}
+                </View>
               </View>
             </Pressable>
           );
         }}
       />
-    </ImageBackground>
+    </View>
   );
 }
