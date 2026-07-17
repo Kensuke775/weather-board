@@ -66,29 +66,17 @@ Weather Boardは気軽に、正直に共有できる。
 
 ## スクリーンショット
 
-| ホーム | アクティビティフィード | メンバー一覧 |
+| ホーム | 投稿 | ヒストリーカレンダー |
 |---|---|---|
-| ![ホーム](screenshots/home-screen.png) | ![アクティビティフィード](screenshots/home-activity-feed.png) | ![メンバー一覧](screenshots/home-members.png) |
+| ![ホーム](screenshots/home-screen.png) | ![投稿](screenshots/post.png) | ![ヒストリーカレンダー](screenshots/history-calendar.png) |
 
-| コメント | 投稿 | ヒストリーカレンダー |
+| AI分析 | 通知 | ログイン |
 |---|---|---|
-| ![コメント](screenshots/comments.png) | ![投稿](screenshots/post.png) | ![ヒストリーカレンダー](screenshots/history-calendar.png) |
+| ![AI分析](screenshots/analysis.png) | ![通知](screenshots/notifications.png) | ![ログイン](screenshots/login.png) |
 
-| ヒストリー詳細 | AI分析 | AI分析履歴 |
+| サインアップ | プロフィール設定 | 設定 |
 |---|---|---|
-| ![ヒストリー詳細](screenshots/history-details.png) | ![AI分析](screenshots/analysis.png) | ![AI分析履歴](screenshots/analysis-history.png) |
-
-| 通知 | ログイン | サインアップ |
-|---|---|---|
-| ![通知](screenshots/notifications.png) | ![ログイン](screenshots/login.png) | ![サインアップ](screenshots/sign-up.png) |
-
-| EULA | 設定 | アカウント設定 |
-|---|---|---|
-| ![EULA](screenshots/eula.png) | ![設定](screenshots/settings.png) | ![アカウント設定](screenshots/account-settings.png) |
-
-| 投稿画面のキーボード回避 | コメント画面のキーボード回避 | 通報・ブロックメニュー |
-|---|---|---|
-| ![投稿画面のキーボード回避](screenshots/post-test-input.png) | ![コメント画面のキーボード回避](screenshots/comments-test-input.png) | ![通報・ブロックメニュー](screenshots/report-block.png) |
+| ![サインアップ](screenshots/sign-up.png) | ![プロフィール設定](screenshots/profile-setup.png) | ![設定](screenshots/settings.png) |
 
 ## セットアップ
 
