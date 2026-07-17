@@ -153,7 +153,7 @@ export default function ReportBlockMenu({ targetUserId, weatherLogId, commentId,
                 <Text className="text-base">キャンセル</Text>
               </Pressable>
               <Pressable onPress={handleSubmitCustomReason}>
-                <Text className="text-base font-bold" style={{ color: WeatherBoardColors.accentBackground }}>
+                <Text className="text-base font-bold" style={{ color: WeatherBoardColors.buttonBackground }}>
                   送信する
                 </Text>
               </Pressable>

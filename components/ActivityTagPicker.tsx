@@ -107,7 +107,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
                 className="overflow-hidden"
                 style={{
                   borderRadius: 100,
-                  backgroundColor: isSelected ? WeatherBoardColors.accentBackground : 'white',
+                  backgroundColor: isSelected ? WeatherBoardColors.buttonBackground : 'white',
                   borderWidth: isSelected ? 0 : 1,
                   borderColor: 'rgba(0,0,0,0.15)',
                   opacity: isDisabled ? 0.3 : 1,
@@ -143,7 +143,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
             style={{ color: 'rgba(0,0,0,0.85)' }}
           />
         </View>
-        <Pressable onPress={handleInsertTag} className="items-center justify-center" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: WeatherBoardColors.accentBackground }}>
+        <Pressable onPress={handleInsertTag} className="items-center justify-center" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: WeatherBoardColors.buttonBackground }}>
           <Ionicons name="add" size={22} color="white" />
         </Pressable>
       </View>

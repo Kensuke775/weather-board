@@ -6,7 +6,7 @@ export const WeatherBoardColors = {
   textMutedGlay: "rgba(255,255,255,0.5)",
   textMutedDark: "rgba(0,0,0,0.7)",
   placeholderDark: "rgba(0,0,0,0.4)",
-  accentBackground: "rgba(96, 165, 250)",
+  buttonBackground: "rgba(96, 165, 250)",
   secondaryBackground: "rgba(120, 120, 120)",
   tertiaryBackground: "rgba(34, 197, 94)",
   glassBorder: "rgba(255,255,255,0.5)",

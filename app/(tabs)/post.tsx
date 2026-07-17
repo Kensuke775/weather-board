@@ -143,6 +143,7 @@ export default function Post() {
           <Text className="text-4xl text-center" style={{ color: WeatherBoardColors.textPrimary, fontFamily: 'DancingScript_400Regular' }}>
             {`How's your weather today?`}
           </Text>
+          <Text className="text-xs text-center mt-0.5" style={{ color: WeatherBoardColors.textMuted }}>天気を投稿しよう</Text>
           {hasPostedToday && (
             <View className="self-center mt-2 mb-1 px-3 py-1.5 flex-row items-center gap-1.5 rounded-full" style={{ backgroundColor: 'rgba(251,191,36,0.9)' }}>
               <Ionicons name="warning-outline" size={13} color="#78350F" />
@@ -209,7 +210,7 @@ export default function Post() {
                       <View
                         key={tag.id}
                         className="flex-row items-center gap-1.5 px-3 py-1.5"
-                        style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground }}>
+                        style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.buttonBackground }}>
                         <Text className="text-xs font-bold text-white">{tag.tag_name}</Text>
                         <Pressable onPress={() => setSelectedTags(selectedTags.filter((item) => item.id !== tag.id))} hitSlop={6}>
                           <Ionicons name="close" size={13} color="white" />
@@ -254,7 +255,7 @@ export default function Post() {
                 onPress={handlePost}
                 disabled={isPosting}
                 className="w-full flex-row justify-center items-center gap-3 py-4"
-                style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.accentBackground, opacity: isPosting ? 0.7 : 1 }}>
+                style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.buttonBackground, opacity: isPosting ? 0.7 : 1 }}>
                 <Ionicons name="sunny-outline" size={22} color="white" />
                 <Text className="text-base font-bold text-white">天気を投稿する</Text>
               </Pressable>
