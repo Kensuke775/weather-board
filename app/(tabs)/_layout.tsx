@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { ComponentProps, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ImageBackground, Platform, View } from 'react-native';
 
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
@@ -11,7 +11,6 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
@@ -38,8 +37,22 @@ const fetchUnreadCount = async (userId: string, setter: (count: number | null) =
   setter(count);
 };
 
+type TabIconProps = {
+  name: ComponentProps<typeof IconSymbol>['name'];
+  color: string;
+  focused: boolean;
+};
+
+const TabIcon = ({ name, color, focused }: TabIconProps) => {
+  return (
+    <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+      {focused && <View style={{ position: 'absolute', width: 50, height: 50, borderRadius: 30, backgroundColor: 'rgba(96, 165, 250, 0.10)', transform: [{ translateY: 4 }] }} />}
+      <IconSymbol size={28} name={name} color={color} />
+    </View>
+  );
+};
+
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const { bottom } = useSafeAreaInsets();
   const { user, isLoading: isUserLoading } = useUser();
@@ -127,8 +140,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#624221',
-        tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
+        tabBarActiveTintColor: WeatherBoardColors.buttonBackground,
+        tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -153,55 +166,55 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'ホーム',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-          tabBarActiveTintColor: '#624221',
-          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="house.fill" color={color} focused={focused} />,
+          tabBarActiveTintColor: WeatherBoardColors.buttonBackground,
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
         name="post"
         options={{
           title: 'ポスト',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="square.and.pencil" color={color} />,
-          tabBarActiveTintColor: '#624221',
-          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="square.and.pencil" color={color} focused={focused} />,
+          tabBarActiveTintColor: WeatherBoardColors.buttonBackground,
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
           title: '通知',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon name="bell.fill" color={color} focused={focused} />,
           tabBarBadge: unreadCount ? unreadCount : undefined,
-          tabBarActiveTintColor: '#624221',
-          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
+          tabBarActiveTintColor: WeatherBoardColors.buttonBackground,
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
           title: 'カレンダー',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
-          tabBarActiveTintColor: '#624221',
-          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="calendar" color={color} focused={focused} />,
+          tabBarActiveTintColor: WeatherBoardColors.buttonBackground,
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
         name="analysis"
         options={{
           title: '分析',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="wand.and.stars" color={color} />,
-          tabBarActiveTintColor: '#624221',
-          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="wand.and.stars" color={color} focused={focused} />,
+          tabBarActiveTintColor: WeatherBoardColors.buttonBackground,
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: '設定',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
-          tabBarActiveTintColor: '#624221',
-          tabBarInactiveTintColor: 'rgba(98,66,33,0.4)',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="gearshape.fill" color={color} focused={focused} />,
+          tabBarActiveTintColor: WeatherBoardColors.buttonBackground,
+          tabBarInactiveTintColor: 'rgba(0,0,0,0.35)',
         }}
       />
     </Tabs>
