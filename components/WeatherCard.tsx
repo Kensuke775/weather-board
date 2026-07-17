@@ -6,7 +6,9 @@ import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 
 import { CARD_TEXT } from '@/constants/ui';
+import { WeatherBoardColors } from '@/constants/theme';
 import { CommentsStatus, WEATHER_CONFIG, WeatherType } from '@/lib/types';
+import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 
 type WeatherCardProps = {
   nickname: string;
@@ -20,10 +22,6 @@ type WeatherCardProps = {
   commentStatus: CommentsStatus;
   reactionCount: number;
 };
-
-const PRIMARY_BROWN = '#624221';
-const SECONDARY_BROWN = 'rgba(98,66,33,0.75)';
-const MUTED_BROWN = 'rgba(98,66,33,0.55)';
 
 const hexToRgba = (hex: string, alpha: number): string => {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -39,41 +37,22 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
 
   const cardContent = (
     <View style={{ padding: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        {/* Avatar with badge backing */}
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            backgroundColor: 'rgba(255,255,255,0.72)',
-            borderWidth: 1.5,
-            borderColor: 'rgba(255,255,255,0.9)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.1,
-            shadowRadius: 3,
-          }}>
-          <Text style={{ fontSize: 16, lineHeight: 20 }}>{avatar_emoji}</Text>
-        </View>
-        {/* Centered name */}
-        <Text style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: PRIMARY_BROWN }} numberOfLines={1}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <AvatarWeatherBadge avatarEmoji={avatar_emoji} weather={weather} size={32} variant="glass" />
+        {/* Name */}
+        <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }} numberOfLines={1}>
           {nickname}
         </Text>
-        {/* Weather emoji */}
-        <Text style={{ fontSize: 18, width: 32, textAlign: 'right' }}>{WEATHER_CONFIG[weather].emoji}</Text>
       </View>
       <View className="mb-2">
-        <Text className="text-[10px]" style={{ color: SECONDARY_BROWN, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
+        <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMutedDark, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
           {note}
         </Text>
       </View>
       <View className="flex-row items-center gap-1.5 flex-wrap overflow-hidden mb-2" style={{ height: CARD_TEXT.tagRowHeight }}>
         {tags.map((tag) => (
           <View key={tag.id} style={{ backgroundColor: hexToRgba(cardColor, 0.5), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
-            <Text numberOfLines={1} className="text-[10px]" style={{ color: PRIMARY_BROWN }}>
+            <Text numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimaryDark }}>
               #{tag.name}
             </Text>
           </View>
@@ -81,15 +60,15 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
       </View>
       <View className="flex-row items-center gap-2 mb-1">
         <View className="flex-row gap-1 items-center">
-          <Ionicons name="chatbubble-ellipses-outline" size={12} color={MUTED_BROWN} />
-          <Text className="text-xs font-bold" style={{ color: MUTED_BROWN }}>
+          <Ionicons name="chatbubble-ellipses-outline" size={12} color={WeatherBoardColors.textMutedDark} />
+          <Text className="text-xs font-bold" style={{ color: WeatherBoardColors.textMutedDark }}>
             {commentStatus[weather_log_id]?.count > 0 ? commentStatus[weather_log_id]?.count : 0}
           </Text>
         </View>
         {reactionCount > 0 && (
           <View className="flex-row gap-1 items-center">
-            <Ionicons name="heart-outline" size={12} color={MUTED_BROWN} />
-            <Text className="text-xs font-bold" style={{ color: MUTED_BROWN }}>
+            <Ionicons name="heart-outline" size={12} color={WeatherBoardColors.textMutedDark} />
+            <Text className="text-xs font-bold" style={{ color: WeatherBoardColors.textMutedDark }}>
               {reactionCount}
             </Text>
           </View>
@@ -101,13 +80,13 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
             </Text>
           ))}
           {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
-            <Text className="text-[10px]" style={{ color: MUTED_BROWN }}>
+            <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMutedDark }}>
               ...
             </Text>
           )}
         </View>
       </View>
-      <Text className="text-[9px] text-right" style={{ color: MUTED_BROWN }}>
+      <Text className="text-[9px] text-right" style={{ color: WeatherBoardColors.textMutedDark }}>
         {formattedDate}
       </Text>
     </View>

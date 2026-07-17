@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import CommentSection from '@/components/CommentSection';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
-import { BrownTheme, WeatherBoardColors } from '@/constants/theme';
+import { WeatherBoardColors } from '@/constants/theme';
 import { AVATAR_BUTTON, BLUR_INTENSITY, CARD_TEXT } from '@/constants/ui';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WEATHER_CONFIG, WeatherType } from '@/lib/types';
@@ -129,10 +129,10 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
           theme={{
             backgroundColor: 'transparent',
             calendarBackground: 'transparent',
-            dayTextColor: BrownTheme.primaryText,
-            textDisabledColor: BrownTheme.mutedText,
-            monthTextColor: BrownTheme.primaryText,
-            arrowColor: BrownTheme.primaryText,
+            dayTextColor: WeatherBoardColors.textPrimaryDark,
+            textDisabledColor: WeatherBoardColors.textMutedDark,
+            monthTextColor: WeatherBoardColors.textPrimaryDark,
+            arrowColor: WeatherBoardColors.buttonBackground,
           }}
           dayComponent={({ date }) => {
             const { myLog, otherLogs } = dayLogByDate.get(date?.dateString ?? '') ?? { myLog: undefined, otherLogs: [] };
@@ -144,7 +144,7 @@ export default function WeatherCalendar({ historyData, currentUserId, setDisplay
                   handleDayPress(date?.dateString);
                 }}
                 className="relative w-[40px] h-[40px]">
-                <Text className="absolute left-0 right-0 text-[8px]" style={{ color: BrownTheme.mutedText }}>
+                <Text className="absolute left-0 right-0 text-[8px]" style={{ color: WeatherBoardColors.textMutedDark }}>
                   {date?.day}
                 </Text>
                 <View className="absolute inset-0 items-center justify-center">

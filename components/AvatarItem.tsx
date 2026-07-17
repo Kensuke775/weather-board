@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
-import { BrownTheme } from '@/constants/theme';
+import { WeatherBoardColors } from '@/constants/theme';
 
 type Props = {
   emoji: string;
@@ -20,7 +20,7 @@ export function AvatarItem({ emoji, isSelected, onPress, size = 60 }: Props) {
         borderRadius: 14,
         backgroundColor: 'white',
         borderWidth: 2,
-        borderColor: isSelected ? BrownTheme.buttonBackground : BrownTheme.contentBorder,
+        borderColor: isSelected ? WeatherBoardColors.buttonBackground : WeatherBoardColors.divider,
         alignItems: 'center',
         justifyContent: 'center',
       }}>
@@ -31,14 +31,14 @@ export function AvatarItem({ emoji, isSelected, onPress, size = 60 }: Props) {
           position: 'absolute',
           bottom: -6,
           right: -6,
-          backgroundColor: BrownTheme.buttonBackground,
+          backgroundColor: WeatherBoardColors.buttonBackground,
           borderRadius: 12,
           width: 22,
           height: 22,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 2,
-          borderColor: BrownTheme.cardBackground,
+          borderColor: '#FFFFFF',
         }}>
           <Ionicons name="checkmark" size={12} color="white" />
         </View>

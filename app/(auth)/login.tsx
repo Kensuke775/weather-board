@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -9,10 +9,9 @@ import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthHeader } from '@/components/AuthHeader';
-import { BrownTheme, Fonts } from '@/constants/theme';
+import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
-const backgroundImage = require('@/assets/images/weather/login.png');
 const redirectTo = makeRedirectUri();
 
 type SubmittingName = 'google' | 'apple' | 'password' | 'guest' | null;
@@ -198,50 +197,47 @@ export default function AuthLogin() {
   if (!fontsLoaded) return null;
 
   return (
-    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <AuthHeader title="Log In" subtitle="おかえりなさい、続きを始めましょう" showImage />
         <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
           <ScrollView
             contentContainerStyle={{ paddingBottom: 48 }}
             keyboardShouldPersistTaps="handled">
 
-            <AuthHeader title="Log In" />
-
-            {/* カード */}
+            {/* カード（島） */}
             <View style={{
+              ...CardStyle,
               marginHorizontal: 24,
-              backgroundColor: BrownTheme.cardBackground,
+              marginTop: 20,
               borderRadius: 24,
               paddingHorizontal: 28,
               paddingVertical: 32,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.12,
-              shadowRadius: 20,
-              elevation: 10,
             }}>
 
               {/* メールアドレス */}
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Ionicons name="mail-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>メールアドレス</Text>
+                  <Ionicons name="mail-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>メールアドレス</Text>
                 </View>
                 <TextInput
                   value={email}
                   onChangeText={(text) => { setEmail(text); setErrorMessage(null); }}
                   placeholder="example@email.com"
-                  placeholderTextColor={BrownTheme.mutedText}
+                  placeholderTextColor={WeatherBoardColors.textMutedBlack}
                   textContentType="emailAddress"
                   autoCapitalize="none"
-                  keyboardType="email-address"
+                  keyboardType="ascii-capable"
                   style={{
                     backgroundColor: 'white',
                     borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(0,0,0,0.12)',
                     paddingVertical: 13,
                     paddingHorizontal: 14,
                     fontSize: 14,
-                    color: BrownTheme.primaryText,
+                    color: WeatherBoardColors.textPrimaryDark,
                   }}
                 />
               </View>
@@ -249,12 +245,14 @@ export default function AuthLogin() {
               {/* パスワード */}
               <View style={{ marginBottom: 6 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Ionicons name="lock-closed-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>パスワード</Text>
+                  <Ionicons name="lock-closed-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>パスワード</Text>
                 </View>
                 <View style={{
                   backgroundColor: 'white',
                   borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(0,0,0,0.12)',
                   flexDirection: 'row',
                   alignItems: 'center',
                   paddingHorizontal: 14,
@@ -263,7 +261,7 @@ export default function AuthLogin() {
                     value={password}
                     onChangeText={handlePasswordChange}
                     placeholder="パスワード"
-                    placeholderTextColor={BrownTheme.mutedText}
+                    placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="password"
                     secureTextEntry={!isPasswordVisible && !isLastCharVisible}
                     autoCapitalize="none"
@@ -271,22 +269,22 @@ export default function AuthLogin() {
                       flex: 1,
                       paddingVertical: 13,
                       fontSize: 14,
-                      color: BrownTheme.primaryText,
+                      color: WeatherBoardColors.textPrimaryDark,
                     }}
                   />
                   <Pressable onPress={() => setIsPasswordVisible((v) => !v)} hitSlop={8}>
                     <Ionicons
                       name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'}
                       size={20}
-                      color={BrownTheme.mutedText}
+                      color={WeatherBoardColors.textMutedBlack}
                     />
                   </Pressable>
                 </View>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ fontSize: 11, color: BrownTheme.mutedText }}>※6文字以上で設定してください</Text>
+                <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>※6文字以上で設定してください</Text>
                 <Pressable onPress={handleForgotPassword} hitSlop={8}>
-                  <Text style={{ fontSize: 12, color: BrownTheme.buttonBackground, textDecorationLine: 'underline' }}>
+                  <Text style={{ fontSize: 12, color: WeatherBoardColors.buttonBackground, textDecorationLine: 'underline' }}>
                     パスワードをお忘れですか？
                   </Text>
                 </Pressable>
@@ -304,7 +302,7 @@ export default function AuthLogin() {
 
               {/* ログインボタン */}
               <Pressable onPress={handleLogin} disabled={isSubmitting !== null} style={{ marginBottom: 20, opacity: isSubmitting !== null ? 0.7 : 1 }}>
-                <View style={{ backgroundColor: BrownTheme.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="log-in-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>ログイン</Text>
                 </View>
@@ -312,9 +310,9 @@ export default function AuthLogin() {
 
               {/* または */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: BrownTheme.contentBorder }} />
-                <Text style={{ marginHorizontal: 12, fontSize: 12, color: BrownTheme.mutedText }}>または</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: BrownTheme.contentBorder }} />
+                <View style={{ flex: 1, height: 1, backgroundColor: WeatherBoardColors.divider }} />
+                <Text style={{ marginHorizontal: 12, fontSize: 12, color: WeatherBoardColors.textMutedBlack }}>または</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: WeatherBoardColors.divider }} />
               </View>
 
               <View style={{ gap: 10 }}>
@@ -323,9 +321,9 @@ export default function AuthLogin() {
                   onPress={handleGoogleLogin}
                   disabled={isSubmitting !== null}
                   style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
-                  <View style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: BrownTheme.contentBorder, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginLeft: 16 }} />
-                    <Text style={{ flex: 1, textAlign: 'center', color: BrownTheme.primaryText, fontSize: 15, fontWeight: '600', marginRight: 36 }}>Google でログイン</Text>
+                    <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textPrimaryDark, fontSize: 15, fontWeight: '600', marginRight: 36 }}>Google でログイン</Text>
                   </View>
                 </Pressable>
 
@@ -341,17 +339,17 @@ export default function AuthLogin() {
 
                 {/* アカウントを新しく作る */}
                 <Pressable onPress={() => router.push('/(auth)/signup')}>
-                  <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: BrownTheme.buttonBackground, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="person-add-outline" size={20} color={BrownTheme.buttonBackground} style={{ marginLeft: 16 }} />
-                    <Text style={{ flex: 1, textAlign: 'center', color: BrownTheme.buttonBackground, fontSize: 15, fontWeight: '600', marginRight: 36 }}>アカウントを新しく作る</Text>
+                  <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: WeatherBoardColors.textMutedBlack, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="person-add-outline" size={20} color={WeatherBoardColors.textMutedBlack} style={{ marginLeft: 16 }} />
+                    <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '600', marginRight: 36 }}>アカウントを新しく作る</Text>
                   </View>
                 </Pressable>
 
                 {/* ゲストとして試す */}
                 <Pressable onPress={handleGuestLogin} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
-                  <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: BrownTheme.mutedText, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="eye-outline" size={20} color={BrownTheme.mutedText} style={{ marginLeft: 16 }} />
-                    <Text style={{ flex: 1, textAlign: 'center', color: BrownTheme.mutedText, fontSize: 15, fontWeight: '600', marginRight: 36 }}>ゲストとして試す</Text>
+                  <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: WeatherBoardColors.textMutedBlack, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="eye-outline" size={20} color={WeatherBoardColors.textMutedBlack} style={{ marginLeft: 16 }} />
+                    <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '600', marginRight: 36 }}>ゲストとして試す</Text>
                   </View>
                 </Pressable>
               </View>
@@ -359,6 +357,6 @@ export default function AuthLogin() {
           </ScrollView>
         </Pressable>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }

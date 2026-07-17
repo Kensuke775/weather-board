@@ -1,38 +1,14 @@
 import { useState } from 'react';
-import { ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthHeader } from '@/components/AuthHeader';
-import { BrownTheme, Fonts } from '@/constants/theme';
+import { EulaContent } from '@/components/EulaContent';
+import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
-
-const backgroundImage = require('@/assets/images/weather/login.png');
-
-const SECTIONS = [
-  {
-    title: '1. 禁止事項',
-    body: '本アプリでは、以下に該当する投稿・コメント・行為を禁止します。違反が確認された場合、該当コンテンツの削除やアカウントの利用停止・削除を行うことがあります。\n・誹謗中傷、嫌がらせ、差別的な表現\n・暴力的、わいせつ、その他不適切な内容\n・他者になりすます行為、第三者の権利を侵害する行為\n・その他、法令や公序良俗に反する行為',
-  },
-  {
-    title: '2. 通報・ブロック機能',
-    body: '本アプリには、不適切な投稿・コメント・ユーザーを通報する機能、および迷惑なユーザーをブロックする機能があります。通報内容は運営者が確認し、必要に応じて対応します。',
-  },
-  {
-    title: '3. アカウントの停止・削除',
-    body: '本規約に違反したユーザーに対して、運営者は事前の通知なくコンテンツの削除、アカウントの利用停止または削除を行うことができます。',
-  },
-  {
-    title: '4. 規約の変更',
-    body: '本規約は必要に応じて変更することがあります。重要な変更がある場合は、アプリ内でお知らせします。',
-  },
-  {
-    title: '5. お問い合わせ',
-    body: '本規約に関するご質問は t.ypebob96@gmail.com までご連絡ください。',
-  },
-];
 
 export default function AuthEula() {
   const router = useRouter();
@@ -69,47 +45,27 @@ export default function AuthEula() {
   if (!fontsLoaded) return null;
 
   return (
-    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <AuthHeader title="Terms of Use" subtitle="利用規約" />
         <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
           <Pressable onPress={Keyboard.dismiss}>
 
-            <AuthHeader title="Terms of Use" subtitle="利用規約" />
-
-            {/* カード */}
+            {/* カード（島） */}
             <View style={{
+              ...CardStyle,
               marginHorizontal: 24,
-              backgroundColor: BrownTheme.cardBackground,
+              marginTop: 20,
               borderRadius: 24,
               paddingHorizontal: 24,
               paddingTop: 24,
               paddingBottom: 0,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.12,
-              shadowRadius: 20,
-              elevation: 10,
             }}>
 
-              {/* イントロ */}
-              <Text style={{ fontSize: 13, color: BrownTheme.primaryText, lineHeight: 20, marginBottom: 20 }}>
-                Weather Board（以下「本アプリ」）をご利用いただく前に、以下の内容をご確認のうえ同意してください。
-              </Text>
-
-              {/* セクション */}
-              {SECTIONS.map((section) => (
-                <View key={section.title} style={{ marginBottom: 20 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: BrownTheme.primaryText, marginBottom: 8 }}>
-                    {section.title}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: BrownTheme.primaryText, lineHeight: 20, opacity: 0.85 }}>
-                    {section.body}
-                  </Text>
-                </View>
-              ))}
+              <EulaContent />
 
               {/* 区切り線 */}
-              <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginBottom: 20 }} />
+              <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginBottom: 20 }} />
 
               {/* チェックボックス */}
               <Pressable
@@ -118,9 +74,9 @@ export default function AuthEula() {
                 <Ionicons
                   name={agreed ? 'checkbox-outline' : 'square-outline'}
                   size={24}
-                  color={agreed ? BrownTheme.buttonBackground : BrownTheme.mutedText}
+                  color={agreed ? WeatherBoardColors.buttonBackground : WeatherBoardColors.textMutedBlack}
                 />
-                <Text style={{ fontSize: 14, color: BrownTheme.primaryText, fontWeight: '500' }}>
+                <Text style={{ fontSize: 14, color: WeatherBoardColors.textPrimaryDark, fontWeight: '500' }}>
                   上記の内容に同意します
                 </Text>
               </Pressable>
@@ -136,7 +92,7 @@ export default function AuthEula() {
               <View style={{ gap: 8, paddingBottom: 8 }}>
                 <Pressable onPress={handleAgree} disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.7 : 1 }}>
                   <View style={{
-                    backgroundColor: BrownTheme.buttonBackground,
+                    backgroundColor: WeatherBoardColors.buttonBackground,
                     borderRadius: 12,
                     paddingVertical: 15,
                     flexDirection: 'row',
@@ -151,8 +107,8 @@ export default function AuthEula() {
 
                 <Pressable onPress={handleDisagree}>
                   <View style={{ paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="exit-outline" size={20} color={BrownTheme.mutedText} style={{ marginLeft: 16 }} />
-                    <Text style={{ flex: 1, textAlign: 'center', color: BrownTheme.mutedText, fontSize: 15, fontWeight: '500', marginRight: 36 }}>
+                    <Ionicons name="exit-outline" size={20} color={WeatherBoardColors.textMutedBlack} style={{ marginLeft: 16 }} />
+                    <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '500', marginRight: 36 }}>
                       同意しない（ログアウト）
                     </Text>
                   </View>
@@ -164,6 +120,6 @@ export default function AuthEula() {
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }

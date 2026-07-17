@@ -30,8 +30,8 @@ export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus,
       ListFooterComponent={isLoadingMore ? () => <ActivityIndicator size="small" color="white" style={{ marginTop: 16 }} /> : undefined}
       renderItem={({ item }) => (
         <WeatherCard
-          nickname={item.profiles?.nickname ?? ''}
-          avatar_emoji={item.profiles?.avatar_emoji ?? ''}
+          nickname={item.profiles?.nickname ?? '---'}
+          avatar_emoji={item.profiles?.avatar_emoji ?? '👤'}
           weather={item.weather}
           note={item.note}
           updated_at={item.updated_at}

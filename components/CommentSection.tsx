@@ -3,10 +3,12 @@ import { Alert, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'rea
 
 import { Ionicons } from '@expo/vector-icons';
 
+import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
+import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType, WEATHER_CONFIG, WeatherType } from '@/lib/types';
+import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType, WeatherType } from '@/lib/types';
 
 const fetchCommenterWeathers = async (userIds: string[], setter: (map: Record<string, WeatherType>) => void) => {
   if (userIds.length === 0) return;
@@ -40,15 +42,6 @@ const fetchCommentReactions = async (weatherLogId: string, setter: (rows: Commen
   setter(data.map(({ comment_id, from_user_id, reaction_type }) => ({ comment_id, from_user_id, reaction_type })));
 };
 
-const PRIMARY_BROWN = '#624221';
-const MUTED_BROWN = 'rgba(98,66,33,0.5)';
-
-const hexToRgba = (hex: string, alpha: number): string => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-};
 
 const fetchComments = async (weatherLogId: string, setter: (data: CommentItem[]) => void, loadingSetter: (loading: boolean) => void) => {
   const { data: commentsData, error: commentsError } = await supabase
@@ -66,7 +59,7 @@ const fetchComments = async (weatherLogId: string, setter: (data: CommentItem[])
   loadingSetter(false);
 };
 
-export default function CommentSection({ weather_log_id, to_user_id, readOnly, cardColor = '#EDE0CC' }: CommentSectionProps) {
+export default function CommentSection({ weather_log_id, to_user_id, readOnly }: CommentSectionProps) {
   const { user } = useUser();
   const userId = user?.id;
   const [inputText, setInputText] = useState('');
@@ -204,7 +197,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
     <View style={{ flex: 1 }}>
       {/* コメント件数ラベル・並び替え */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: PRIMARY_BROWN }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
           コメント（{comments.length}件）
         </Text>
         <Pressable
@@ -213,37 +206,22 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
             flexDirection: 'row',
             alignItems: 'center',
             gap: 2,
-            backgroundColor: '#FFFFFF',
+            ...CardStyle,
             borderRadius: 100,
             paddingHorizontal: 10,
             paddingVertical: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.06,
-            shadowRadius: 4,
-            elevation: 1,
           }}>
-          <Text style={{ fontSize: 12, color: MUTED_BROWN }}>{sortOrder === 'newest' ? '新しい順' : '古い順'}</Text>
-          <Ionicons name="chevron-down" size={12} color={MUTED_BROWN} />
+          <Text style={{ fontSize: 12, color: WeatherBoardColors.textMutedDark }}>{sortOrder === 'newest' ? '新しい順' : '古い順'}</Text>
+          <Ionicons name="chevron-down" size={12} color={WeatherBoardColors.textMutedDark} />
         </Pressable>
       </View>
 
-      <View style={{
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
-      }}>
+      <View style={{ ...CardStyle, flex: 1, borderRadius: 20, overflow: 'hidden' }}>
         <FlatList
           data={sortedComments}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(98,66,33,0.08)', marginHorizontal: 16 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(0,0,0,0.06)', marginHorizontal: 16 }} />}
           contentContainerStyle={{ paddingVertical: 8, flexGrow: 1 }}
           style={{ flex: 1 }}
           ref={flatListRef}
@@ -254,17 +232,17 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
                   width: 64,
                   height: 64,
                   borderRadius: 32,
-                  backgroundColor: hexToRgba(cardColor, 0.35),
+                  backgroundColor: 'rgba(0,0,0,0.05)',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 16,
                 }}>
                   <Text style={{ fontSize: 28 }}>🌱</Text>
                 </View>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: PRIMARY_BROWN, marginBottom: 6 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, marginBottom: 6 }}>
                   コメントはまだありません
                 </Text>
-                <Text style={{ fontSize: 12, color: MUTED_BROWN }}>
+                <Text style={{ fontSize: 12, color: WeatherBoardColors.textMutedDark }}>
                   最初のコメントを送ってみましょう！
                 </Text>
               </View>
@@ -275,20 +253,14 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
             <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: hexToRgba(cardColor, 0.3),
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{ fontSize: 16 }}>{item.profiles.avatar_emoji}</Text>
-                  </View>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: PRIMARY_BROWN }}>
+                  <AvatarWeatherBadge
+                    avatarEmoji={item.profiles.avatar_emoji}
+                    weather={commenterWeathers[item.user_id] ?? 'cloudy'}
+                    size={28}
+                  />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>
                     {item.profiles.nickname}
                   </Text>
-                  {commenterWeathers[item.user_id] && <Text style={{ fontSize: 13 }}>{WEATHER_CONFIG[commenterWeathers[item.user_id]].emoji}</Text>}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {REACTION_TYPES.map(({ type, emoji }) => {
@@ -304,14 +276,14 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
                           flexDirection: 'row',
                           alignItems: 'center',
                           gap: 3,
-                          backgroundColor: isSelected ? 'rgba(98,66,33,0.14)' : 'rgba(98,66,33,0.06)',
+                          backgroundColor: isSelected ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.04)',
                           borderRadius: 100,
                           paddingHorizontal: 8,
                           paddingVertical: 3,
                           opacity: pendingCommentReactions.has(key) ? 0.5 : 1,
                         }}>
                         <Text style={{ fontSize: 11 }}>{emoji}</Text>
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: PRIMARY_BROWN }}>{rowsForType.length}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{rowsForType.length}</Text>
                       </Pressable>
                     );
                   })}
@@ -323,17 +295,17 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
                           { text: '削除する', style: 'destructive', onPress: () => handleDeleteComment(item.id) },
                         ]);
                       }}>
-                      <Ionicons name="trash-outline" size={16} color={MUTED_BROWN} />
+                      <Ionicons name="trash-outline" size={16} color={WeatherBoardColors.textMutedDark} />
                     </Pressable>
                   ) : (
                     <ReportBlockMenu targetUserId={item.user_id} weatherLogId={weather_log_id} commentId={item.id} variant="compact" />
                   )}
                 </View>
               </View>
-              <Text style={{ fontSize: 13, color: 'rgba(98,66,33,0.85)', paddingLeft: 40 }}>
+              <Text style={{ fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingLeft: 40 }}>
                 {item.body}
               </Text>
-              <Text style={{ fontSize: 10, color: MUTED_BROWN, textAlign: 'right', marginTop: 4 }}>
+              <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedDark, textAlign: 'right', marginTop: 4 }}>
                 {new Date(item.created_at).toLocaleTimeString('jp-JP', { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
@@ -345,28 +317,23 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, marginBottom: 10 }}>
           <View
             style={{
+              ...CardStyle,
               flex: 1,
               height: 48,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: '#FFFFFF',
               borderRadius: 24,
               paddingHorizontal: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.08,
-              shadowRadius: 8,
-              elevation: 3,
             }}>
-            <Ionicons name="pencil-outline" size={16} color={MUTED_BROWN} />
+            <Ionicons name="pencil-outline" size={16} color={WeatherBoardColors.textMutedDark} />
             <TextInput
               value={inputText}
               onChangeText={setInputText}
               autoCapitalize="none"
               placeholder="コメントを書いてみましょう..."
-              placeholderTextColor={MUTED_BROWN}
-              style={{ flex: 1, fontSize: 14, color: PRIMARY_BROWN }}
+              placeholderTextColor={WeatherBoardColors.textMutedDark}
+              style={{ flex: 1, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
             />
           </View>
           <Pressable
@@ -374,7 +341,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly, c
             style={{
               height: 48,
               justifyContent: 'center',
-              backgroundColor: PRIMARY_BROWN,
+              backgroundColor: WeatherBoardColors.buttonBackground,
               borderRadius: 24,
               paddingHorizontal: 18,
               shadowColor: '#000',

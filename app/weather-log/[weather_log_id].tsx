@@ -3,19 +3,17 @@ import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import CommentSection from '@/components/CommentSection';
 import PostReactionBar from '@/components/PostReactionBar';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
-import ScreenHeader from '@/components/ScreenHeader';
 import TalkButton from '@/components/TalkButton';
+import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
-
-const PRIMARY_BROWN = '#624221';
-const MUTED_BROWN = 'rgba(98,66,33,0.55)';
-const CREAM = '#FCF8F0';
+import { WeatherType } from '@/lib/types';
 
 type WeatherLogDetail = {
   id: string;
@@ -101,6 +99,7 @@ const handleDeletePost = async (weatherLogId: string, onDeleted: () => void) => 
 export default function WeatherLogDetailScreen() {
   const { weather_log_id } = useLocalSearchParams<{ weather_log_id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useUser();
   const userId = user?.id;
   const [detail, setDetail] = useState<WeatherLogDetail | null>(null);
@@ -127,105 +126,90 @@ export default function WeatherLogDetailScreen() {
 
   if (isLoading || !detail) {
     return (
-      <View style={{ flex: 1, backgroundColor: CREAM }}>
-        <ScreenHeader title="" onBack={() => router.back()} />
+      <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
+        <View style={{ height: insets.top + 4 }} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={PRIMARY_BROWN} />
+          <ActivityIndicator size="large" color={WeatherBoardColors.buttonBackground} />
         </View>
       </View>
     );
   }
 
   const formattedDate = new Date(detail.updated_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const cardColor = WEATHER_CONFIG[detail.weather].cardColor;
   const isOwnPost = userId === detail.user_id;
 
   return (
-    <View style={{ flex: 1, backgroundColor: CREAM }}>
-      <ScreenHeader
-        title={detail.nickname}
-        subtitle={formattedDate}
-        avatarEmoji={detail.avatar_emoji}
-        titleEmoji={WEATHER_CONFIG[detail.weather].emoji}
-        onBack={() => router.back()}
-        rightContent={
-          <>
-            {!isOwnPost && <TalkButton to_user_id={detail.user_id} weather_log_id={detail.id} variant="light" />}
-            <ReportBlockMenu targetUserId={detail.user_id} weatherLogId={detail.id} onBlocked={() => router.back()} variant="header" />
-          </>
-        }
-      />
+    <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
+      {/* Nav bar */}
+      <View
+        style={{
+          paddingTop: insets.top + 4,
+          paddingHorizontal: 20,
+          paddingBottom: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name="chevron-back" size={20} color={WeatherBoardColors.textPrimaryDark} />
+        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {!isOwnPost && <TalkButton to_user_id={detail.user_id} weather_log_id={detail.id} variant="light" />}
+          {isOwnPost && (
+            <Pressable
+              onPress={() =>
+                Alert.alert('確認', 'この投稿を削除しますか？\n削除すると元に戻せません。', [
+                  { text: 'キャンセル', style: 'cancel' },
+                  { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(detail.id, () => router.back()) },
+                ])
+              }
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="trash-outline" size={18} color={WeatherBoardColors.textMutedDark} />
+            </Pressable>
+          )}
+          {!isOwnPost && <ReportBlockMenu targetUserId={detail.user_id} weatherLogId={detail.id} onBlocked={() => router.back()} variant="header" />}
+        </View>
+      </View>
 
-      <View style={{ flex: 1, backgroundColor: CREAM }}>
-        <View style={{ flex: 1, padding: 20 }}>
+      {/* Header info card: avatar + name + streak + note + tags */}
+      <View style={{ ...CardStyle, marginHorizontal: 16, borderRadius: 20, padding: 16, marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <AvatarWeatherBadge avatarEmoji={detail.avatar_emoji} weather={detail.weather} size={44} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{detail.nickname}</Text>
+            <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedDark, marginTop: 1 }}>{formattedDate}</Text>
+          </View>
           {streakCount !== null && streakCount > 0 && (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                alignSelf: 'flex-start',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 100,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginBottom: 12,
-                gap: 6,
-              }}>
-              <Text style={{ fontSize: 14 }}>🔥</Text>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: PRIMARY_BROWN }}>連続投稿日数</Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: PRIMARY_BROWN }}>{streakCount}日</Text>
-              <Ionicons name="chevron-forward" size={14} color={MUTED_BROWN} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 5, gap: 4 }}>
+              <Text style={{ fontSize: 13 }}>🔥</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{streakCount}日</Text>
             </View>
           )}
-          <View
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 20,
-              padding: 16,
-              marginBottom: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 2,
-            }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <View style={{ backgroundColor: 'rgba(98,66,33,0.08)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: PRIMARY_BROWN }}>ひとことメモ</Text>
-              </View>
-              {isOwnPost && (
-                <Pressable
-                  onPress={() => {
-                    Alert.alert('確認', 'この投稿を削除しますか？\n削除すると元に戻せません。', [
-                      { text: 'キャンセル', style: 'cancel' },
-                      { text: '削除する', style: 'destructive', onPress: () => handleDeletePost(detail.id, () => router.back()) },
-                    ]);
-                  }}>
-                  <Ionicons name="trash-outline" size={18} color={MUTED_BROWN} />
-                </Pressable>
-              )}
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <Text style={{ fontSize: 20 }}>{WEATHER_CONFIG[detail.weather].emoji}</Text>
-              <Text style={{ fontSize: 15, color: PRIMARY_BROWN, flex: 1 }}>{detail.note}</Text>
-            </View>
-
-            {detail.tags.length > 0 && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {detail.tags.map((tag) => (
-                  <Text key={tag.id} style={{ fontSize: 12, color: MUTED_BROWN }}>
-                    #{tag.name}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </View>
-
-          <PostReactionBar weatherLogId={detail.id} />
-
-          <CommentSection to_user_id={detail.user_id} weather_log_id={detail.id} cardColor={cardColor} />
         </View>
+
+        <Text style={{ fontSize: 14, color: WeatherBoardColors.textPrimaryDark, lineHeight: 20, marginBottom: detail.tags.length > 0 ? 10 : 0 }}>{detail.note}</Text>
+
+        {detail.tags.length > 0 && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {detail.tags.map((tag) => (
+              <View key={tag.id} style={{ backgroundColor: WeatherBoardColors.tagBackground, borderRadius: 100, paddingHorizontal: 10, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 11, color: WeatherBoardColors.textPrimaryDark }}>#{tag.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Reaction bar */}
+      <View style={{ paddingHorizontal: 16 }}>
+        <PostReactionBar weatherLogId={detail.id} />
+      </View>
+
+      {/* Comments */}
+      <View style={{ flex: 1, paddingHorizontal: 16 }}>
+        <CommentSection to_user_id={detail.user_id} weather_log_id={detail.id} />
       </View>
     </View>
   );

@@ -4,14 +4,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 
 import NotificationsHeader, { FILTERS, FilterKey } from '@/components/NotificationsHeader';
-import { useUser } from '@/context/UserContext';
+import { WeatherBoardColors } from '@/constants/theme';import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { Notification, WEATHER_CONFIG } from '@/lib/types';
 
-const SCREEN_BACKGROUND = '#EAEAE8';
-const DARK_TEXT = 'rgba(0,0,0,0.85)';
-const DARK_MUTED = 'rgba(0,0,0,0.45)';
-const CREAM = '#FCF8F0';
 
 const TYPE_LABEL: Record<Notification['type'], string> = {
   comment: 'コメント',
@@ -147,7 +143,7 @@ export default function Notifications() {
   }, [filteredNotifications]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: SCREEN_BACKGROUND }}>
+    <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <NotificationsHeader
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
@@ -159,12 +155,12 @@ export default function Notifications() {
         data={rows}
         keyExtractor={(row, index) => (row.kind === 'section' ? `section-${row.label}-${index}` : row.item.id)}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        ListEmptyComponent={() => <Text style={{ color: DARK_TEXT, fontWeight: '700', textAlign: 'center', padding: 20 }}>まだ通知がありません。</Text>}
+        ListEmptyComponent={() => <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontWeight: '700', textAlign: 'center', padding: 20 }}>まだ通知がありません。</Text>}
         contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
         renderItem={({ item: row }) => {
           if (row.kind === 'section') {
             return (
-              <Text style={{ fontSize: 13, fontWeight: '700', color: DARK_TEXT, marginTop: 6, marginBottom: 2, marginHorizontal: 20 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, marginTop: 6, marginBottom: 2, marginHorizontal: 20 }}>
                 {row.label}
               </Text>
             );
@@ -180,7 +176,7 @@ export default function Notifications() {
                 backgroundColor: '#FFFFFF',
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: 'rgba(0,0,0,0.08)',
+                borderColor: WeatherBoardColors.divider,
                 padding: 14,
                 marginHorizontal: 20,
               }}>
@@ -198,12 +194,12 @@ export default function Notifications() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ color: DARK_TEXT, fontWeight: '700', fontSize: 14 }}>{item.profiles?.nickname}</Text>
+                  <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontWeight: '700', fontSize: 14 }}>{item.profiles?.nickname}</Text>
                   {item.weather && <Text style={{ fontSize: 13 }}>{WEATHER_CONFIG[item.weather].emoji}</Text>}
                   <View style={{ backgroundColor: TYPE_PILL_COLOR[item.type], borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: DARK_TEXT }}>{TYPE_LABEL[item.type]}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{TYPE_LABEL[item.type]}</Text>
                   </View>
-                  <Text style={{ color: DARK_MUTED, fontSize: 11, marginLeft: 'auto' }}>
+                  <Text style={{ color: WeatherBoardColors.textMutedBlack, fontSize: 11, marginLeft: 'auto' }}>
                     {dateSectionLabel(item.created_at) === '今日'
                       ? new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
                       : new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -211,20 +207,20 @@ export default function Notifications() {
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: DARK_TEXT, fontSize: 12.5 }} numberOfLines={2}>
+                    <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontSize: 12.5 }} numberOfLines={2}>
                       {item.note ?? (item.type === 'room_join' ? 'ルームに参加しました' : '')}
                     </Text>
                     {item.tags.length > 0 && (
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                         {item.tags.map((tag) => (
-                          <View key={tag.id} style={{ backgroundColor: CREAM, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', paddingHorizontal: 6, paddingVertical: 2 }}>
-                            <Text style={{ fontSize: 10, color: DARK_MUTED }}>#{tag.name}</Text>
+                          <View key={tag.id} style={{ backgroundColor: WeatherBoardColors.tagBackground, borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 10, color: WeatherBoardColors.textPrimaryDark }}>#{tag.name}</Text>
                           </View>
                         ))}
                       </View>
                     )}
                   </View>
-                  {item.weather_log_id && <Ionicons name="chevron-forward" size={16} color={DARK_MUTED} />}
+                  {item.weather_log_id && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
                 </View>
               </View>
             </Pressable>

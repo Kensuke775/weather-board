@@ -118,7 +118,7 @@ export type CommentsStatus =
   Record<string, {commenters: {user_id: string; emoji: string }[]; count: number}>
 
   export type RoomItem = {
-    rooms: { id: string; name: string; invite_code?: string; icon_emoji?: string };
+    rooms: { id: string; name: string; invite_code?: string; icon_emoji?: string; created_by?: string };
   };
 
 export type ActivityFeedItem = {
