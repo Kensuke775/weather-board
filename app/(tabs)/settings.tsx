@@ -125,18 +125,22 @@ export default function Settings() {
                 {profileSummary.nickname}
               </Text>
               <View style={{ flexDirection: 'row', gap: 16 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                <Pressable
+                  onPress={() => router.push('/follow-list?type=following')}
+                  style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
                     {profileSummary.followingCount}
                   </Text>
                   <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>フォロー中</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/follow-list?type=followers')}
+                  style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
                     {profileSummary.followerCount}
                   </Text>
                   <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>フォロワー</Text>
-                </View>
+                </Pressable>
               </View>
             </View>
           </View>

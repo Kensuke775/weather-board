@@ -176,11 +176,15 @@ export default function WeatherLogDetailScreen() {
       {/* Header info card: avatar + name + streak + note + tags */}
       <View style={{ ...CardStyle, marginHorizontal: 16, borderRadius: 20, padding: 16, marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <AvatarWeatherBadge avatarEmoji={detail.avatar_emoji} weather={detail.weather} size={44} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{detail.nickname}</Text>
-            <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedDark, marginTop: 1 }}>{formattedDate}</Text>
-          </View>
+          <Pressable
+            onPress={() => router.push(`/user-profile?userId=${detail.user_id}`)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+            <AvatarWeatherBadge avatarEmoji={detail.avatar_emoji} weather={detail.weather} size={44} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{detail.nickname}</Text>
+              <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedDark, marginTop: 1 }}>{formattedDate}</Text>
+            </View>
+          </Pressable>
           {streakCount !== null && streakCount > 0 && (
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 5, gap: 4 }}>
               <Text style={{ fontSize: 13 }}>🔥</Text>

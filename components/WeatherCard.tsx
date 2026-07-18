@@ -1,4 +1,4 @@
-import React, { JSX } from 'react';
+import React, { JSX, useRef } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +18,6 @@ type WeatherCardProps = {
   updated_at: string;
   weather_log_id: string;
   userId: string;
-  currentUserId?: string;
-  isFollowing?: boolean;
-  onToggleFollow?: (userId: string) => void;
   unreadCount: number;
   tags: { id: string; name: string }[];
   commentStatus: CommentsStatus;
@@ -34,36 +31,23 @@ const hexToRgba = (hex: string, alpha: number): string => {
   return `rgba(${r},${g},${b},${alpha})`;
 };
 
-export default function WeatherCard({ nickname, avatar_emoji, weather, note, updated_at, weather_log_id, userId, currentUserId, isFollowing, onToggleFollow, unreadCount, tags, commentStatus, reactionCount }: WeatherCardProps): JSX.Element {
+export default function WeatherCard({ nickname, avatar_emoji, weather, note, updated_at, weather_log_id, userId, unreadCount, tags, commentStatus, reactionCount }: WeatherCardProps): JSX.Element {
   const router = useRouter();
+  const avatarPressedRef = useRef(false);
   const formattedDate = new Date(updated_at).toLocaleTimeString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   const cardColor = WEATHER_CONFIG[weather].cardColor;
 
   const cardContent = (
     <View style={{ padding: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <Pressable
+        onPressIn={() => { avatarPressedRef.current = true; }}
+        onPress={() => { router.push(`/user-profile?userId=${userId}`); }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <AvatarWeatherBadge avatarEmoji={avatar_emoji} weather={weather} size={32} variant="glass" />
         <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }} numberOfLines={1}>
           {nickname}
         </Text>
-        {userId !== currentUserId && onToggleFollow && (
-          <Pressable
-            onPress={(e) => { e.stopPropagation(); onToggleFollow(userId); }}
-            hitSlop={8}
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              backgroundColor: isFollowing ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.6)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: isFollowing ? 0 : 1,
-              borderColor: 'rgba(0,0,0,0.15)',
-            }}>
-            <Ionicons name={isFollowing ? 'checkmark' : 'add'} size={12} color={isFollowing ? 'white' : WeatherBoardColors.textPrimaryDark} />
-          </Pressable>
-        )}
-      </View>
+      </Pressable>
       <View className="mb-2">
         <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMutedDark, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
           {note}
@@ -113,7 +97,15 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
   );
 
   return (
-    <Pressable onPress={() => router.push(`/weather-log/${weather_log_id}`)} style={{ flex: 1, maxWidth: '50%' }}>
+    <Pressable
+      onPress={() => {
+        if (avatarPressedRef.current) {
+          avatarPressedRef.current = false;
+          return;
+        }
+        router.push(`/weather-log/${weather_log_id}`);
+      }}
+      style={{ flex: 1, maxWidth: '50%' }}>
       {/* Shadow wrapper */}
       <View
         style={{
@@ -134,18 +126,17 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           }}>
           {Platform.OS === 'ios' ? (
             <>
-              <BlurView intensity={20} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-              {/* Stepped right-leaning gradient (no native module required) */}
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.28) }} />
-              <View style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.18) }} />
-              <View style={{ position: 'absolute', top: 0, left: '55%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.16) }} />
-              <View style={{ position: 'absolute', top: 0, left: '75%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.14) }} />
+              <BlurView intensity={20} tint="light" pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.28) }} />
+              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.18) }} />
+              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '55%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.16) }} />
+              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '75%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.14) }} />
             </>
           ) : (
             <>
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.55) }} />
-              <View style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.2) }} />
-              <View style={{ position: 'absolute', top: 0, left: '60%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.15) }} />
+              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.55) }} />
+              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.2) }} />
+              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '60%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.15) }} />
             </>
           )}
           {cardContent}

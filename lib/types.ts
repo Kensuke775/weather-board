@@ -74,7 +74,7 @@ export type CommentItem = {
 export type Notification = {
   id: string;
   to_user_id: string;
-  type: 'talk' | 'comment' | 'reaction' | 'room_join';
+  type: 'talk' | 'comment' | 'reaction' | 'room_join' | 'follow';
   from_user_id: string;
   weather_log_id: string | null;
   is_read: boolean;

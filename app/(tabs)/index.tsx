@@ -452,40 +452,6 @@ export default function HomeScreen() {
     };
   }, [userId]);
 
-  const handleToggleFollow = async (targetUserId: string) => {
-    if (!userId) return;
-    const isCurrentlyFollowing = followedUserIds.has(targetUserId);
-    const newFollowedIds = new Set(followedUserIds);
-    if (isCurrentlyFollowing) {
-      newFollowedIds.delete(targetUserId);
-    } else {
-      newFollowedIds.add(targetUserId);
-    }
-    setFollowedUserIds(newFollowedIds);
-    currentFiltersRef.current = { ...currentFiltersRef.current, followedUserIds: Array.from(newFollowedIds) };
-
-    if (isCurrentlyFollowing) {
-      const { error } = await supabase.from('follows').delete().eq('follower_id', userId).eq('followed_id', targetUserId);
-      if (error) {
-        console.error('[index(tab)] handleToggleFollow unfollow', error.message);
-        setFollowedUserIds(followedUserIds);
-        currentFiltersRef.current = { ...currentFiltersRef.current, followedUserIds: Array.from(followedUserIds) };
-      }
-    } else {
-      const { error } = await supabase.from('follows').insert({ follower_id: userId, followed_id: targetUserId });
-      if (error) {
-        console.error('[index(tab)] handleToggleFollow follow', error.message);
-        setFollowedUserIds(followedUserIds);
-        currentFiltersRef.current = { ...currentFiltersRef.current, followedUserIds: Array.from(followedUserIds) };
-      }
-    }
-
-    if (currentFiltersRef.current.followingOnly) {
-      setPage(0);
-      loadFeedPage(0, false);
-    }
-  };
-
   const handleLoadMore = () => {
     if (isLoadingMore || !hasMore || isLoading) return;
     const nextPage = page + 1;
@@ -709,9 +675,6 @@ export default function HomeScreen() {
               unreadCounts={unreadCounts}
               commentStatus={commentStatus}
               reactionStatus={reactionStatus}
-              currentUserId={userId}
-              followedUserIds={followedUserIds}
-              onToggleFollow={handleToggleFollow}
               onEndReached={handleLoadMore}
               isLoadingMore={isLoadingMore}
               refreshing={isRefreshing}

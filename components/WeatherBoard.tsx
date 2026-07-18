@@ -8,16 +8,13 @@ type WeatherBoardProps = {
   unreadCounts: Record<string, number>;
   commentStatus: CommentsStatus;
   reactionStatus: Record<string, number>;
-  currentUserId?: string;
-  followedUserIds?: Set<string>;
-  onToggleFollow?: (userId: string) => void;
   onEndReached?: () => void;
   isLoadingMore?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
 };
 
-export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus, reactionStatus, currentUserId, followedUserIds, onToggleFollow, onEndReached, isLoadingMore, refreshing, onRefresh }: WeatherBoardProps) {
+export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus, reactionStatus, onEndReached, isLoadingMore, refreshing, onRefresh }: WeatherBoardProps) {
   return (
     <FlatList
       data={weatherLogs}
@@ -40,9 +37,6 @@ export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus,
           updated_at={item.updated_at}
           weather_log_id={item.id}
           userId={item.user_id}
-          currentUserId={currentUserId}
-          isFollowing={followedUserIds?.has(item.user_id)}
-          onToggleFollow={onToggleFollow}
           unreadCount={unreadCounts[item.id] ?? 0}
           tags={item.tags}
           commentStatus={commentStatus}

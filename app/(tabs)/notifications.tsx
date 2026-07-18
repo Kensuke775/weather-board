@@ -3,10 +3,12 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 
+import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import NotificationsHeader, { FILTERS, FilterKey } from '@/components/NotificationsHeader';
-import { WeatherBoardColors } from '@/constants/theme';import { useUser } from '@/context/UserContext';
+import { WeatherBoardColors } from '@/constants/theme';
+import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { Notification, WEATHER_CONFIG } from '@/lib/types';
+import { Notification } from '@/lib/types';
 
 
 const TYPE_LABEL: Record<Notification['type'], string> = {
@@ -14,6 +16,7 @@ const TYPE_LABEL: Record<Notification['type'], string> = {
   talk: 'リアクション',
   reaction: 'リアクション',
   room_join: 'ルーム招待',
+  follow: 'フォロー',
 };
 
 const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
@@ -21,12 +24,14 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
   talk: 'rgba(134,239,172,0.35)',
   reaction: 'rgba(134,239,172,0.35)',
   room_join: 'rgba(196,181,253,0.35)',
+  follow: 'rgba(251,191,36,0.35)',
 };
 
 const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean => {
   if (filter === 'all') return true;
   if (filter === 'comment') return type === 'comment';
   if (filter === 'reaction') return type === 'talk' || type === 'reaction';
+  if (filter === 'follow') return type === 'follow';
   return type === 'room_join';
 };
 
@@ -168,7 +173,7 @@ export default function Notifications() {
           const item = row.item;
           return (
             <Pressable
-              onPress={() => item.weather_log_id && router.push(`/weather-log/${item.weather_log_id}`)}
+              onPress={() => item.type !== 'follow' && item.weather_log_id && router.push(`/weather-log/${item.weather_log_id}`)}
               style={{
                 flexDirection: 'row',
                 alignItems: 'flex-start',
@@ -181,21 +186,18 @@ export default function Notifications() {
                 marginHorizontal: 20,
               }}>
               {!item.is_read && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#D97757', marginTop: 6 }} />}
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: 'rgba(0,0,0,0.06)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <Text style={{ fontSize: 20 }}>{item.profiles?.avatar_emoji}</Text>
-              </View>
+              <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)}>
+                <AvatarWeatherBadge
+                  avatarEmoji={item.profiles?.avatar_emoji ?? '👤'}
+                  weather={item.weather ?? 'cloudy'}
+                  size={40}
+                />
+              </Pressable>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontWeight: '700', fontSize: 14 }}>{item.profiles?.nickname}</Text>
-                  {item.weather && <Text style={{ fontSize: 13 }}>{WEATHER_CONFIG[item.weather].emoji}</Text>}
+                  <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)}>
+                    <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontWeight: '700', fontSize: 14 }}>{item.profiles?.nickname}</Text>
+                  </Pressable>
                   <View style={{ backgroundColor: TYPE_PILL_COLOR[item.type], borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 }}>
                     <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{TYPE_LABEL[item.type]}</Text>
                   </View>
@@ -208,7 +210,9 @@ export default function Notifications() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontSize: 12.5 }} numberOfLines={2}>
-                      {item.note ?? (item.type === 'room_join' ? 'ルームに参加しました' : '')}
+                      {item.type === 'follow'
+                        ? 'あなたをフォローしました'
+                        : item.note ?? (item.type === 'room_join' ? 'ルームに参加しました' : '')}
                     </Text>
                     {item.tags.length > 0 && (
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
@@ -220,7 +224,7 @@ export default function Notifications() {
                       </View>
                     )}
                   </View>
-                  {item.weather_log_id && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
+                  {item.type !== 'follow' && item.weather_log_id && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
                 </View>
               </View>
             </Pressable>
