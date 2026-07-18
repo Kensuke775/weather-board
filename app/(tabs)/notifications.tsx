@@ -17,6 +17,8 @@ const TYPE_LABEL: Record<Notification['type'], string> = {
   reaction: 'リアクション',
   room_join: 'ルーム招待',
   follow: 'フォロー',
+  room_message: 'ルームチャット',
+  direct_message: 'DM',
 };
 
 const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
@@ -25,6 +27,15 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
   reaction: 'rgba(134,239,172,0.35)',
   room_join: 'rgba(196,181,253,0.35)',
   follow: 'rgba(251,191,36,0.35)',
+  room_message: 'rgba(196,181,253,0.35)',
+  direct_message: 'rgba(96,165,250,0.25)',
+};
+
+const getNavigationTarget = (item: Notification): string | null => {
+  if (item.type === 'room_message' && item.room_id) return `/room-chat/${item.room_id}`;
+  if (item.type === 'direct_message' && item.conversation_id) return `/dm-chat/${item.conversation_id}`;
+  if (item.type !== 'follow' && item.type !== 'room_join' && item.weather_log_id) return `/weather-log/${item.weather_log_id}`;
+  return null;
 };
 
 const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean => {
@@ -32,7 +43,7 @@ const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean =
   if (filter === 'comment') return type === 'comment';
   if (filter === 'reaction') return type === 'talk' || type === 'reaction';
   if (filter === 'follow') return type === 'follow';
-  return type === 'room_join';
+  return type === 'room_join' || type === 'room_message';
 };
 
 const fetchNotifications = async (userId: string, setter: (data: Notification[]) => void) => {
@@ -173,7 +184,10 @@ export default function Notifications() {
           const item = row.item;
           return (
             <Pressable
-              onPress={() => item.type !== 'follow' && item.weather_log_id && router.push(`/weather-log/${item.weather_log_id}`)}
+              onPress={() => {
+                const target = getNavigationTarget(item);
+                if (target) router.push(target);
+              }}
               style={{
                 flexDirection: 'row',
                 alignItems: 'flex-start',
@@ -212,7 +226,13 @@ export default function Notifications() {
                     <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontSize: 12.5 }} numberOfLines={2}>
                       {item.type === 'follow'
                         ? 'あなたをフォローしました'
-                        : item.note ?? (item.type === 'room_join' ? 'ルームに参加しました' : '')}
+                        : item.type === 'room_join'
+                          ? 'ルームに参加しました'
+                          : item.type === 'room_message'
+                            ? 'ルームチャットに新しいメッセージがあります'
+                            : item.type === 'direct_message'
+                              ? '新しいメッセージがあります'
+                              : (item.note ?? '')}
                     </Text>
                     {item.tags.length > 0 && (
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
@@ -224,7 +244,7 @@ export default function Notifications() {
                       </View>
                     )}
                   </View>
-                  {item.type !== 'follow' && item.weather_log_id && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
+                  {getNavigationTarget(item) && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
                 </View>
               </View>
             </Pressable>
