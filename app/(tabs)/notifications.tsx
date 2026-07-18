@@ -31,10 +31,13 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
   direct_message: 'rgba(96,165,250,0.25)',
 };
 
-const getNavigationTarget = (item: Notification): string | null => {
-  if (item.type === 'room_message' && item.room_id) return `/room-chat/${item.room_id}`;
-  if (item.type === 'direct_message' && item.conversation_id) return `/dm-chat/${item.conversation_id}`;
-  if (item.type !== 'follow' && item.type !== 'room_join' && item.weather_log_id) return `/weather-log/${item.weather_log_id}`;
+// 戻り値の型は書かない: expo-router の typed routes は Href がリテラル型である
+// ことを要求するため、`string` に型注釈すると幅が広がり router.push に渡せなくなる
+// （app/(tabs)/index.tsx の selectQuery と同じ理由）。
+const getNavigationTarget = (item: Notification) => {
+  if (item.type === 'room_message' && item.room_id) return `/room-chat/${item.room_id}` as const;
+  if (item.type === 'direct_message' && item.conversation_id) return `/dm-chat/${item.conversation_id}` as const;
+  if (item.type !== 'follow' && item.type !== 'room_join' && item.weather_log_id) return `/weather-log/${item.weather_log_id}` as const;
   return null;
 };
 
