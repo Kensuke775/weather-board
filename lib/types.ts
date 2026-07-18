@@ -130,6 +130,23 @@ export type RoomMessageItem = {
   profiles: NameAvatar;
 };
 
+export type ConversationItem = {
+  id: string;
+  user_a_id: string;
+  user_b_id: string;
+  last_message_at: string;
+  user_a: NameAvatar;
+  user_b: NameAvatar;
+};
+
+export type DirectMessageItem = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
 export type ActivityFeedItem = {
   id: string;
   from_user_id:string;
