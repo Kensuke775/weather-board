@@ -1,22 +1,30 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { WeatherBoardColors } from '@/constants/theme';
-
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import ActivityFeedSheet from '@/components/ActivityFeedSheet';
 import WeatherBoard from '@/components/WeatherBoard';
+import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { ActivityFeedItem, CommentsStatus, WeatherBoardItem } from '@/lib/types';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
 
 const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
 const FEED_PAGE_SIZE = 20;
+
+type FeedFilters = { weather: WeatherType | null; tag: string };
+const DEFAULT_FILTERS: FeedFilters = { weather: null, tag: '' };
+
+const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [
+  { label: 'All', value: null },
+  ...Object.entries(WEATHER_CONFIG).map(([key, cfg]) => ({ label: cfg.emoji, value: key as WeatherType })),
+];
 
 const fetchReactionsData = async (setter: (data: Record<string, number>) => void) => {
   const { data: reactionsData, error: reactionsError } = await supabase.from('post_reactions').select('weather_log_id, from_user_id');
@@ -69,12 +77,11 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
     }
     const entry = intermediate.get(status.weather_log_id)!;
     if (!entry.users.has(status.user_id)) {
-      entry.users.set(status.user_id, avatars); // user_id → emoji のMap
+      entry.users.set(status.user_id, avatars);
     }
     entry.count += 1;
   }
 
-  // CommentsStatus の形に変換
   const commentersMap = Object.fromEntries(
     Array.from(intermediate.entries()).map(([logId, { users, count }]) => [
       logId,
@@ -88,14 +95,30 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
   setter(commentersMap);
 };
 
-const fetchFeedPage = async (page: number, setter: (data: WeatherBoardItem[]) => void, loadingSetter: (loading: boolean) => void) => {
+const fetchFeedPage = async (
+  page: number,
+  setter: (data: WeatherBoardItem[]) => void,
+  loadingSetter: (loading: boolean) => void,
+  filters: FeedFilters = DEFAULT_FILTERS,
+) => {
   const from = page * FEED_PAGE_SIZE;
   const to = from + FEED_PAGE_SIZE - 1;
-  const { data: weatherLogsData, error: weatherLogsError } = await supabase
+  const hasTagFilter = filters.tag.trim().length > 0;
+
+  const selectQuery = hasTagFilter
+    ? 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))'
+    : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))';
+
+  let query = supabase
     .from('weather_logs')
-    .select('id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
+    .select(selectQuery)
     .order('updated_at', { ascending: false })
     .range(from, to);
+
+  if (filters.weather) query = query.eq('weather', filters.weather);
+  if (hasTagFilter) query = query.ilike('weather_log_activities.activity_tags.tag_name', `%${filters.tag.trim()}%`);
+
+  const { data: weatherLogsData, error: weatherLogsError } = await query;
 
   if (weatherLogsError) {
     console.error('[index(tab)] fetchFeedPage', weatherLogsError.message);
@@ -158,8 +181,26 @@ export default function HomeScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasNewPosts, setHasNewPosts] = useState(false);
+
+  const [weatherFilter, setWeatherFilter] = useState<WeatherType | null>(null);
+  const [tagQuery, setTagQuery] = useState('');
+  const [debouncedTagQuery, setDebouncedTagQuery] = useState('');
+
+  const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
+  const isFilterInitialRender = useRef(true);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const tabBarHeight = useBottomTabBarHeight();
+
+  // タグ入力をデバウンス
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedTagQuery(tagQuery), 400);
+    return () => clearTimeout(timer);
+  }, [tagQuery]);
+
+  // フィルタ ref を最新状態に同期
+  useEffect(() => {
+    currentFiltersRef.current = { weather: weatherFilter, tag: debouncedTagQuery };
+  }, [weatherFilter, debouncedTagQuery]);
 
   const loadFeedPage = useCallback(async (pageToLoad: number, append: boolean) => {
     await fetchFeedPage(
@@ -169,6 +210,7 @@ export default function HomeScreen() {
         setHasMore(data.length === FEED_PAGE_SIZE);
       },
       setIsLoading,
+      currentFiltersRef.current,
     );
   }, []);
 
@@ -196,6 +238,18 @@ export default function HomeScreen() {
       loadFeedPage(0, false);
     }, [userId, loadFeedPage]),
   );
+
+  // フィルタ変更時に再フェッチ（初回レンダーはスキップ）
+  useEffect(() => {
+    if (isFilterInitialRender.current) {
+      isFilterInitialRender.current = false;
+      return;
+    }
+    if (!userId) return;
+    setPage(0);
+    loadFeedPage(0, false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weatherFilter, debouncedTagQuery]);
 
   useEffect(() => {
     if (!userId) return;
@@ -345,6 +399,8 @@ export default function HomeScreen() {
     setIsRefreshing(false);
   };
 
+  const isFilterActive = weatherFilter !== null || debouncedTagQuery.length > 0;
+
   if (roomIsLoading) {
     return (
       <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center px-10">
@@ -374,6 +430,54 @@ export default function HomeScreen() {
             <Text className="text-xs font-bold text-white">新着があります・タップで更新</Text>
           </Pressable>
         )}
+
+        {/* フィルタバー */}
+        <View style={{ marginBottom: 10, gap: 6 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            {WEATHER_FILTER_OPTIONS.map(({ label, value }) => {
+              const selected = weatherFilter === value;
+              return (
+                <Pressable
+                  key={label}
+                  onPress={() => setWeatherFilter(value)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 100,
+                    backgroundColor: selected ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
+                  }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,255,255,0.85)',
+            borderRadius: 100,
+            paddingHorizontal: 14,
+            paddingVertical: 7,
+          }}>
+            <Ionicons name="search-outline" size={14} color={WeatherBoardColors.textMutedBlack} style={{ marginRight: 6 }} />
+            <TextInput
+              value={tagQuery}
+              onChangeText={setTagQuery}
+              placeholder="タグで検索..."
+              placeholderTextColor={WeatherBoardColors.textMutedBlack}
+              style={{ flex: 1, fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingVertical: 0 }}
+            />
+            {tagQuery.length > 0 && (
+              <Pressable onPress={() => setTagQuery('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={16} color={WeatherBoardColors.textMutedBlack} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+
         <View style={{ flex: 1 }}>
           {isLoading ? (
             <View className="flex-1 justify-center items-center">
@@ -382,7 +486,7 @@ export default function HomeScreen() {
           ) : boardData.length === 0 ? (
             <View className="flex-1 justify-center items-center">
               <Text className="text-base font-bold" style={{ color: 'rgba(0,0,0,0.6)' }}>
-                まだ投稿はありません。
+                {isFilterActive ? '条件に一致する投稿はありません。' : 'まだ投稿はありません。'}
               </Text>
             </View>
           ) : (
