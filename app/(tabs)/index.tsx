@@ -185,6 +185,7 @@ export default function HomeScreen() {
   const [weatherFilter, setWeatherFilter] = useState<WeatherType | null>(null);
   const [tagQuery, setTagQuery] = useState('');
   const [debouncedTagQuery, setDebouncedTagQuery] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
   const isFilterInitialRender = useRef(true);
@@ -416,67 +417,97 @@ export default function HomeScreen() {
     <ImageBackground source={backgroundImage} className="flex-1">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
       <View style={{ paddingTop: 80, flex: 1, paddingHorizontal: 16 }}>
-        {hasNewPosts && (
+        {/* トップバー：新着バナー＋フィルタトグル */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 }}>
+          {hasNewPosts ? (
+            <Pressable
+              onPress={handleRefresh}
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 100,
+                backgroundColor: 'rgba(98,66,33,0.92)',
+              }}>
+              <Text className="text-xs font-bold text-white text-center">新着があります・タップで更新</Text>
+            </Pressable>
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
           <Pressable
-            onPress={handleRefresh}
+            onPress={() => setIsFilterOpen((prev) => !prev)}
             style={{
-              alignSelf: 'center',
-              marginBottom: 12,
-              paddingVertical: 8,
-              paddingHorizontal: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
               borderRadius: 100,
-              backgroundColor: 'rgba(98,66,33,0.92)',
+              backgroundColor: isFilterOpen || isFilterActive ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
             }}>
-            <Text className="text-xs font-bold text-white">新着があります・タップで更新</Text>
-          </Pressable>
-        )}
-
-        {/* フィルタバー */}
-        <View style={{ marginBottom: 10, gap: 6 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            {WEATHER_FILTER_OPTIONS.map(({ label, value }) => {
-              const selected = weatherFilter === value;
-              return (
-                <Pressable
-                  key={label}
-                  onPress={() => setWeatherFilter(value)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderRadius: 100,
-                    backgroundColor: selected ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
-                  }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: 'rgba(255,255,255,0.85)',
-            borderRadius: 100,
-            paddingHorizontal: 14,
-            paddingVertical: 7,
-          }}>
-            <Ionicons name="search-outline" size={14} color={WeatherBoardColors.textMutedBlack} style={{ marginRight: 6 }} />
-            <TextInput
-              value={tagQuery}
-              onChangeText={setTagQuery}
-              placeholder="タグで検索..."
-              placeholderTextColor={WeatherBoardColors.textMutedBlack}
-              style={{ flex: 1, fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingVertical: 0 }}
+            <Ionicons
+              name="options-outline"
+              size={14}
+              color={isFilterOpen || isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark}
             />
-            {tagQuery.length > 0 && (
-              <Pressable onPress={() => setTagQuery('')} hitSlop={8}>
-                <Ionicons name="close-circle" size={16} color={WeatherBoardColors.textMutedBlack} />
-              </Pressable>
-            )}
-          </View>
+            <Text style={{
+              fontSize: 12,
+              fontWeight: '600',
+              color: isFilterOpen || isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark,
+            }}>
+              絞り込み
+            </Text>
+          </Pressable>
         </View>
+
+        {/* フィルタバー（トグル展開） */}
+        {isFilterOpen && (
+          <View style={{ marginBottom: 10, gap: 6 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              {WEATHER_FILTER_OPTIONS.map(({ label, value }) => {
+                const selected = weatherFilter === value;
+                return (
+                  <Pressable
+                    key={label}
+                    onPress={() => setWeatherFilter(value)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 100,
+                      backgroundColor: selected ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
+                    }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: 'rgba(255,255,255,0.85)',
+              borderRadius: 100,
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+            }}>
+              <Ionicons name="search-outline" size={14} color={WeatherBoardColors.textMutedBlack} style={{ marginRight: 6 }} />
+              <TextInput
+                value={tagQuery}
+                onChangeText={setTagQuery}
+                placeholder="タグで検索..."
+                placeholderTextColor={WeatherBoardColors.textMutedBlack}
+                style={{ flex: 1, fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingVertical: 0 }}
+              />
+              {tagQuery.length > 0 && (
+                <Pressable onPress={() => setTagQuery('')} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color={WeatherBoardColors.textMutedBlack} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
 
         <View style={{ flex: 1 }}>
           {isLoading ? (
