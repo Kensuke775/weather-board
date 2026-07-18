@@ -92,6 +92,27 @@ export default function RootLayout() {
                         headerShadowVisible: false,
                       }}
                     />
+                    <Stack.Screen
+                      name="room-chat/index"
+                      options={{
+                        title: 'トーク',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="room-chat/[room_id]"
+                      options={{
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
                   </Stack>
                   <Toast position="bottom" bottomOffset={40} config={toastConfig} />
                 </BottomSheetModalProvider>

@@ -121,6 +121,15 @@ export type CommentsStatus =
     rooms: { id: string; name: string; invite_code?: string; icon_emoji?: string; created_by?: string };
   };
 
+export type RoomMessageItem = {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  profiles: NameAvatar;
+};
+
 export type ActivityFeedItem = {
   id: string;
   from_user_id:string;
