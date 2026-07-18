@@ -454,6 +454,33 @@ export default function HomeScreen() {
               }}>
               <Text className="text-xs font-bold text-white text-center">新着があります・タップで更新</Text>
             </Pressable>
+          ) : Object.keys(todaySummary).length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ gap: 6 }}>
+              {Object.entries(WEATHER_CONFIG)
+                .filter(([key]) => (todaySummary[key] ?? 0) > 0)
+                .map(([key, cfg]) => (
+                  <View
+                    key={key}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 100,
+                      backgroundColor: 'rgba(255,255,255,0.85)',
+                    }}>
+                    <Text style={{ fontSize: 13 }}>{cfg.emoji}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
+                      {todaySummary[key]}
+                    </Text>
+                  </View>
+                ))}
+            </ScrollView>
           ) : (
             <View style={{ flex: 1 }} />
           )}
@@ -530,35 +557,6 @@ export default function HomeScreen() {
               )}
             </View>
           </View>
-        )}
-
-        {/* 今日の天気サマリー */}
-        {Object.keys(todaySummary).length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6, paddingBottom: 10 }}>
-            {Object.entries(WEATHER_CONFIG)
-              .filter(([key]) => (todaySummary[key] ?? 0) > 0)
-              .map(([key, cfg]) => (
-                <View
-                  key={key}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 100,
-                    backgroundColor: 'rgba(255,255,255,0.85)',
-                  }}>
-                  <Text style={{ fontSize: 14 }}>{cfg.emoji}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
-                    {todaySummary[key]}
-                  </Text>
-                </View>
-              ))}
-          </ScrollView>
         )}
 
         <View style={{ flex: 1 }}>
