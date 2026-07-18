@@ -26,6 +26,26 @@ const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [
   ...Object.entries(WEATHER_CONFIG).map(([key, cfg]) => ({ label: cfg.emoji, value: key as WeatherType })),
 ];
 
+const fetchTodaySummary = async (setter: (data: Record<string, number>) => void) => {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('weather_logs')
+    .select('weather')
+    .eq('logged_date', today);
+  if (error) {
+    console.error('[index(tab)] fetchTodaySummary', error.message);
+    return;
+  }
+  const counts = (data ?? []).reduce(
+    (acc, { weather }) => {
+      acc[weather] = (acc[weather] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+  setter(counts);
+};
+
 const fetchReactionsData = async (setter: (data: Record<string, number>) => void) => {
   const { data: reactionsData, error: reactionsError } = await supabase.from('post_reactions').select('weather_log_id, from_user_id');
   if (reactionsError) {
@@ -182,6 +202,7 @@ export default function HomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasNewPosts, setHasNewPosts] = useState(false);
 
+  const [todaySummary, setTodaySummary] = useState<Record<string, number>>({});
   const [weatherFilter, setWeatherFilter] = useState<WeatherType | null>(null);
   const [tagQuery, setTagQuery] = useState('');
   const [debouncedTagQuery, setDebouncedTagQuery] = useState('');
@@ -237,6 +258,7 @@ export default function HomeScreen() {
       if (!userId) return;
       setPage(0);
       loadFeedPage(0, false);
+      fetchTodaySummary(setTodaySummary);
     }, [userId, loadFeedPage]),
   );
 
@@ -265,6 +287,7 @@ export default function HomeScreen() {
         .channel(channelName)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'weather_logs' }, () => {
           setHasNewPosts(true);
+          fetchTodaySummary(setTodaySummary);
         })
         .subscribe();
     };
@@ -507,6 +530,35 @@ export default function HomeScreen() {
               )}
             </View>
           </View>
+        )}
+
+        {/* 今日の天気サマリー */}
+        {Object.keys(todaySummary).length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 6, paddingBottom: 10 }}>
+            {Object.entries(WEATHER_CONFIG)
+              .filter(([key]) => (todaySummary[key] ?? 0) > 0)
+              .map(([key, cfg]) => (
+                <View
+                  key={key}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 100,
+                    backgroundColor: 'rgba(255,255,255,0.85)',
+                  }}>
+                  <Text style={{ fontSize: 14 }}>{cfg.emoji}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
+                    {todaySummary[key]}
+                  </Text>
+                </View>
+              ))}
+          </ScrollView>
         )}
 
         <View style={{ flex: 1 }}>
