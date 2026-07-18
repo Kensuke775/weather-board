@@ -4,12 +4,13 @@ import { Pressable, Text, View } from 'react-native';
 import IconHeader from '@/components/IconHeader';
 import { WeatherBoardColors } from '@/constants/theme';
 
-export type FilterKey = 'all' | 'comment' | 'reaction' | 'room';
+export type FilterKey = 'all' | 'comment' | 'reaction' | 'follow' | 'room';
 
 export const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'すべて' },
   { key: 'comment', label: 'コメント' },
   { key: 'reaction', label: 'リアクション' },
+  { key: 'follow', label: 'フォロー' },
   { key: 'room', label: 'ルーム' },
 ];
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
@@ -62,6 +63,7 @@ const fetchComments = async (weatherLogId: string, setter: (data: CommentItem[])
 export default function CommentSection({ weather_log_id, to_user_id, readOnly }: CommentSectionProps) {
   const { user } = useUser();
   const userId = user?.id;
+  const router = useRouter();
   const [inputText, setInputText] = useState('');
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -252,7 +254,9 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
           renderItem={({ item }) => (
             <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Pressable
+                  onPress={() => router.push(`/user-profile?userId=${item.user_id}`)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <AvatarWeatherBadge
                     avatarEmoji={item.profiles.avatar_emoji}
                     weather={commenterWeathers[item.user_id] ?? 'cloudy'}
@@ -261,7 +265,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
                   <Text style={{ fontSize: 13, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>
                     {item.profiles.nickname}
                   </Text>
-                </View>
+                </Pressable>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {REACTION_TYPES.map(({ type, emoji }) => {
                     const rowsForType = commentReactions.filter((row) => row.comment_id === item.id && row.reaction_type === type);

@@ -3,24 +3,44 @@ import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, Text,
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
-import ActivityFeedSheet from '@/components/ActivityFeedSheet';
 import RoomChatFloatingButton from '@/components/RoomChatFloatingButton';
 import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
-import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
+import { CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
 
 const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
 const FEED_PAGE_SIZE = 20;
 
-type FeedFilters = { weather: WeatherType | null; tag: string };
-const DEFAULT_FILTERS: FeedFilters = { weather: null, tag: '' };
+const PREFECTURES = [
+  '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+  '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+  '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県',
+  '岐阜県', '静岡県', '愛知県', '三重県',
+  '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県',
+  '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+  '徳島県', '香川県', '愛媛県', '高知県',
+  '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県',
+];
+
+type FeedFilters = {
+  weather: WeatherType | null;
+  tag: string;
+  prefecture: string | null;
+  followingOnly: boolean;
+  followedUserIds: string[];
+};
+const DEFAULT_FILTERS: FeedFilters = {
+  weather: null,
+  tag: '',
+  prefecture: null,
+  followingOnly: false,
+  followedUserIds: [],
+};
 
 const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [
   { label: 'All', value: null },
@@ -116,19 +136,41 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
   setter(commentersMap);
 };
 
+const fetchFollowedUserIds = async (userId: string, setter: (ids: Set<string>) => void) => {
+  const { data, error } = await supabase
+    .from('follows')
+    .select('followed_id')
+    .eq('follower_id', userId);
+  if (error) {
+    console.error('[index(tab)] fetchFollowedUserIds', error.message);
+    return;
+  }
+  setter(new Set((data ?? []).map((row) => row.followed_id)));
+};
+
 const fetchFeedPage = async (
   page: number,
   setter: (data: WeatherBoardItem[]) => void,
   loadingSetter: (loading: boolean) => void,
   filters: FeedFilters = DEFAULT_FILTERS,
 ) => {
+  if (filters.followingOnly && filters.followedUserIds.length === 0) {
+    setter([]);
+    loadingSetter(false);
+    return;
+  }
+
   const from = page * FEED_PAGE_SIZE;
   const to = from + FEED_PAGE_SIZE - 1;
   const hasTagFilter = filters.tag.trim().length > 0;
+  const hasPrefectureFilter = filters.prefecture !== null;
 
+  const profileSelect = hasPrefectureFilter
+    ? 'profiles!inner(nickname, avatar_emoji, prefecture)'
+    : 'profiles(nickname, avatar_emoji, prefecture)';
   const selectQuery = hasTagFilter
-    ? 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))'
-    : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))';
+    ? `id, user_id, weather, note, updated_at, ${profileSelect}, weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))`
+    : `id, user_id, weather, note, updated_at, ${profileSelect}, weather_log_activities(activity_tag_id, activity_tags(tag_name))`;
 
   let query = supabase
     .from('weather_logs')
@@ -138,6 +180,8 @@ const fetchFeedPage = async (
 
   if (filters.weather) query = query.eq('weather', filters.weather);
   if (hasTagFilter) query = query.ilike('weather_log_activities.activity_tags.tag_name', `%${filters.tag.trim()}%`);
+  if (hasPrefectureFilter) query = query.eq('profiles.prefecture', filters.prefecture);
+  if (filters.followingOnly) query = query.in('user_id', filters.followedUserIds);
 
   const { data: weatherLogsData, error: weatherLogsError } = await query;
 
@@ -165,28 +209,6 @@ const fetchFeedPage = async (
   loadingSetter(false);
 };
 
-const fetchActivityFeed = async (userId: string, setter: (data: ActivityFeedItem[]) => void) => {
-  const { data: activityFeedData, error: activityFeedError } = await supabase
-    .from('notifications')
-    .select('id, to_user_id, from_user_id, created_at, from:profiles!from_user_id(nickname, avatar_emoji), to:profiles!to_user_id(nickname, avatar_emoji)')
-    .order('created_at', { ascending: false })
-    .eq('type', 'comment')
-    .eq('to_user_id', userId)
-    .limit(10);
-  if (activityFeedError) {
-    console.error('[index(tab)] fetchActivityFeed', activityFeedError.message);
-    Alert.alert('アクティビティフィードの取得に失敗しました。');
-    return;
-  }
-  const formattedData = activityFeedData.map((data) => ({
-    ...data,
-    from: Array.isArray(data.from) ? data.from[0] : data.from,
-    to: Array.isArray(data.to) ? data.to[0] : data.to,
-  }));
-
-  setter(formattedData);
-};
-
 export default function HomeScreen() {
   const { user } = useUser();
   const userId = user?.id;
@@ -195,7 +217,6 @@ export default function HomeScreen() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [commentStatus, setCommentStatus] = useState<CommentsStatus>({});
   const [reactionStatus, setReactionStatus] = useState<Record<string, number>>({});
-  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -207,12 +228,13 @@ export default function HomeScreen() {
   const [weatherFilter, setWeatherFilter] = useState<WeatherType | null>(null);
   const [tagQuery, setTagQuery] = useState('');
   const [debouncedTagQuery, setDebouncedTagQuery] = useState('');
+  const [prefectureFilter, setPrefectureFilter] = useState<string | null>(null);
+  const [followingOnly, setFollowingOnly] = useState(false);
+  const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
   const isFilterInitialRender = useRef(true);
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const tabBarHeight = useBottomTabBarHeight();
 
   // タグ入力をデバウンス
   useEffect(() => {
@@ -222,8 +244,14 @@ export default function HomeScreen() {
 
   // フィルタ ref を最新状態に同期
   useEffect(() => {
-    currentFiltersRef.current = { weather: weatherFilter, tag: debouncedTagQuery };
-  }, [weatherFilter, debouncedTagQuery]);
+    currentFiltersRef.current = {
+      weather: weatherFilter,
+      tag: debouncedTagQuery,
+      prefecture: prefectureFilter,
+      followingOnly,
+      followedUserIds: Array.from(followedUserIds),
+    };
+  }, [weatherFilter, debouncedTagQuery, prefectureFilter, followingOnly, followedUserIds]);
 
   const loadFeedPage = useCallback(async (pageToLoad: number, append: boolean) => {
     await fetchFeedPage(
@@ -273,7 +301,7 @@ export default function HomeScreen() {
     setPage(0);
     loadFeedPage(0, false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weatherFilter, debouncedTagQuery]);
+  }, [weatherFilter, debouncedTagQuery, prefectureFilter, followingOnly]);
 
   useEffect(() => {
     if (!userId) return;
@@ -310,13 +338,10 @@ export default function HomeScreen() {
       if (isCancelled) return;
       await fetchNotificationsData(userId, setUnreadCounts);
       if (isCancelled) return;
-      await fetchActivityFeed(userId, setActivityFeed);
-      if (isCancelled) return;
       channel = supabase
         .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
           await fetchNotificationsData(userId, setUnreadCounts);
-          await fetchActivityFeed(userId, setActivityFeed);
         })
         .subscribe();
     };
@@ -402,9 +427,30 @@ export default function HomeScreen() {
     };
   }, [userId]);
 
-  const openBottomSheet = () => {
-    bottomSheetRef.current?.present();
-  };
+  useEffect(() => {
+    if (!userId) return;
+    let channel: ReturnType<typeof supabase.channel>;
+    let isCancelled = false;
+    const setUp = async () => {
+      const channelName = `follows-${userId}`;
+      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      if (isCancelled) return;
+      await fetchFollowedUserIds(userId, setFollowedUserIds);
+      if (isCancelled) return;
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` }, async () => {
+          await fetchFollowedUserIds(userId, setFollowedUserIds);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      isCancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   const handleLoadMore = () => {
     if (isLoadingMore || !hasMore || isLoading) return;
@@ -424,7 +470,7 @@ export default function HomeScreen() {
     setIsRefreshing(false);
   };
 
-  const isFilterActive = weatherFilter !== null || debouncedTagQuery.length > 0;
+  const isFilterActive = weatherFilter !== null || debouncedTagQuery.length > 0 || prefectureFilter !== null || followingOnly;
 
   if (roomIsLoading) {
     return (
@@ -514,6 +560,7 @@ export default function HomeScreen() {
         {/* フィルタバー（トグル展開） */}
         {isFilterOpen && (
           <View style={{ marginBottom: 10, gap: 6 }}>
+            {/* 天気フィルタ */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
               {WEATHER_FILTER_OPTIONS.map(({ label, value }) => {
                 const selected = weatherFilter === value;
@@ -535,6 +582,7 @@ export default function HomeScreen() {
               })}
             </ScrollView>
 
+            {/* タグ検索 */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -557,6 +605,56 @@ export default function HomeScreen() {
                 </Pressable>
               )}
             </View>
+
+            {/* 都道府県フィルタ */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              <Pressable
+                onPress={() => setPrefectureFilter(null)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 100,
+                  backgroundColor: prefectureFilter === null ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
+                }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === null ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                  全国
+                </Text>
+              </Pressable>
+              {PREFECTURES.map((pref) => (
+                <Pressable
+                  key={pref}
+                  onPress={() => setPrefectureFilter(pref)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 100,
+                    backgroundColor: prefectureFilter === pref ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
+                  }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === pref ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                    {pref}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* フォローフィルタ */}
+            <Pressable
+              onPress={() => setFollowingOnly((prev) => !prev)}
+              style={{
+                alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 100,
+                backgroundColor: followingOnly ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
+              }}>
+              <Ionicons name="people-outline" size={13} color={followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                フォロー中
+              </Text>
+            </Pressable>
           </View>
         )}
 
@@ -584,39 +682,8 @@ export default function HomeScreen() {
             />
           )}
         </View>
-        <Pressable
-          onPress={openBottomSheet}
-          style={{ alignItems: 'center', paddingTop: 10, paddingBottom: tabBarHeight + 40 }}>
-          <View
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.92)',
-              borderRadius: 24,
-              paddingVertical: 8,
-              paddingHorizontal: 28,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.6)',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.12,
-              shadowRadius: 12,
-              elevation: 6,
-            }}>
-            <Text className="text-sm font-bold" style={{ color: WeatherBoardColors.textPrimaryDark }}>
-              Activity Feed
-            </Text>
-            <Text>💬</Text>
-          </View>
-        </Pressable>
       </View>
       <RoomChatFloatingButton />
-      <ActivityFeedSheet
-        bottomSheetRef={bottomSheetRef}
-        activityFeed={activityFeed}
-        tabBarHeight={tabBarHeight}
-      />
     </ImageBackground>
   );
 }

@@ -82,6 +82,28 @@ export default function RootLayout() {
                       }}
                     />
                     <Stack.Screen
+                      name="user-profile"
+                      options={{
+                        title: '',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="follow-list"
+                      options={{
+                        title: '',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
+                    <Stack.Screen
                       name="block-list"
                       options={{
                         title: 'ブロック一覧',
