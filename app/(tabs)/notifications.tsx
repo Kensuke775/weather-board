@@ -202,13 +202,27 @@ export default function Notifications() {
                 padding: 14,
                 marginHorizontal: 20,
               }}>
-              {!item.is_read && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#D97757', marginTop: 6 }} />}
-              <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)}>
+              <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)} style={{ position: 'relative' }}>
                 <AvatarWeatherBadge
                   avatarEmoji={item.profiles?.avatar_emoji ?? '👤'}
                   weather={item.weather ?? 'cloudy'}
                   size={40}
                 />
+                {!item.is_read && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -2,
+                      left: -2,
+                      width: 12,
+                      height: 12,
+                      borderRadius: 6,
+                      backgroundColor: '#EF4444',
+                      borderWidth: 2,
+                      borderColor: '#FFFFFF',
+                    }}
+                  />
+                )}
               </Pressable>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
