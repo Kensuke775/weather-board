@@ -7,6 +7,7 @@ import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import ActivityFeedSheet from '@/components/ActivityFeedSheet';
+import RoomChatFloatingButton from '@/components/RoomChatFloatingButton';
 import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
@@ -610,6 +611,7 @@ export default function HomeScreen() {
           </View>
         </Pressable>
       </View>
+      <RoomChatFloatingButton />
       <ActivityFeedSheet
         bottomSheetRef={bottomSheetRef}
         activityFeed={activityFeed}
