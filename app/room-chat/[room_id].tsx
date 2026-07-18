@@ -47,7 +47,23 @@ export default function RoomChatScreen() {
 
   useEffect(() => {
     if (!roomId) return;
-    fetchRoomMessages(roomId, setMessages);
+    let channel: ReturnType<typeof supabase.channel>;
+    const setUp = async () => {
+      const channelName = `room-messages-${roomId}`;
+      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      await fetchRoomMessages(roomId, setMessages);
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}` }, async () => {
+          await fetchRoomMessages(roomId, setMessages);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [roomId]);
 
   useEffect(() => {
@@ -68,7 +84,6 @@ export default function RoomChatScreen() {
       }
       setInputText('');
       Keyboard.dismiss();
-      await fetchRoomMessages(roomId, setMessages);
     } finally {
       setIsSending(false);
     }
