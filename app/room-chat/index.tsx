@@ -1,15 +1,49 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
+import { useUser } from '@/context/UserContext';
+import { supabase } from '@/lib/supabase';
+import { ConversationItem } from '@/lib/types';
+
+const fetchConversations = async (userId: string, setter: (data: ConversationItem[]) => void) => {
+  const { data, error } = await supabase
+    .from('conversations')
+    .select(
+      'id, user_a_id, user_b_id, last_message_at, user_a:profiles!conversations_user_a_id_fkey(nickname, avatar_emoji), user_b:profiles!conversations_user_b_id_fkey(nickname, avatar_emoji)',
+    )
+    .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
+    .order('last_message_at', { ascending: false });
+  if (error) {
+    console.error('[room-chat/index] fetchConversations', error.message);
+    return;
+  }
+  setter(
+    data.map((row) => ({
+      ...row,
+      user_a: Array.isArray(row.user_a) ? row.user_a[0] : row.user_a,
+      user_b: Array.isArray(row.user_b) ? row.user_b[0] : row.user_b,
+    })),
+  );
+};
 
 export default function TalkHubScreen() {
   const router = useRouter();
+  const { user } = useUser();
+  const userId = user?.id;
   const { rooms } = useRoom();
   const [activeTab, setActiveTab] = useState<'room' | 'dm'>('room');
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      fetchConversations(userId, setConversations);
+    }, [userId]),
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
@@ -48,10 +82,35 @@ export default function TalkHubScreen() {
       </View>
 
       {activeTab === 'dm' ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textMutedBlack, textAlign: 'center' }}>
-            DMは近日公開予定です
-          </Text>
+        <View style={{ flex: 1, padding: 16, gap: 12 }}>
+          {conversations.length === 0 && (
+            <Text style={{ fontSize: 13, color: WeatherBoardColors.textMutedBlack, textAlign: 'center', paddingTop: 24 }}>
+              まだDMはありません{'\n'}相手のプロフィールメニューから「DMを送る」で開始できます
+            </Text>
+          )}
+          {conversations.map((conversation) => {
+            const other = conversation.user_a_id === userId ? conversation.user_b : conversation.user_a;
+            return (
+              <Pressable
+                key={conversation.id}
+                onPress={() => router.push(`/dm-chat/${conversation.id}`)}
+                style={{
+                  ...CardStyle,
+                  borderRadius: 16,
+                  padding: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                }}>
+                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 24 }}>{other.avatar_emoji}</Text>
+                </View>
+                <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }} numberOfLines={1}>
+                  {other.nickname}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       ) : (
         <View style={{ flex: 1, padding: 16, gap: 12 }}>

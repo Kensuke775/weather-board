@@ -3,10 +3,43 @@ import { Alert, Keyboard, Modal, Pressable, Text, TextInput, View } from 'react-
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { useRouter } from 'expo-router';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
+
+const startOrOpenConversation = async (myUserId: string, otherUserId: string): Promise<string | null> => {
+  const userAId = myUserId < otherUserId ? myUserId : otherUserId;
+  const userBId = myUserId < otherUserId ? otherUserId : myUserId;
+
+  const { data: existing, error: selectError } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('user_a_id', userAId)
+    .eq('user_b_id', userBId)
+    .maybeSingle();
+  if (selectError) {
+    console.error('[ReportBlockMenu] startOrOpenConversation(select)', selectError.message);
+    return null;
+  }
+  if (existing) return existing.id;
+
+  const { data: created, error: insertError } = await supabase
+    .from('conversations')
+    .insert({ user_a_id: userAId, user_b_id: userBId })
+    .select('id')
+    .single();
+  if (insertError) {
+    if (insertError.code === '23505') {
+      const { data: retry } = await supabase.from('conversations').select('id').eq('user_a_id', userAId).eq('user_b_id', userBId).single();
+      return retry?.id ?? null;
+    }
+    console.error('[ReportBlockMenu] startOrOpenConversation(insert)', insertError.message);
+    return null;
+  }
+  return created.id;
+};
 
 const PRIMARY_BROWN = '#624221';
 
@@ -22,6 +55,7 @@ const REPORT_REASONS = ['不適切な投稿内容', '嫌がらせ・誹謗中傷
 const OTHER_REASON = 'その他';
 
 export default function ReportBlockMenu({ targetUserId, weatherLogId, commentId, onBlocked, variant = 'default' }: ReportBlockMenuProps) {
+  const router = useRouter();
   const { user } = useUser();
   const userId = user?.id;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,9 +129,25 @@ export default function ReportBlockMenu({ targetUserId, weatherLogId, commentId,
     ]);
   };
 
+  const handleDmPress = async () => {
+    if (isSubmitting || !userId) return;
+    setIsSubmitting(true);
+    try {
+      const conversationId = await startOrOpenConversation(userId, targetUserId);
+      if (!conversationId) {
+        Alert.alert('DMの開始に失敗しました。');
+        return;
+      }
+      router.push(`/dm-chat/${conversationId}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleMenuPress = () => {
     Alert.alert('オプション', '', [
       { text: 'キャンセル', style: 'cancel' },
+      { text: 'DMを送る', onPress: handleDmPress },
       { text: '通報する', onPress: handleReportPress },
       { text: 'ブロックする', onPress: handleBlockPress, style: 'destructive' },
     ]);
