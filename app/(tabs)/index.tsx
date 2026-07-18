@@ -165,12 +165,16 @@ const fetchFeedPage = async (
   const hasTagFilter = filters.tag.trim().length > 0;
   const hasPrefectureFilter = filters.prefecture !== null;
 
-  const profileSelect = hasPrefectureFilter
-    ? 'profiles!inner(nickname, avatar_emoji, prefecture)'
-    : 'profiles(nickname, avatar_emoji, prefecture)';
+  // Supabase の .select() はクエリ文字列がリテラル型でないと戻り値の型を推論できない
+  // （テンプレートリテラルで組み立てると string に広がり GenericStringError になる）ため、
+  // 4通りの組み合わせをリテラルのまま持つネストした三項演算子で組み立てている。
   const selectQuery = hasTagFilter
-    ? `id, user_id, weather, note, updated_at, ${profileSelect}, weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))`
-    : `id, user_id, weather, note, updated_at, ${profileSelect}, weather_log_activities(activity_tag_id, activity_tags(tag_name))`;
+    ? hasPrefectureFilter
+      ? 'id, user_id, weather, note, updated_at, profiles!inner(nickname, avatar_emoji, prefecture), weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))'
+      : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji, prefecture), weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))'
+    : hasPrefectureFilter
+      ? 'id, user_id, weather, note, updated_at, profiles!inner(nickname, avatar_emoji, prefecture), weather_log_activities(activity_tag_id, activity_tags(tag_name))'
+      : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji, prefecture), weather_log_activities(activity_tag_id, activity_tags(tag_name))';
 
   let query = supabase
     .from('weather_logs')
