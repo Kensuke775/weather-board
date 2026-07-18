@@ -1,4 +1,4 @@
-import React, { ComponentProps, useState } from 'react';
+import React, { ComponentProps, useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -7,10 +7,11 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import IconHeader from '@/components/IconHeader';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
+import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
 type LoadingName = 'loggingOut' | 'deletingAccount' | null;
@@ -39,9 +40,42 @@ function MenuItem({ label, description, iconName, iconBg, onPress, danger = fals
   );
 }
 
+type ProfileSummary = {
+  nickname: string;
+  avatar_emoji: string;
+  followerCount: number;
+  followingCount: number;
+};
+
 export default function Settings() {
   const router = useRouter();
+  const { user } = useUser();
   const [isLoading, setIsLoading] = useState<LoadingName>(null);
+  const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      const fetchProfileSummary = async () => {
+        const [profileResult, followerResult, followingResult] = await Promise.all([
+          supabase.from('profiles').select('nickname, avatar_emoji').eq('user_id', user.id).single(),
+          supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('followed_id', user.id),
+          supabase.from('follows').select('followed_id', { count: 'exact', head: true }).eq('follower_id', user.id),
+        ]);
+        if (profileResult.error) {
+          console.error('[settings] fetchProfileSummary profile', profileResult.error.message);
+          return;
+        }
+        setProfileSummary({
+          nickname: profileResult.data.nickname,
+          avatar_emoji: profileResult.data.avatar_emoji ?? '👤',
+          followerCount: followerResult.count ?? 0,
+          followingCount: followingResult.count ?? 0,
+        });
+      };
+      fetchProfileSummary();
+    }, [user?.id]),
+  );
 
   const handleLogout = async () => {
     if (isLoading) return;
@@ -81,6 +115,32 @@ export default function Settings() {
       <IconHeader icon="settings-outline" title="Settings" subtitle="アカウントや各種設定を行います" />
 
       <View style={{ flex: 1, paddingTop: 20, paddingHorizontal: 20 }}>
+        {profileSummary && (
+          <View style={{ ...CardStyle, borderRadius: 20, padding: 20, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: WeatherBoardColors.screenBackground, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 30 }}>{profileSummary.avatar_emoji}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, marginBottom: 6 }}>
+                {profileSummary.nickname}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
+                    {profileSummary.followingCount}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>フォロー中</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
+                    {profileSummary.followerCount}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>フォロワー</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
         <View style={{ ...CardStyle, borderRadius: 20, overflow: 'hidden' }}>
           <MenuItem
             label="ルーム設定"

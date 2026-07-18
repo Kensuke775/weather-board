@@ -6,6 +6,7 @@ export type Profile = {
   avatar_emoji: string | null;
   created_at: string;
   push_token: string | null;
+  prefecture: string | null;
 };
 
 export type Post = {
