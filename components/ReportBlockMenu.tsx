@@ -7,39 +7,8 @@ import { useRouter } from 'expo-router';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { startOrOpenConversation } from '@/lib/conversations';
 import { supabase } from '@/lib/supabase';
-
-const startOrOpenConversation = async (myUserId: string, otherUserId: string): Promise<string | null> => {
-  const userAId = myUserId < otherUserId ? myUserId : otherUserId;
-  const userBId = myUserId < otherUserId ? otherUserId : myUserId;
-
-  const { data: existing, error: selectError } = await supabase
-    .from('conversations')
-    .select('id')
-    .eq('user_a_id', userAId)
-    .eq('user_b_id', userBId)
-    .maybeSingle();
-  if (selectError) {
-    console.error('[ReportBlockMenu] startOrOpenConversation(select)', selectError.message);
-    return null;
-  }
-  if (existing) return existing.id;
-
-  const { data: created, error: insertError } = await supabase
-    .from('conversations')
-    .insert({ user_a_id: userAId, user_b_id: userBId })
-    .select('id')
-    .single();
-  if (insertError) {
-    if (insertError.code === '23505') {
-      const { data: retry } = await supabase.from('conversations').select('id').eq('user_a_id', userAId).eq('user_b_id', userBId).single();
-      return retry?.id ?? null;
-    }
-    console.error('[ReportBlockMenu] startOrOpenConversation(insert)', insertError.message);
-    return null;
-  }
-  return created.id;
-};
 
 const PRIMARY_BROWN = '#624221';
 
