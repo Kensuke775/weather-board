@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, Text,
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
+import JapanMapModal from '@/components/JapanMapModal';
 import RoomChatFloatingButton from '@/components/RoomChatFloatingButton';
 import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
@@ -236,6 +237,7 @@ export default function HomeScreen() {
   const [followingOnly, setFollowingOnly] = useState(false);
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
   const isFilterInitialRender = useRef(true);
@@ -493,6 +495,19 @@ export default function HomeScreen() {
       <View style={{ paddingTop: 80, flex: 1, paddingHorizontal: 16 }}>
         {/* トップバー：新着バナー＋フィルタトグル */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 }}>
+          {/* マップボタン */}
+          <Pressable
+            onPress={() => setIsMapOpen(true)}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: 'rgba(255,255,255,0.85)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+            <Ionicons name="map-outline" size={18} color={WeatherBoardColors.textPrimaryDark} />
+          </Pressable>
           {hasNewPosts ? (
             <Pressable
               onPress={handleRefresh}
@@ -688,6 +703,7 @@ export default function HomeScreen() {
         </View>
       </View>
       <RoomChatFloatingButton />
+      <JapanMapModal visible={isMapOpen} onClose={() => setIsMapOpen(false)} />
     </ImageBackground>
   );
 }
