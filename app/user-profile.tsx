@@ -1,11 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
+import { TOAST_DURATION } from '@/constants/ui';
+import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
+import { startOrOpenConversation } from '@/lib/conversations';
 import { supabase } from '@/lib/supabase';
 
 type ProfileData = {
@@ -39,11 +43,15 @@ const fetchUserProfile = async (targetUserId: string, currentUserId: string): Pr
 };
 
 export default function UserProfile() {
+  const router = useRouter();
   const { user } = useUser();
+  const { rooms } = useRoom();
   const { userId: targetUserId } = useLocalSearchParams<{ userId: string }>();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isStartingDm, setIsStartingDm] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
 
   const isOwnProfile = user?.id === targetUserId;
 
@@ -98,6 +106,62 @@ export default function UserProfile() {
     setIsFollowLoading(false);
   };
 
+  const handleSendDm = async () => {
+    if (!user?.id || !targetUserId || isStartingDm) return;
+    setIsStartingDm(true);
+    try {
+      const conversationId = await startOrOpenConversation(user.id, targetUserId);
+      if (!conversationId) return;
+      router.push(`/dm-chat/${conversationId}`);
+    } finally {
+      setIsStartingDm(false);
+    }
+  };
+
+  const inviteToRoom = async (roomId: string, roomName: string) => {
+    if (!user?.id || !targetUserId || isInviting) return;
+    setIsInviting(true);
+    try {
+      const { data: existingMember } = await supabase.from('room_members').select('user_id').eq('room_id', roomId).eq('user_id', targetUserId).maybeSingle();
+      if (existingMember) {
+        Alert.alert(`すでに「${roomName}」に参加しています。`);
+        return;
+      }
+      const { error } = await supabase.from('room_members').insert({ room_id: roomId, user_id: targetUserId });
+      if (error) {
+        console.error('[user-profile] inviteToRoom', error.message);
+        Alert.alert('招待に失敗しました。');
+        return;
+      }
+      const { error: notifyError } = await supabase.from('notifications').insert({
+        to_user_id: targetUserId,
+        from_user_id: user.id,
+        type: 'room_join',
+        room_id: roomId,
+      });
+      if (notifyError) console.error('[user-profile] inviteToRoom notify', notifyError.message);
+      Toast.show({ type: 'success', text1: `「${roomName}」に招待しました`, visibilityTime: TOAST_DURATION.default });
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleInviteToRoom = () => {
+    if (rooms.length === 0) {
+      Alert.alert('参加中のルームがありません。');
+      return;
+    }
+    if (rooms.length === 1) {
+      const room = rooms[0].rooms;
+      inviteToRoom(room.id, room.name);
+      return;
+    }
+    Alert.alert('招待するルームを選んでください', '', [
+      ...rooms.map(({ rooms: room }) => ({ text: room.name, onPress: () => inviteToRoom(room.id, room.name) })),
+      { text: 'キャンセル', style: 'cancel' as const },
+    ]);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <Stack.Screen options={{ title: profile?.nickname ?? '' }} />
@@ -140,29 +204,62 @@ export default function UserProfile() {
               </View>
             </View>
             {!isOwnProfile && (
-              <Pressable
-                onPress={handleToggleFollow}
-                disabled={isFollowLoading}
-                style={{
-                  marginTop: 4,
-                  paddingHorizontal: 32,
-                  paddingVertical: 10,
-                  borderRadius: 100,
-                  backgroundColor: profile.isFollowing ? 'rgba(0,0,0,0.07)' : WeatherBoardColors.buttonBackground,
-                  opacity: isFollowLoading ? 0.6 : 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                }}>
-                <Ionicons
-                  name={profile.isFollowing ? 'checkmark' : 'add'}
-                  size={15}
-                  color={profile.isFollowing ? WeatherBoardColors.textPrimaryDark : 'white'}
-                />
-                <Text style={{ fontSize: 14, fontWeight: '700', color: profile.isFollowing ? WeatherBoardColors.textPrimaryDark : 'white' }}>
-                  {profile.isFollowing ? 'フォロー中' : 'フォローする'}
-                </Text>
-              </Pressable>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                <Pressable
+                  onPress={handleToggleFollow}
+                  disabled={isFollowLoading}
+                  style={{
+                    paddingHorizontal: 24,
+                    paddingVertical: 10,
+                    borderRadius: 100,
+                    backgroundColor: profile.isFollowing ? 'rgba(0,0,0,0.07)' : WeatherBoardColors.buttonBackground,
+                    opacity: isFollowLoading ? 0.6 : 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                  <Ionicons
+                    name={profile.isFollowing ? 'checkmark' : 'add'}
+                    size={15}
+                    color={profile.isFollowing ? WeatherBoardColors.textPrimaryDark : 'white'}
+                  />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: profile.isFollowing ? WeatherBoardColors.textPrimaryDark : 'white' }}>
+                    {profile.isFollowing ? 'フォロー中' : 'フォローする'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSendDm}
+                  disabled={isStartingDm}
+                  style={{
+                    paddingHorizontal: 24,
+                    paddingVertical: 10,
+                    borderRadius: 100,
+                    backgroundColor: 'rgba(0,0,0,0.07)',
+                    opacity: isStartingDm ? 0.6 : 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                  <Ionicons name="chatbubble-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>DMを送る</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleInviteToRoom}
+                  disabled={isInviting}
+                  style={{
+                    paddingHorizontal: 24,
+                    paddingVertical: 10,
+                    borderRadius: 100,
+                    backgroundColor: 'rgba(0,0,0,0.07)',
+                    opacity: isInviting ? 0.6 : 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                  <Ionicons name="people-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>ルームに招待する</Text>
+                </Pressable>
+              </View>
             )}
           </View>
         </View>

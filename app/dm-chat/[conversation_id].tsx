@@ -3,6 +3,7 @@ import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, Te
 
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
@@ -58,6 +59,7 @@ export default function DmChatScreen() {
   const { conversation_id: conversationId } = useLocalSearchParams<{ conversation_id: string }>();
   const { user } = useUser();
   const userId = user?.id;
+  const { bottom } = useSafeAreaInsets();
 
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
   const [messages, setMessages] = useState<DirectMessageItem[]>([]);
@@ -184,7 +186,7 @@ export default function DmChatScreen() {
             </Text>
           </View>
         ) : (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(bottom, 12) }}>
             <View
               style={{
                 flex: 1,
