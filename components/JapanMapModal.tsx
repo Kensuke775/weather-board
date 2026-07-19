@@ -14,7 +14,10 @@ import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
 // Types & constants
 // ---------------------------------------------------------------------------
 
-type PrefectureWeather = Record<string, WeatherType>;
+type PrefectureData = {
+  weather: WeatherType;
+  count: number;
+};
 
 const WEATHER_MAP_COLOR: Record<WeatherType, string> = {
   sunny: '#F5A623',
@@ -27,12 +30,12 @@ const WEATHER_MAP_COLOR: Record<WeatherType, string> = {
 };
 
 const [INIT_X, INIT_Y, INIT_W, INIT_H] = JAPAN_VIEWBOX.split(' ').map(Number);
-const ASPECT = INIT_W / INIT_H; // ~1.04
+const ASPECT = INIT_W / INIT_H;
 
 type Vb = { x: number; y: number; w: number; h: number };
 
 // ---------------------------------------------------------------------------
-// Pure helpers (no closures over component state — safe in PanResponder refs)
+// Pure helpers
 // ---------------------------------------------------------------------------
 
 function clampVb(vb: Vb): Vb {
@@ -58,7 +61,7 @@ function pinchDist(
 // Data fetching
 // ---------------------------------------------------------------------------
 
-const fetchPrefectureWeather = async (): Promise<PrefectureWeather> => {
+const fetchPrefectureData = async (): Promise<Record<string, PrefectureData>> => {
   const today = new Date().toLocaleDateString('en-CA');
   const { data, error } = await supabase
     .from('weather_logs')
@@ -67,10 +70,11 @@ const fetchPrefectureWeather = async (): Promise<PrefectureWeather> => {
     .not('profiles.prefecture', 'is', null);
 
   if (error) {
-    console.error('[JapanMapModal] fetchPrefectureWeather', error.message);
+    console.error('[JapanMapModal] fetchPrefectureData', error.message);
     return {};
   }
 
+  // 都道府県ごとに天気出現数を集計
   const tally: Record<string, Record<string, number>> = {};
   for (const row of data ?? []) {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
@@ -81,9 +85,11 @@ const fetchPrefectureWeather = async (): Promise<PrefectureWeather> => {
     tally[pref][weather] = (tally[pref][weather] ?? 0) + 1;
   }
 
-  const result: PrefectureWeather = {};
+  const result: Record<string, PrefectureData> = {};
   for (const [pref, counts] of Object.entries(tally)) {
-    result[pref] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0] as WeatherType;
+    const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0] as WeatherType;
+    const total = Object.values(counts).reduce((s, n) => s + n, 0);
+    result[pref] = { weather: dominant, count: total };
   }
   return result;
 };
@@ -96,17 +102,14 @@ type Props = { visible: boolean; onClose: () => void };
 
 export default function JapanMapModal({ visible, onClose }: Props) {
   const router = useRouter();
-  const [prefWeather, setPrefWeather] = useState<PrefectureWeather>({});
+  const [prefData, setPrefData] = useState<Record<string, PrefectureData>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // ViewBox state — managed via ref for PanResponder access + state for re-render
   const vbRef = useRef<Vb>({ x: INIT_X, y: INIT_Y, w: INIT_W, h: INIT_H });
   const savedVb = useRef<Vb>({ x: INIT_X, y: INIT_Y, w: INIT_W, h: INIT_H });
   const [viewBoxStr, setViewBoxStr] = useState(JAPAN_VIEWBOX);
-  const svgPxWidth = useRef(300); // updated via onLayout
+  const svgPxWidth = useRef(300);
 
-  // applyVb: writes to ref + triggers re-render. Safe in PanResponder because
-  // vbRef and setViewBoxStr are both stable across renders.
   const applyVb = (vb: Vb) => {
     const c = clampVb(vb);
     vbRef.current = c;
@@ -114,22 +117,21 @@ export default function JapanMapModal({ visible, onClose }: Props) {
   };
 
   const zoomTo = (factor: number) => {
-    const { x, y, w, h } = vbRef.current;
+    const { x, y, w } = vbRef.current;
     const newW = w / factor;
     const cx = x + w / 2;
-    const cy = y + h / 2;
+    const cy = vbRef.current.y + vbRef.current.h / 2;
     applyVb({ x: cx - newW / 2, y: cy - newW / ASPECT / 2, w: newW, h: newW / ASPECT });
   };
 
   const resetVb = () => applyVb({ x: INIT_X, y: INIT_Y, w: INIT_W, h: INIT_H });
 
-  // Pinch state refs — accessed by PanResponder (no closure issues; only refs used)
   const isPinching = useRef(false);
   const pinchStartDist = useRef(0);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false, // let taps through to SVG paths
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, gs) =>
         e.nativeEvent.touches.length > 1 || Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4,
       onPanResponderGrant: (e) => {
@@ -163,7 +165,7 @@ export default function JapanMapModal({ visible, onClose }: Props) {
 
   const load = useCallback(async () => {
     setIsLoading(true);
-    setPrefWeather(await fetchPrefectureWeather());
+    setPrefData(await fetchPrefectureData());
     setIsLoading(false);
   }, []);
 
@@ -240,10 +242,10 @@ export default function JapanMapModal({ visible, onClose }: Props) {
               onLayout={(e) => { svgPxWidth.current = e.nativeEvent.layout.width; }}
               style={{ width: '100%', aspectRatio: ASPECT, borderRadius: 10, overflow: 'hidden', backgroundColor: '#EAF4FB' }}>
               <Svg width="100%" height="100%" viewBox={viewBoxStr}>
-                {/* 都道府県 */}
+                {/* 都道府県パス */}
                 {JAPAN_PREFECTURES.map((pref) => {
-                  const weather = prefWeather[pref.name];
-                  const fill = weather ? WEATHER_MAP_COLOR[weather] : 'rgba(180,195,210,0.5)';
+                  const data = prefData[pref.name];
+                  const fill = data ? WEATHER_MAP_COLOR[data.weather] : 'rgba(180,195,210,0.5)';
                   return (
                     <Path
                       key={pref.code}
@@ -255,21 +257,39 @@ export default function JapanMapModal({ visible, onClose }: Props) {
                     />
                   );
                 })}
-                {/* 都道府県ラベル（ズームで読みやすくなる） */}
-                {JAPAN_PREFECTURES.map((pref) => (
-                  <SvgText
-                    key={`lbl-${pref.code}`}
-                    x={pref.centroid.x}
-                    y={pref.centroid.y + 0.18}
-                    fontSize={0.5}
-                    fill="rgba(30,30,30,0.8)"
-                    stroke="rgba(255,255,255,0.85)"
-                    strokeWidth={0.1}
-                    textAnchor="middle"
-                    fontWeight="bold">
-                    {pref.label.substring(0, 2)}
-                  </SvgText>
-                ))}
+                {/* ラベル: 県名 + 人数（ズームで拡大して読みやすくなる） */}
+                {JAPAN_PREFECTURES.map((pref) => {
+                  const data = prefData[pref.name];
+                  return (
+                    <React.Fragment key={`lbl-${pref.code}`}>
+                      {/* 県名 */}
+                      <SvgText
+                        x={pref.centroid.x}
+                        y={pref.centroid.y + 0.1}
+                        fontSize={0.5}
+                        fill="rgba(30,30,30,0.85)"
+                        stroke="rgba(255,255,255,0.9)"
+                        strokeWidth={0.1}
+                        textAnchor="middle"
+                        fontWeight="bold">
+                        {pref.label.substring(0, 2)}
+                      </SvgText>
+                      {/* 人数（投稿ありの場合のみ） */}
+                      {data && (
+                        <SvgText
+                          x={pref.centroid.x}
+                          y={pref.centroid.y + 0.72}
+                          fontSize={0.38}
+                          fill="rgba(30,30,30,0.7)"
+                          stroke="rgba(255,255,255,0.85)"
+                          strokeWidth={0.08}
+                          textAnchor="middle">
+                          {data.count}人
+                        </SvgText>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </Svg>
             </View>
 
