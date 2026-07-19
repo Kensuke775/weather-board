@@ -17,6 +17,8 @@ const TYPE_LABEL: Record<Notification['type'], string> = {
   reaction: 'リアクション',
   room_join: 'ルーム招待',
   follow: 'フォロー',
+  room_message: 'ルームチャット',
+  direct_message: 'DM',
 };
 
 const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
@@ -25,14 +27,25 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
   reaction: 'rgba(134,239,172,0.35)',
   room_join: 'rgba(196,181,253,0.35)',
   follow: 'rgba(251,191,36,0.35)',
+  room_message: 'rgba(196,181,253,0.35)',
+  direct_message: 'rgba(96,165,250,0.25)',
+};
+
+// 戻り値の型は書かない: expo-router の typed routes は Href がリテラル型である
+// ことを要求するため、`string` に型注釈すると幅が広がり router.push に渡せなくなる
+// （app/(tabs)/index.tsx の selectQuery と同じ理由）。
+const getNavigationTarget = (item: Notification) => {
+  if (item.type === 'room_message' && item.room_id) return `/room-chat/${item.room_id}` as const;
+  if (item.type === 'direct_message' && item.conversation_id) return `/dm-chat/${item.conversation_id}` as const;
+  if (item.type !== 'follow' && item.type !== 'room_join' && item.weather_log_id) return `/weather-log/${item.weather_log_id}` as const;
+  return null;
 };
 
 const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean => {
   if (filter === 'all') return true;
   if (filter === 'comment') return type === 'comment';
-  if (filter === 'reaction') return type === 'talk' || type === 'reaction';
-  if (filter === 'follow') return type === 'follow';
-  return type === 'room_join';
+  if (filter === 'dm') return type === 'direct_message';
+  return type === 'room_join' || type === 'room_message';
 };
 
 const fetchNotifications = async (userId: string, setter: (data: Notification[]) => void) => {
@@ -173,7 +186,10 @@ export default function Notifications() {
           const item = row.item;
           return (
             <Pressable
-              onPress={() => item.type !== 'follow' && item.weather_log_id && router.push(`/weather-log/${item.weather_log_id}`)}
+              onPress={() => {
+                const target = getNavigationTarget(item);
+                if (target) router.push(target);
+              }}
               style={{
                 flexDirection: 'row',
                 alignItems: 'flex-start',
@@ -185,13 +201,27 @@ export default function Notifications() {
                 padding: 14,
                 marginHorizontal: 20,
               }}>
-              {!item.is_read && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#D97757', marginTop: 6 }} />}
-              <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)}>
+              <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)} style={{ position: 'relative' }}>
                 <AvatarWeatherBadge
                   avatarEmoji={item.profiles?.avatar_emoji ?? '👤'}
                   weather={item.weather ?? 'cloudy'}
                   size={40}
                 />
+                {!item.is_read && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -2,
+                      left: -2,
+                      width: 12,
+                      height: 12,
+                      borderRadius: 6,
+                      backgroundColor: '#EF4444',
+                      borderWidth: 2,
+                      borderColor: '#FFFFFF',
+                    }}
+                  />
+                )}
               </Pressable>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -212,7 +242,13 @@ export default function Notifications() {
                     <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontSize: 12.5 }} numberOfLines={2}>
                       {item.type === 'follow'
                         ? 'あなたをフォローしました'
-                        : item.note ?? (item.type === 'room_join' ? 'ルームに参加しました' : '')}
+                        : item.type === 'room_join'
+                          ? 'ルームに参加しました'
+                          : item.type === 'room_message'
+                            ? 'ルームチャットに新しいメッセージがあります'
+                            : item.type === 'direct_message'
+                              ? '新しいメッセージがあります'
+                              : (item.note ?? '')}
                     </Text>
                     {item.tags.length > 0 && (
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
@@ -224,7 +260,7 @@ export default function Notifications() {
                       </View>
                     )}
                   </View>
-                  {item.type !== 'follow' && item.weather_log_id && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
+                  {getNavigationTarget(item) && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
                 </View>
               </View>
             </Pressable>

@@ -84,6 +84,25 @@ export default function RoomChatScreen() {
       }
       setInputText('');
       Keyboard.dismiss();
+
+      const { data: otherMembers, error: membersError } = await supabase
+        .from('room_members')
+        .select('user_id')
+        .eq('room_id', roomId)
+        .neq('user_id', userId);
+      if (membersError) {
+        console.error('[room-chat] handleSend notify', membersError.message);
+      } else if (otherMembers.length > 0) {
+        const { error: notifyError } = await supabase.from('notifications').insert(
+          otherMembers.map((member) => ({
+            to_user_id: member.user_id,
+            from_user_id: userId,
+            type: 'room_message',
+            room_id: roomId,
+          })),
+        );
+        if (notifyError) console.error('[room-chat] handleSend notify', notifyError.message);
+      }
     } finally {
       setIsSending(false);
     }

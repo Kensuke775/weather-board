@@ -110,6 +110,16 @@ export default function DmChatScreen() {
       }
       setInputText('');
       Keyboard.dismiss();
+
+      if (otherUser) {
+        const { error: notifyError } = await supabase.from('notifications').insert({
+          to_user_id: otherUser.id,
+          from_user_id: userId,
+          type: 'direct_message',
+          conversation_id: conversationId,
+        });
+        if (notifyError) console.error('[dm-chat] handleSend notify', notifyError.message);
+      }
     } finally {
       setIsSending(false);
     }
