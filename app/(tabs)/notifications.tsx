@@ -44,8 +44,7 @@ const getNavigationTarget = (item: Notification) => {
 const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean => {
   if (filter === 'all') return true;
   if (filter === 'comment') return type === 'comment';
-  if (filter === 'reaction') return type === 'talk' || type === 'reaction';
-  if (filter === 'follow') return type === 'follow';
+  if (filter === 'dm') return type === 'direct_message';
   return type === 'room_join' || type === 'room_message';
 };
 
