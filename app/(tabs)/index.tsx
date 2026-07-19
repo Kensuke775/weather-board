@@ -243,6 +243,7 @@ export default function HomeScreen() {
   const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
   const isFilterInitialRender = useRef(true);
   const filterSheetRef = useRef<BottomSheetModal>(null);
+  const tagInputRef = useRef<React.ComponentRef<typeof BottomSheetTextInput>>(null);
   const tabBarHeight = useBottomTabBarHeight();
 
   // タグ入力をデバウンス
@@ -484,6 +485,7 @@ export default function HomeScreen() {
   const handleResetFilters = () => {
     setWeatherFilter(null);
     setTagQuery('');
+    tagInputRef.current?.clear();
     setPrefectureFilter(null);
     setFollowingOnly(false);
   };
@@ -666,14 +668,20 @@ export default function HomeScreen() {
             }}>
               <Ionicons name="search-outline" size={14} color={WeatherBoardColors.textMutedBlack} style={{ marginRight: 6 }} />
               <BottomSheetTextInput
-                value={tagQuery}
+                ref={tagInputRef}
+                defaultValue={tagQuery}
                 onChangeText={setTagQuery}
                 placeholder="タグで検索..."
                 placeholderTextColor={WeatherBoardColors.textMutedBlack}
                 style={{ flex: 1, fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingVertical: 0 }}
               />
               {tagQuery.length > 0 && (
-                <Pressable onPress={() => setTagQuery('')} hitSlop={8}>
+                <Pressable
+                  onPress={() => {
+                    setTagQuery('');
+                    tagInputRef.current?.clear();
+                  }}
+                  hitSlop={8}>
                   <Ionicons name="close-circle" size={16} color={WeatherBoardColors.textMutedBlack} />
                 </Pressable>
               )}
