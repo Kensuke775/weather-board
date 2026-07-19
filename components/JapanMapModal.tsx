@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, PanResponder, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, PanResponder, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 
 import { JAPAN_PREFECTURES, JAPAN_VIEWBOX } from '@/constants/japanPrefectures';
 import { WeatherBoardColors } from '@/constants/theme';
@@ -17,6 +17,13 @@ import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
 type PrefectureData = {
   weather: WeatherType;
   count: number;
+};
+
+type PrefUser = {
+  user_id: string;
+  nickname: string;
+  avatar_emoji: string;
+  weather: WeatherType;
 };
 
 const WEATHER_MAP_COLOR: Record<WeatherType, string> = {
@@ -74,7 +81,6 @@ const fetchPrefectureData = async (): Promise<Record<string, PrefectureData>> =>
     return {};
   }
 
-  // 都道府県ごとに天気出現数を集計
   const tally: Record<string, Record<string, number>> = {};
   for (const row of data ?? []) {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
@@ -94,6 +100,30 @@ const fetchPrefectureData = async (): Promise<Record<string, PrefectureData>> =>
   return result;
 };
 
+const fetchPrefectureUsers = async (prefName: string): Promise<PrefUser[]> => {
+  const today = new Date().toLocaleDateString('en-CA');
+  const { data, error } = await supabase
+    .from('weather_logs')
+    .select('user_id, weather, profiles!inner(nickname, avatar_emoji, prefecture)')
+    .eq('logged_date', today)
+    .eq('profiles.prefecture', prefName);
+
+  if (error) {
+    console.error('[JapanMapModal] fetchPrefectureUsers', error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      user_id: row.user_id,
+      nickname: profile?.nickname ?? '名無し',
+      avatar_emoji: profile?.avatar_emoji ?? '🙂',
+      weather: row.weather as WeatherType,
+    };
+  });
+};
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -101,9 +131,12 @@ const fetchPrefectureData = async (): Promise<Record<string, PrefectureData>> =>
 type Props = { visible: boolean; onClose: () => void };
 
 export default function JapanMapModal({ visible, onClose }: Props) {
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [prefData, setPrefData] = useState<Record<string, PrefectureData>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPref, setSelectedPref] = useState<string | null>(null);
+  const [prefUsers, setPrefUsers] = useState<PrefUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   const vbRef = useRef<Vb>({ x: INIT_X, y: INIT_Y, w: INIT_W, h: INIT_H });
   const savedVb = useRef<Vb>({ x: INIT_X, y: INIT_Y, w: INIT_W, h: INIT_H });
@@ -117,7 +150,7 @@ export default function JapanMapModal({ visible, onClose }: Props) {
   };
 
   const zoomTo = (factor: number) => {
-    const { x, y, w } = vbRef.current;
+    const { x, w } = vbRef.current;
     const newW = w / factor;
     const cx = x + w / 2;
     const cy = vbRef.current.y + vbRef.current.h / 2;
@@ -170,16 +203,26 @@ export default function JapanMapModal({ visible, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (visible) load();
+    if (visible) {
+      load();
+      setSelectedPref(null);
+      setPrefUsers([]);
+    }
   }, [visible, load]);
 
-  const handlePrefPress = (prefName: string) => {
-    onClose();
-    router.push(`/prefecture-users?name=${encodeURIComponent(prefName)}`);
+  const handlePrefPress = async (prefName: string) => {
+    setSelectedPref(prefName);
+    setIsLoadingUsers(true);
+    setPrefUsers(await fetchPrefectureUsers(prefName));
+    setIsLoadingUsers(false);
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
         {/* ヘッダー */}
         <View style={{
@@ -187,7 +230,7 @@ export default function JapanMapModal({ visible, onClose }: Props) {
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 20,
-          paddingTop: 20,
+          paddingTop: insets.top + 12,
           paddingBottom: 12,
           borderBottomWidth: 1,
           borderBottomColor: WeatherBoardColors.divider,
@@ -212,103 +255,160 @@ export default function JapanMapModal({ visible, onClose }: Props) {
             <ActivityIndicator size="large" color={WeatherBoardColors.buttonBackground} />
           </View>
         ) : (
-          <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 12 }}>
-            {/* ズームコントロール */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-              <Text style={{ flex: 1, fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
-                ピンチ / ドラッグ操作可能
-              </Text>
-              {([
-                { icon: 'add-outline', action: () => zoomTo(1.6) },
-                { icon: 'remove-outline', action: () => zoomTo(1 / 1.6) },
-                { icon: 'expand-outline', action: resetVb },
-              ] as const).map(({ icon, action }) => (
-                <Pressable
-                  key={icon}
-                  onPress={action}
-                  style={{
-                    width: 30, height: 30, borderRadius: 8,
-                    backgroundColor: 'rgba(0,0,0,0.07)',
-                    alignItems: 'center', justifyContent: 'center',
-                  }}>
-                  <Ionicons name={icon} size={15} color={WeatherBoardColors.textPrimaryDark} />
-                </Pressable>
-              ))}
-            </View>
+          <>
+            {/* 地図エリア */}
+            <View style={{ paddingHorizontal: 12, paddingTop: 12 }}>
+              {/* ズームコントロール */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                <Text style={{ flex: 1, fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
+                  ピンチ / ドラッグ操作可能
+                </Text>
+                {([
+                  { icon: 'add-outline', action: () => zoomTo(1.6) },
+                  { icon: 'remove-outline', action: () => zoomTo(1 / 1.6) },
+                  { icon: 'expand-outline', action: resetVb },
+                ] as const).map(({ icon, action }) => (
+                  <Pressable
+                    key={icon}
+                    onPress={action}
+                    style={{
+                      width: 30, height: 30, borderRadius: 8,
+                      backgroundColor: 'rgba(0,0,0,0.07)',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <Ionicons name={icon} size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  </Pressable>
+                ))}
+              </View>
 
-            {/* 地図 */}
-            <View
-              {...panResponder.panHandlers}
-              onLayout={(e) => { svgPxWidth.current = e.nativeEvent.layout.width; }}
-              style={{ width: '100%', aspectRatio: ASPECT, borderRadius: 10, overflow: 'hidden', backgroundColor: '#EAF4FB' }}>
-              <Svg width="100%" height="100%" viewBox={viewBoxStr}>
-                {/* 都道府県パス */}
-                {JAPAN_PREFECTURES.map((pref) => {
-                  const data = prefData[pref.name];
-                  const fill = data ? WEATHER_MAP_COLOR[data.weather] : 'rgba(180,195,210,0.5)';
-                  return (
-                    <Path
-                      key={pref.code}
-                      d={pref.path}
-                      fill={fill}
-                      stroke="#FFFFFF"
-                      strokeWidth={0.05}
-                      onPress={() => handlePrefPress(pref.name)}
-                    />
-                  );
-                })}
-                {/* ラベル: 県名 + 人数（ズームで拡大して読みやすくなる） */}
-                {JAPAN_PREFECTURES.map((pref) => {
-                  const data = prefData[pref.name];
-                  return (
-                    <React.Fragment key={`lbl-${pref.code}`}>
-                      {/* 県名 */}
-                      <SvgText
-                        x={pref.centroid.x}
-                        y={pref.centroid.y + 0.1}
-                        fontSize={0.5}
-                        fill="rgba(30,30,30,0.85)"
-                        stroke="rgba(255,255,255,0.9)"
-                        strokeWidth={0.1}
-                        textAnchor="middle"
-                        fontWeight="bold">
-                        {pref.label.substring(0, 2)}
-                      </SvgText>
-                      {/* 人数（投稿ありの場合のみ） */}
-                      {data && (
-                        <SvgText
-                          x={pref.centroid.x}
-                          y={pref.centroid.y + 0.72}
-                          fontSize={0.38}
-                          fill="rgba(30,30,30,0.7)"
-                          stroke="rgba(255,255,255,0.85)"
-                          strokeWidth={0.08}
-                          textAnchor="middle">
-                          {data.count}人
-                        </SvgText>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </Svg>
-            </View>
+              {/* 地図 */}
+              <View
+                {...panResponder.panHandlers}
+                onLayout={(e) => { svgPxWidth.current = e.nativeEvent.layout.width; }}
+                style={{ width: '100%', aspectRatio: ASPECT, borderRadius: 10, overflow: 'hidden', backgroundColor: '#EAF4FB' }}>
+                <Svg width="100%" height="100%" viewBox={viewBoxStr}>
+                  {JAPAN_PREFECTURES.map((pref) => {
+                    const data = prefData[pref.name];
+                    const isSelected = selectedPref === pref.name;
+                    const fill = data ? WEATHER_MAP_COLOR[data.weather] : 'rgba(180,195,210,0.5)';
+                    return (
+                      <Path
+                        key={pref.code}
+                        d={pref.path}
+                        fill={fill}
+                        stroke={isSelected ? 'rgba(0,0,0,0.7)' : '#FFFFFF'}
+                        strokeWidth={isSelected ? 0.12 : 0.05}
+                        onPress={() => handlePrefPress(pref.name)}
+                      />
+                    );
+                  })}
+                  {(() => {
+                    const currentW = parseFloat(viewBoxStr.split(' ')[2]);
+                    const nameFontSize = currentW * 0.032;
+                    const countFontSize = currentW * 0.024;
+                    return JAPAN_PREFECTURES.map((pref) => {
+                      const data = prefData[pref.name];
+                      return (
+                        <React.Fragment key={`lbl-${pref.code}`}>
+                          <SvgText
+                            x={pref.centroid.x}
+                            y={pref.centroid.y + nameFontSize * 0.4}
+                            fontSize={nameFontSize}
+                            fill="rgba(20,20,20,0.9)"
+                            stroke="rgba(255,255,255,0.85)"
+                            strokeWidth={nameFontSize * 0.06}
+                            textAnchor="middle"
+                            fontWeight="bold">
+                            {pref.label.substring(0, 2)}
+                          </SvgText>
+                          {data && (
+                            <SvgText
+                              x={pref.centroid.x}
+                              y={pref.centroid.y + nameFontSize * 1.7}
+                              fontSize={countFontSize}
+                              fill="rgba(20,20,20,0.75)"
+                              stroke="rgba(255,255,255,0.8)"
+                              strokeWidth={countFontSize * 0.06}
+                              textAnchor="middle">
+                              {data.count}人
+                            </SvgText>
+                          )}
+                        </React.Fragment>
+                      );
+                    });
+                  })()}
+                </Svg>
+              </View>
 
-            {/* 凡例 */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingHorizontal: 4 }}>
-              {(Object.keys(WEATHER_CONFIG) as WeatherType[]).map((weather) => (
-                <View key={weather} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: WEATHER_MAP_COLOR[weather] }} />
-                  <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
-                    {WEATHER_CONFIG[weather].emoji}
-                  </Text>
+              {/* 凡例 */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10, paddingHorizontal: 2 }}>
+                {(Object.keys(WEATHER_CONFIG) as WeatherType[]).map((weather) => (
+                  <View key={weather} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: WEATHER_MAP_COLOR[weather] }} />
+                    <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
+                      {WEATHER_CONFIG[weather].emoji}
+                    </Text>
+                  </View>
+                ))}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: 'rgba(180,195,210,0.5)' }} />
+                  <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>投稿なし</Text>
                 </View>
-              ))}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: 'rgba(180,195,210,0.5)' }} />
-                <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>投稿なし</Text>
               </View>
             </View>
-          </View>
+
+            {/* 区切り線 */}
+            <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginTop: 12 }} />
+
+            {/* ユーザーリスト */}
+            <View style={{ flex: 1 }}>
+              <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+                {selectedPref ? (
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>
+                    {selectedPref}
+                    <Text style={{ fontWeight: '400', color: WeatherBoardColors.textMutedBlack }}>
+                      {' '}の今日の投稿
+                    </Text>
+                  </Text>
+                ) : (
+                  <Text style={{ fontSize: 13, color: WeatherBoardColors.textMutedBlack }}>
+                    都道府県をタップするとユーザーが表示されます
+                  </Text>
+                )}
+              </View>
+
+              {isLoadingUsers ? (
+                <ActivityIndicator size="small" color={WeatherBoardColors.buttonBackground} style={{ marginTop: 12 }} />
+              ) : selectedPref && prefUsers.length === 0 ? (
+                <Text style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: WeatherBoardColors.textMutedBlack }}>
+                  今日の投稿はありません
+                </Text>
+              ) : (
+                <FlatList
+                  data={prefUsers}
+                  keyExtractor={(item) => item.user_id}
+                  renderItem={({ item }) => (
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 9,
+                      paddingHorizontal: 16,
+                      gap: 12,
+                    }}>
+                      <Text style={{ fontSize: 30 }}>{item.avatar_emoji}</Text>
+                      <Text style={{ flex: 1, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}>
+                        {item.nickname}
+                      </Text>
+                      <Text style={{ fontSize: 22 }}>{WEATHER_CONFIG[item.weather].emoji}</Text>
+                    </View>
+                  )}
+                  ItemSeparatorComponent={() => (
+                    <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginLeft: 58 }} />
+                  )}
+                />
+              )}
+            </View>
+          </>
         )}
       </View>
     </Modal>
