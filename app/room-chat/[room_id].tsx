@@ -3,6 +3,7 @@ import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, Te
 
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
@@ -38,6 +39,7 @@ export default function RoomChatScreen() {
   const userId = user?.id;
   const { rooms } = useRoom();
   const roomName = rooms.find((item) => item.rooms.id === roomId)?.rooms.name ?? 'トーク';
+  const { bottom } = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<RoomMessageItem[]>([]);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
@@ -180,7 +182,7 @@ export default function RoomChatScreen() {
           }}
         />
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(bottom, 12) }}>
           <View
             style={{
               flex: 1,
