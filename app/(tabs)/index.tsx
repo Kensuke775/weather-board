@@ -3,6 +3,8 @@ import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, Text,
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import JapanMapModal from '@/components/JapanMapModal';
 import RoomChatFloatingButton from '@/components/RoomChatFloatingButton';
@@ -236,11 +238,12 @@ export default function HomeScreen() {
   const [prefectureFilter, setPrefectureFilter] = useState<string | null>(null);
   const [followingOnly, setFollowingOnly] = useState(false);
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
   const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
   const isFilterInitialRender = useRef(true);
+  const filterSheetRef = useRef<BottomSheetModal>(null);
+  const tabBarHeight = useBottomTabBarHeight();
 
   // タグ入力をデバウンス
   useEffect(() => {
@@ -478,6 +481,13 @@ export default function HomeScreen() {
 
   const isFilterActive = weatherFilter !== null || debouncedTagQuery.length > 0 || prefectureFilter !== null || followingOnly;
 
+  const handleResetFilters = () => {
+    setWeatherFilter(null);
+    setTagQuery('');
+    setPrefectureFilter(null);
+    setFollowingOnly(false);
+  };
+
   if (roomIsLoading) {
     return (
       <ImageBackground source={backgroundImage} className="flex-1 justify-center items-center px-10">
@@ -551,7 +561,7 @@ export default function HomeScreen() {
             <View style={{ flex: 1 }} />
           )}
           <Pressable
-            onPress={() => setIsFilterOpen((prev) => !prev)}
+            onPress={() => filterSheetRef.current?.present()}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -559,123 +569,22 @@ export default function HomeScreen() {
               paddingHorizontal: 12,
               paddingVertical: 7,
               borderRadius: 100,
-              backgroundColor: isFilterOpen || isFilterActive ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
+              backgroundColor: isFilterActive ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
             }}>
             <Ionicons
               name="options-outline"
               size={14}
-              color={isFilterOpen || isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark}
+              color={isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark}
             />
             <Text style={{
               fontSize: 12,
               fontWeight: '600',
-              color: isFilterOpen || isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark,
+              color: isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark,
             }}>
               絞り込み
             </Text>
           </Pressable>
         </View>
-
-        {/* フィルタバー（トグル展開） */}
-        {isFilterOpen && (
-          <View style={{ marginBottom: 10, gap: 6 }}>
-            {/* 天気フィルタ */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              {WEATHER_FILTER_OPTIONS.map(({ label, value }) => {
-                const selected = weatherFilter === value;
-                return (
-                  <Pressable
-                    key={label}
-                    onPress={() => setWeatherFilter(value)}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 7,
-                      borderRadius: 100,
-                      backgroundColor: selected ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
-                    }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {/* タグ検索 */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: 'rgba(255,255,255,0.85)',
-              borderRadius: 100,
-              paddingHorizontal: 14,
-              paddingVertical: 7,
-            }}>
-              <Ionicons name="search-outline" size={14} color={WeatherBoardColors.textMutedBlack} style={{ marginRight: 6 }} />
-              <TextInput
-                value={tagQuery}
-                onChangeText={setTagQuery}
-                placeholder="タグで検索..."
-                placeholderTextColor={WeatherBoardColors.textMutedBlack}
-                style={{ flex: 1, fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingVertical: 0 }}
-              />
-              {tagQuery.length > 0 && (
-                <Pressable onPress={() => setTagQuery('')} hitSlop={8}>
-                  <Ionicons name="close-circle" size={16} color={WeatherBoardColors.textMutedBlack} />
-                </Pressable>
-              )}
-            </View>
-
-            {/* 都道府県フィルタ */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              <Pressable
-                onPress={() => setPrefectureFilter(null)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
-                  borderRadius: 100,
-                  backgroundColor: prefectureFilter === null ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
-                }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === null ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                  全国
-                </Text>
-              </Pressable>
-              {PREFECTURES.map((pref) => (
-                <Pressable
-                  key={pref}
-                  onPress={() => setPrefectureFilter(pref)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderRadius: 100,
-                    backgroundColor: prefectureFilter === pref ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
-                  }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === pref ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                    {pref}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            {/* フォローフィルタ */}
-            <Pressable
-              onPress={() => setFollowingOnly((prev) => !prev)}
-              style={{
-                alignSelf: 'flex-start',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: 100,
-                backgroundColor: followingOnly ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
-              }}>
-              <Ionicons name="people-outline" size={13} color={followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                フォロー中
-              </Text>
-            </Pressable>
-          </View>
-        )}
 
         <View style={{ flex: 1 }}>
           {isLoading ? (
@@ -704,6 +613,139 @@ export default function HomeScreen() {
       </View>
       <RoomChatFloatingButton />
       <JapanMapModal visible={isMapOpen} onClose={() => setIsMapOpen(false)} />
+
+      <BottomSheetModal
+        ref={filterSheetRef}
+        snapPoints={['55%']}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        backgroundStyle={{ backgroundColor: '#FFFFFF' }}
+        handleIndicatorStyle={{ backgroundColor: WeatherBoardColors.divider }}
+        backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
+        <BottomSheetScrollView contentContainerStyle={{ padding: 20, paddingBottom: tabBarHeight + 20, gap: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>絞り込み</Text>
+            <Pressable onPress={handleResetFilters}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: WeatherBoardColors.buttonBackground }}>リセット</Text>
+            </Pressable>
+          </View>
+
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>天気</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              {WEATHER_FILTER_OPTIONS.map(({ label, value }) => {
+                const selected = weatherFilter === value;
+                return (
+                  <Pressable
+                    key={label}
+                    onPress={() => setWeatherFilter(value)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 100,
+                      backgroundColor: selected ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
+                    }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>タグ</Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: WeatherBoardColors.tagBackground,
+              borderRadius: 100,
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+            }}>
+              <Ionicons name="search-outline" size={14} color={WeatherBoardColors.textMutedBlack} style={{ marginRight: 6 }} />
+              <TextInput
+                value={tagQuery}
+                onChangeText={setTagQuery}
+                placeholder="タグで検索..."
+                placeholderTextColor={WeatherBoardColors.textMutedBlack}
+                style={{ flex: 1, fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingVertical: 0 }}
+              />
+              {tagQuery.length > 0 && (
+                <Pressable onPress={() => setTagQuery('')} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color={WeatherBoardColors.textMutedBlack} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>エリア</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              <Pressable
+                onPress={() => setPrefectureFilter(null)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 100,
+                  backgroundColor: prefectureFilter === null ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
+                }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === null ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                  全国
+                </Text>
+              </Pressable>
+              {PREFECTURES.map((pref) => (
+                <Pressable
+                  key={pref}
+                  onPress={() => setPrefectureFilter(pref)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 100,
+                    backgroundColor: prefectureFilter === pref ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
+                  }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === pref ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                    {pref}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>フォロー</Text>
+            <Pressable
+              onPress={() => setFollowingOnly((prev) => !prev)}
+              style={{
+                alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 100,
+                backgroundColor: followingOnly ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
+              }}>
+              <Ionicons name="people-outline" size={13} color={followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark }}>
+                フォロー中の投稿のみ
+              </Text>
+            </Pressable>
+          </View>
+
+          <Pressable
+            onPress={() => filterSheetRef.current?.dismiss()}
+            style={{
+              backgroundColor: WeatherBoardColors.buttonBackground,
+              borderRadius: 12,
+              paddingVertical: 14,
+              alignItems: 'center',
+            }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: 'white' }}>閉じる</Text>
+          </Pressable>
+        </BottomSheetScrollView>
+      </BottomSheetModal>
     </ImageBackground>
   );
 }
