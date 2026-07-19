@@ -8,8 +8,6 @@ import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 
-const PRIMARY_BROWN = '#624221';
-
 type TalkButtonProps = {
   to_user_id: string;
   weather_log_id: string;
@@ -74,13 +72,13 @@ export default function TalkButton({ to_user_id, weather_log_id, variant = 'dark
             paddingVertical: 8,
             paddingHorizontal: 16,
             borderWidth: 1,
-            borderColor: 'rgba(98,66,33,0.12)',
+            borderColor: WeatherBoardColors.divider,
             opacity: isActiveButton ? 0.4 : 1,
           }}>
-          <Ionicons name="chatbubble-ellipses-outline" size={16} color={PRIMARY_BROWN} />
-          <Text style={{ fontWeight: '700', color: PRIMARY_BROWN, fontSize: 13 }}>TALK</Text>
+          <Ionicons name="chatbubble-ellipses-outline" size={16} color={WeatherBoardColors.textPrimaryDark} />
+          <Text style={{ fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, fontSize: 13 }}>TALK</Text>
         </Pressable>
-        <Text style={{ fontSize: 9, color: 'rgba(98,66,33,0.55)', marginTop: 2 }}>{isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}</Text>
+        <Text style={{ fontSize: 9, color: WeatherBoardColors.textMutedBlack, marginTop: 2 }}>{isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}</Text>
       </View>
     );
   }
