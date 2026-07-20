@@ -1,8 +1,8 @@
-import { Pressable } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
@@ -12,7 +12,12 @@ import { useRoom } from '@/context/RoomContext';
 export default function RoomChatFloatingButton() {
   const router = useRouter();
   const { rooms } = useRoom();
-  const tabBarHeight = useBottomTabBarHeight();
+  const { bottom } = useSafeAreaInsets();
+  // app/(tabs)/_layout.tsx のタブバーは position: 'absolute' の浮いたピル型で、
+  // useBottomTabBarHeight() だと正確な位置が取れないため、同じ計算式で
+  // タブバーの上端の位置を直接求めている。
+  const tabBarMarginBottom = Platform.OS === 'android' ? 4 : Math.max(bottom - 4, 0);
+  const tabBarTop = tabBarMarginBottom + 60;
 
   if (rooms.length === 0) return null;
 
@@ -22,7 +27,7 @@ export default function RoomChatFloatingButton() {
       style={{
         position: 'absolute',
         right: 20,
-        bottom: tabBarHeight + 40,
+        bottom: tabBarTop + 16,
         width: 56,
         height: 56,
         borderRadius: 28,
