@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import * as Clipboard from 'expo-clipboard';
+import { useFocusEffect } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
 import { RoomList } from '@/components/RoomList';
@@ -14,10 +15,13 @@ import useRoomJoin from '@/hooks/useRoomJoin';
 
 export default function RoomSetupScreen() {
   const { setCurrentRoomId, refreshRooms } = useRoom();
+
+  useFocusEffect(useCallback(() => { refreshRooms(); }, [refreshRooms]));
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
 
-  const { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, isCreating } = useRoomCreate(async (roomId) => {
+  const { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, prefecture, setPrefecture, isCreating } = useRoomCreate(async (roomId) => {
     setRoomName('');
+    setPrefecture(null);
     await refreshRooms();
     setCurrentRoomId(roomId);
     Toast.show({ type: 'success', text1: 'ルームを作成しました', visibilityTime: TOAST_DURATION.default });
@@ -51,6 +55,8 @@ export default function RoomSetupScreen() {
                 onChangeIcon={setIconEmoji}
                 roomName={roomName}
                 onChangeRoomName={(text) => setRoomName(text.slice(0, 30))}
+                prefecture={prefecture}
+                onChangePrefecture={setPrefecture}
                 inviteCode={inviteCode}
                 onChangeInviteCode={setInviteCode}
                 onPasteInviteCode={handlePasteInviteCode}
