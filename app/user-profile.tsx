@@ -141,7 +141,7 @@ export default function UserProfile() {
       const { error: notifyError } = await supabase.from('notifications').insert({
         to_user_id: targetUserId,
         from_user_id: user.id,
-        type: 'room_join',
+        type: 'room_invite',
         room_id: roomId,
       });
       if (notifyError) console.error('[user-profile] inviteToRoom notify', notifyError.message);

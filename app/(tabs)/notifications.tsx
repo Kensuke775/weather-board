@@ -16,7 +16,8 @@ const TYPE_LABEL: Record<Notification['type'], string> = {
   comment: 'コメント',
   talk: 'リアクション',
   reaction: 'リアクション',
-  room_join: 'ルーム招待',
+  room_join: 'ルーム参加',
+  room_invite: 'ルーム招待',
   follow: 'フォロー',
   room_message: 'ルームチャット',
   direct_message: 'DM',
@@ -27,6 +28,7 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
   talk: 'rgba(134,239,172,0.35)',
   reaction: 'rgba(134,239,172,0.35)',
   room_join: 'rgba(196,181,253,0.35)',
+  room_invite: 'rgba(196,181,253,0.35)',
   follow: 'rgba(251,191,36,0.35)',
   room_message: 'rgba(196,181,253,0.35)',
   direct_message: 'rgba(96,165,250,0.25)',
@@ -38,18 +40,20 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
 const getNavigationTarget = (item: Notification) => {
   if (item.type === 'room_message' && item.room_id) return `/room-chat/${item.room_id}` as const;
   if (item.type === 'room_join' && item.room_id) return `/room-chat/${item.room_id}` as const;
+  if (item.type === 'room_invite' && item.room_id) return `/room-chat/${item.room_id}` as const;
   if (item.type === 'direct_message' && item.conversation_id) return `/dm-chat/${item.conversation_id}` as const;
   if (item.type !== 'follow' && item.type !== 'room_join' && item.weather_log_id) return `/weather-log/${item.weather_log_id}` as const;
   return null;
 };
 
-const isRoomNotification = (type: Notification['type']): boolean => type === 'room_message' || type === 'room_join';
+const isRoomNotification = (type: Notification['type']): boolean => type === 'room_message' || type === 'room_join' || type === 'room_invite';
 
 // 通知本文の固定文言。comment だけは投稿の note をそのまま本文として使うため、
 // このマップには含めず getNotificationBody 側でフォールバックする。
 const NOTIFICATION_BODY_LABEL: Partial<Record<Notification['type'], string>> = {
   follow: 'あなたをフォローしました',
-  room_join: 'ルームに招待されました',
+  room_join: 'ルームに参加しました',
+  room_invite: 'ルームに招待されました',
   room_message: 'ルームチャットに新しいメッセージがあります',
   direct_message: '新しいメッセージがあります',
   talk: '投稿にリアクションがつきました',
@@ -65,7 +69,7 @@ const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean =
   if (filter === 'all') return true;
   if (filter === 'comment') return type === 'comment';
   if (filter === 'dm') return type === 'direct_message';
-  return type === 'room_join' || type === 'room_message';
+  return type === 'room_join' || type === 'room_invite' || type === 'room_message';
 };
 
 const fetchNotifications = async (userId: string, setter: (data: Notification[]) => void) => {

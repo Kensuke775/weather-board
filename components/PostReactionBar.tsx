@@ -4,12 +4,10 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
 
+import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { REACTION_TYPES, ReactionType } from '@/lib/types';
-
-const PRIMARY_BROWN = '#624221';
-const MUTED_BROWN = 'rgba(98,66,33,0.55)';
 
 // バッジ・タップ判定用の軽量な行（profilesは含まない）
 type ReactionRow = {
@@ -145,19 +143,14 @@ export default function PostReactionBar({ weatherLogId, toUserId }: PostReaction
   return (
     <View
       style={{
+        ...CardStyle,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#FFFFFF',
         borderRadius: 20,
         paddingHorizontal: 14,
         paddingVertical: 10,
         marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
       }}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {summaries.map(({ type, emoji, count, isSelected }) => (
@@ -169,22 +162,22 @@ export default function PostReactionBar({ weatherLogId, toUserId }: PostReaction
               flexDirection: 'row',
               alignItems: 'center',
               gap: 4,
-              backgroundColor: isSelected ? 'rgba(98,66,33,0.14)' : 'rgba(98,66,33,0.06)',
+              backgroundColor: isSelected ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.05)',
               borderRadius: 100,
               paddingHorizontal: 10,
               paddingVertical: 6,
               opacity: pendingTypes.has(type) ? 0.5 : 1,
             }}>
             <Text style={{ fontSize: 14 }}>{emoji}</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: PRIMARY_BROWN }}>{count}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{count}</Text>
           </Pressable>
         ))}
       </View>
 
       {totalReactorCount > 0 && (
         <Pressable onPress={handleOpenReactorList} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-          <Text style={{ fontSize: 10, color: MUTED_BROWN }}>{totalReactorCount}人がリアクション</Text>
-          <Ionicons name="chevron-forward" size={12} color={MUTED_BROWN} />
+          <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedDark }}>{totalReactorCount}人がリアクション</Text>
+          <Ionicons name="chevron-forward" size={12} color={WeatherBoardColors.textMutedDark} />
         </Pressable>
       )}
 
@@ -192,25 +185,25 @@ export default function PostReactionBar({ weatherLogId, toUserId }: PostReaction
         ref={bottomSheetRef}
         snapPoints={['50%']}
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: '#FCF8F0' }}
-        handleIndicatorStyle={{ backgroundColor: MUTED_BROWN }}
+        backgroundStyle={{ backgroundColor: '#FFFFFF' }}
+        handleIndicatorStyle={{ backgroundColor: WeatherBoardColors.textMutedDark }}
         backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
         {isLoadingDetails ? (
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-            <ActivityIndicator size="small" color={PRIMARY_BROWN} />
+            <ActivityIndicator size="small" color={WeatherBoardColors.textPrimaryDark} />
           </View>
         ) : (
           <BottomSheetFlatList
             data={reactorListData}
             keyExtractor={(item, index) => `${item.from_user_id}-${item.reaction_type}-${index}`}
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
-            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(98,66,33,0.08)' }} />}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: 'rgba(0,0,0,0.06)' }} />}
             renderItem={({ item }) => {
               const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
               return (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}>
                   <Text style={{ fontSize: 20 }}>{profile.avatar_emoji}</Text>
-                  <Text style={{ flex: 1, fontSize: 14, color: PRIMARY_BROWN, fontWeight: '600' }}>{profile.nickname}</Text>
+                  <Text style={{ flex: 1, fontSize: 14, color: WeatherBoardColors.textPrimaryDark, fontWeight: '600' }}>{profile.nickname}</Text>
                   <Text style={{ fontSize: 16 }}>{item.emoji}</Text>
                 </View>
               );
