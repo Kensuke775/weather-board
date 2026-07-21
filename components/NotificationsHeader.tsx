@@ -9,7 +9,7 @@ export type FilterKey = 'all' | 'dm' | 'room' | 'comment';
 export const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'すべて' },
   { key: 'dm', label: 'DM' },
-  { key: 'room', label: 'グループ' },
+  { key: 'room', label: 'ルーム' },
   { key: 'comment', label: 'コメント' },
 ];
 

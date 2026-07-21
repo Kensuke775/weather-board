@@ -26,10 +26,6 @@ export function RoomList() {
   };
 
   const handleLeaveRoom = (roomId: string) => {
-    if (rooms.length === 1) {
-      Alert.alert('退出できません', '最低でも1つのルームに所属している必要があります。');
-      return;
-    }
     Alert.alert('確認', '退出するとこのルームのカレンダー履歴が見られなくなります。本当に退出しますか？', [
       { text: 'キャンセル', style: 'cancel' },
       {
