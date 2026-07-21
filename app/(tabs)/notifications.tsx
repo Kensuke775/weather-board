@@ -7,6 +7,7 @@ import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import NotificationsHeader, { FILTERS, FilterKey } from '@/components/NotificationsHeader';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { supabase } from '@/lib/supabase';
 import { Notification } from '@/lib/types';
 
@@ -36,10 +37,29 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
 // （app/(tabs)/index.tsx の selectQuery と同じ理由）。
 const getNavigationTarget = (item: Notification) => {
   if (item.type === 'room_message' && item.room_id) return `/room-chat/${item.room_id}` as const;
+  if (item.type === 'room_join' && item.room_id) return `/room-chat/${item.room_id}` as const;
   if (item.type === 'direct_message' && item.conversation_id) return `/dm-chat/${item.conversation_id}` as const;
   if (item.type !== 'follow' && item.type !== 'room_join' && item.weather_log_id) return `/weather-log/${item.weather_log_id}` as const;
   return null;
 };
+
+const isRoomNotification = (type: Notification['type']): boolean => type === 'room_message' || type === 'room_join';
+
+// 通知本文の固定文言。comment だけは投稿の note をそのまま本文として使うため、
+// このマップには含めず getNotificationBody 側でフォールバックする。
+const NOTIFICATION_BODY_LABEL: Partial<Record<Notification['type'], string>> = {
+  follow: 'あなたをフォローしました',
+  room_join: 'ルームに招待されました',
+  room_message: 'ルームチャットに新しいメッセージがあります',
+  direct_message: '新しいメッセージがあります',
+  talk: '投稿にリアクションがつきました',
+  reaction: '投稿にリアクションがつきました',
+};
+
+const getNotificationBody = (item: Notification): string => NOTIFICATION_BODY_LABEL[item.type] ?? (item.note ?? '');
+
+// タグは自分の投稿に付けたものであり、リアクション通知に出すと自分の投稿のように見えてしまうため出さない。
+const shouldShowTags = (item: Notification): boolean => item.type !== 'talk' && item.type !== 'reaction' && item.tags.length > 0;
 
 const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean => {
   if (filter === 'all') return true;
@@ -106,6 +126,8 @@ export default function Notifications() {
   const { user } = useUser();
   const userId = user?.id;
   const router = useRouter();
+  // 一番下の通知がタブバーに隠れてスクロールし切れなくなるのを防ぐための下余白。
+  const tabBarSpace = useTabBarSpace(48);
   const [dataNotifications, setDataNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
 
@@ -174,7 +196,7 @@ export default function Notifications() {
         keyExtractor={(row, index) => (row.kind === 'section' ? `section-${row.label}-${index}` : row.item.id)}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListEmptyComponent={() => <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontWeight: '700', textAlign: 'center', padding: 20 }}>まだ通知がありません。</Text>}
-        contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: tabBarSpace }}
         renderItem={({ item: row }) => {
           if (row.kind === 'section') {
             return (
@@ -184,6 +206,14 @@ export default function Notifications() {
             );
           }
           const item = row.item;
+          const handleIdentityPress = () => {
+            if (isRoomNotification(item.type)) {
+              const target = getNavigationTarget(item);
+              if (target) router.push(target);
+              return;
+            }
+            if (item.from_user_id) router.push(`/user-profile?userId=${item.from_user_id}`);
+          };
           return (
             <Pressable
               onPress={() => {
@@ -201,7 +231,7 @@ export default function Notifications() {
                 padding: 14,
                 marginHorizontal: 20,
               }}>
-              <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)} style={{ position: 'relative' }}>
+              <Pressable onPress={handleIdentityPress} style={{ position: 'relative' }}>
                 <AvatarWeatherBadge
                   avatarEmoji={item.profiles?.avatar_emoji ?? '👤'}
                   weather={item.weather ?? 'cloudy'}
@@ -225,7 +255,7 @@ export default function Notifications() {
               </Pressable>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Pressable onPress={() => item.from_user_id && router.push(`/user-profile?userId=${item.from_user_id}`)}>
+                  <Pressable onPress={handleIdentityPress}>
                     <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontWeight: '700', fontSize: 14 }}>{item.profiles?.nickname}</Text>
                   </Pressable>
                   <View style={{ backgroundColor: TYPE_PILL_COLOR[item.type], borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 }}>
@@ -240,17 +270,9 @@ export default function Notifications() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: WeatherBoardColors.textPrimaryDark, fontSize: 12.5 }} numberOfLines={2}>
-                      {item.type === 'follow'
-                        ? 'あなたをフォローしました'
-                        : item.type === 'room_join'
-                          ? 'ルームに参加しました'
-                          : item.type === 'room_message'
-                            ? 'ルームチャットに新しいメッセージがあります'
-                            : item.type === 'direct_message'
-                              ? '新しいメッセージがあります'
-                              : (item.note ?? '')}
+                      {getNotificationBody(item)}
                     </Text>
-                    {item.tags.length > 0 && (
+                    {shouldShowTags(item) && (
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                         {item.tags.map((tag) => (
                           <View key={tag.id} style={{ backgroundColor: WeatherBoardColors.tagBackground, borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 }}>

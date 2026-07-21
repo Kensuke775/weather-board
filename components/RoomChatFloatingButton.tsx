@@ -1,25 +1,17 @@
-import { Platform, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
-import { useRoom } from '@/context/RoomContext';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 
 // ホーム画面に1行 <RoomChatFloatingButton /> を追加するだけで使えるセルフコンテインドなFAB。
 // トークのハブ画面（/room-chat、ルーム一覧・DM切り替え）を開く。
+// ルーム未参加でもDMタブは使えるため、ルーム数に関わらず常に表示する。
 export default function RoomChatFloatingButton() {
   const router = useRouter();
-  const { rooms } = useRoom();
-  const { bottom } = useSafeAreaInsets();
-  // app/(tabs)/_layout.tsx のタブバーは position: 'absolute' の浮いたピル型で、
-  // useBottomTabBarHeight() だと正確な位置が取れないため、同じ計算式で
-  // タブバーの上端の位置を直接求めている。
-  const tabBarMarginBottom = Platform.OS === 'android' ? 4 : Math.max(bottom - 4, 0);
-  const tabBarTop = tabBarMarginBottom + 60;
-
-  if (rooms.length === 0) return null;
+  const tabBarTop = useTabBarSpace(16);
 
   return (
     <Pressable
@@ -27,7 +19,7 @@ export default function RoomChatFloatingButton() {
       style={{
         position: 'absolute',
         right: 20,
-        bottom: tabBarTop + 16,
+        bottom: tabBarTop,
         width: 56,
         height: 56,
         borderRadius: 28,

@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnalysisMarkdown } from '@/components/AnalysisMarkdown';
 import IconHeader from '@/components/IconHeader';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { supabase } from '@/lib/supabase';
 
 export type AnalysisData = {
@@ -29,8 +29,8 @@ function formatTime(seconds: number) {
 export default function Analysis() {
   const { user } = useUser();
   const userId = user?.id;
-  const { bottom } = useSafeAreaInsets();
-  const tabBarHeight = Platform.OS === 'android' ? 72 : 60 + bottom + 4;
+  // 一番下のコンテンツがタブバーに隠れないようにするための下余白。
+  const tabBarHeight = useTabBarSpace(24);
   const [analysisContent, setAnalysisContent] = useState<AnalysisData | null>(null);
   const [canAnalyze, setCanAnalyze] = useState(false);
   const [histories, setHistories] = useState<AnalysisData[]>([]);
@@ -258,7 +258,7 @@ export default function Analysis() {
         </View>
       </IconHeader>
 
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: tabBarHeight + 12 }}>
+      <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: tabBarHeight }}>
         {/* Content island — includes the button so it "sits inside" as one card */}
         <View style={{ ...CardStyle, flex: 1, borderRadius: 20, padding: 16, justifyContent: 'space-between' }}>
           <View style={{ flex: 1 }}>{renderContent()}</View>

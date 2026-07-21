@@ -3,6 +3,7 @@ import { Alert, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'rea
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
@@ -61,6 +62,7 @@ const fetchComments = async (weatherLogId: string, setter: (data: CommentItem[])
 };
 
 export default function CommentSection({ weather_log_id, to_user_id, readOnly }: CommentSectionProps) {
+  const { bottom } = useSafeAreaInsets();
   const { user } = useUser();
   const userId = user?.id;
   const router = useRouter();
@@ -318,7 +320,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
       </View>
 
       {!readOnly && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, marginBottom: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, marginBottom: Math.max(bottom, 10) }}>
           <View
             style={{
               ...CardStyle,

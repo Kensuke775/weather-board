@@ -1,6 +1,7 @@
 import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 
 import WeatherCard from '@/components/WeatherCard';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { CommentsStatus, WeatherBoardItem } from '@/lib/types';
 
 type WeatherBoardProps = {
@@ -15,13 +16,16 @@ type WeatherBoardProps = {
 };
 
 export default function WeatherBoard({ weatherLogs, unreadCounts, commentStatus, reactionStatus, onEndReached, isLoadingMore, refreshing, onRefresh }: WeatherBoardProps) {
+  // カード一覧の最後尾がタブバー（＋トークFAB）に隠れないよう、その高さ分を下余白として確保する。
+  const tabBarSpace = useTabBarSpace(72);
+
   return (
     <FlatList
       data={weatherLogs}
       keyExtractor={(item) => item.id}
       numColumns={2}
       columnWrapperStyle={{ gap: 14, justifyContent: 'flex-start' }}
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: 16, paddingTop: 16, paddingHorizontal: '2.5%' }}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: tabBarSpace, paddingTop: 16, paddingHorizontal: '2.5%' }}
       showsVerticalScrollIndicator={false}
       ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
       onEndReached={onEndReached}

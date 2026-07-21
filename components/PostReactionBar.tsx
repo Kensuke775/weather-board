@@ -26,6 +26,7 @@ type ReactionDetailRow = {
 
 type PostReactionBarProps = {
   weatherLogId: string;
+  toUserId: string;
 };
 
 const fetchReactions = async (weatherLogId: string, setter: (rows: ReactionRow[]) => void) => {
@@ -49,7 +50,7 @@ const fetchReactionDetails = async (weatherLogId: string, setter: (rows: Reactio
   loadingSetter(false);
 };
 
-export default function PostReactionBar({ weatherLogId }: PostReactionBarProps) {
+export default function PostReactionBar({ weatherLogId, toUserId }: PostReactionBarProps) {
   const { user } = useUser();
   const userId = user?.id;
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
@@ -113,7 +114,18 @@ export default function PostReactionBar({ weatherLogId }: PostReactionBarProps) 
       } else {
         // まだ反応していない → 新規追加
         const { error } = await supabase.from('post_reactions').insert({ from_user_id: userId, weather_log_id: weatherLogId, reaction_type: type });
-        if (error && error.code !== '23505') console.error('[PostReactionBar] handleToggleReaction(insert)', error.message);
+        if (error && error.code !== '23505') {
+          console.error('[PostReactionBar] handleToggleReaction(insert)', error.message);
+        } else if (!error && userId !== toUserId) {
+          const { error: notifyError } = await supabase.from('notifications').insert({
+            to_user_id: toUserId,
+            from_user_id: userId,
+            type: 'reaction',
+            weather_log_id: weatherLogId,
+            is_read: false,
+          });
+          if (notifyError) console.error('[PostReactionBar] handleToggleReaction notify', notifyError.message);
+        }
       }
       await fetchReactions(weatherLogId, setReactions);
     } finally {
@@ -171,8 +183,8 @@ export default function PostReactionBar({ weatherLogId }: PostReactionBarProps) 
 
       {totalReactorCount > 0 && (
         <Pressable onPress={handleOpenReactorList} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-          <Text style={{ fontSize: 12, color: MUTED_BROWN }}>{totalReactorCount}人がリアクション</Text>
-          <Ionicons name="chevron-forward" size={14} color={MUTED_BROWN} />
+          <Text style={{ fontSize: 10, color: MUTED_BROWN }}>{totalReactorCount}人がリアクション</Text>
+          <Ionicons name="chevron-forward" size={12} color={MUTED_BROWN} />
         </Pressable>
       )}
 

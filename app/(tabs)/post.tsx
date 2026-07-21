@@ -3,13 +3,13 @@ import { Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
 import IconHeader from '@/components/IconHeader';
 import { BrownTheme, CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG } from '@/lib/types';
 
@@ -28,7 +28,8 @@ export default function Post() {
   const [isPosting, setIsPosting] = useState(false);
   const [hasPostedToday, setHasPostedToday] = useState(false);
   const [showPostedConfirmation, setShowPostedConfirmation] = useState(false);
-  const tabBarHeight = useBottomTabBarHeight();
+  // フォーム下部がタブバーに隠れないようにするための下余白。
+  const tabBarHeight = useTabBarSpace(48);
   const ITEM_WIDTH = 80;
   const LIST_PADDING = 20;
 
@@ -138,7 +139,7 @@ export default function Post() {
         )}
       </IconHeader>
 
-      <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-5" contentContainerStyle={{ flexGrow: 1, paddingTop: 24, paddingBottom: tabBarHeight + 24 }}>
+      <KeyboardAwareScrollView keyboardShouldPersistTaps="handled" bottomOffset={20} className="px-5" contentContainerStyle={{ flexGrow: 1, paddingTop: 24, paddingBottom: tabBarHeight }}>
         <View style={{ ...CardStyle, borderRadius: 24, padding: 20 }}>
           <View>
             <View className="flex-row items-center justify-between mb-4">
