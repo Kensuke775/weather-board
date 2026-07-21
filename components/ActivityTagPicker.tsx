@@ -24,7 +24,7 @@ const fetchUserTags = async (userId: string, setter: (data: ActivityTag[]) => vo
     Alert.alert('タグの取得に失敗しました。');
     return;
   }
-  setter(userTagsData);
+  setter(Array.from(new Map(userTagsData.map((tag) => [tag.id, tag])).values()));
 };
 
 export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSelected }: ActivityTagPickerProps) {
@@ -49,7 +49,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
         Alert.alert('タグの追加に失敗しました。');
         return;
       }
-      setUserCreatedTags([...userCreatedTags, userTagsData]);
+      setUserCreatedTags((prev) => (prev.some((tag) => tag.id === userTagsData.id) ? prev : [...prev, userTagsData]));
       setInputText('');
     } finally {
       setIsAddingTag(false);

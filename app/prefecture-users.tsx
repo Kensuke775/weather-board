@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import { WeatherBoardColors } from '@/constants/theme';
+import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { WeatherType } from '@/lib/types';
 
@@ -16,7 +17,7 @@ type PrefectureUser = {
 };
 
 const fetchPrefectureUsers = async (prefecture: string): Promise<PrefectureUser[]> => {
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = toDateString();
   const { data, error } = await supabase
     .from('weather_logs')
     .select('user_id, weather, profiles!inner(nickname, avatar_emoji, prefecture)')

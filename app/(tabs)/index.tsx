@@ -12,6 +12,7 @@ import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
+import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
 
@@ -51,7 +52,7 @@ const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [
 ];
 
 const fetchTodaySummary = async (setter: (data: Record<string, number>) => void) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateString();
   const { data, error } = await supabase
     .from('weather_logs')
     .select('weather')
@@ -151,6 +152,46 @@ const fetchFollowedUserIds = async (userId: string, setter: (ids: Set<string>) =
   setter(new Set((data ?? []).map((row) => row.followed_id)));
 };
 
+// weather_log_activities → activity_tags のネストしたembedは、room_members↔profiles・follows↔profiles と
+// 同様にPostgRESTのリレーション解決が不安定（同一セッション内でも結果が空になることがある）なため使わず、
+// 2段階取得＋JSでのマージに統一する。
+const fetchTagsByLogIds = async (logIds: string[]): Promise<Map<string, { id: string; name: string }[]>> => {
+  const tagsByLogId = new Map<string, { id: string; name: string }[]>();
+  if (logIds.length === 0) return tagsByLogId;
+
+  const { data: activitiesData, error: activitiesError } = await supabase
+    .from('weather_log_activities')
+    .select('weather_log_id, activity_tag_id')
+    .in('weather_log_id', logIds);
+  if (activitiesError) {
+    console.error('[index(tab)] fetchTagsByLogIds', activitiesError.message);
+    return tagsByLogId;
+  }
+
+  const tagIds = Array.from(new Set(activitiesData.map((row) => row.activity_tag_id).filter((id): id is string => id !== null)));
+  if (tagIds.length === 0) return tagsByLogId;
+
+  const { data: tagsData, error: tagsError } = await supabase.from('activity_tags').select('id, tag_name').in('id', tagIds);
+  if (tagsError) {
+    console.error('[index(tab)] fetchTagsByLogIds', tagsError.message);
+    return tagsByLogId;
+  }
+  const tagNameById = new Map(tagsData.map((tag) => [tag.id, tag.tag_name]));
+
+  for (const activity of activitiesData) {
+    if (!activity.activity_tag_id) continue;
+    const tagName = tagNameById.get(activity.activity_tag_id);
+    if (!tagName) continue;
+    const list = tagsByLogId.get(activity.weather_log_id) ?? [];
+    // weather_log_activities に同じ (weather_log_id, activity_tag_id) の行が一時的に重複することがあるため、
+    // 表示直前にもう一段防御的に重複を弾く。
+    if (list.some((tag) => tag.id === activity.activity_tag_id)) continue;
+    list.push({ id: activity.activity_tag_id, name: tagName });
+    tagsByLogId.set(activity.weather_log_id, list);
+  }
+  return tagsByLogId;
+};
+
 const fetchFeedPage = async (
   page: number,
   setter: (data: WeatherBoardItem[]) => void,
@@ -168,16 +209,46 @@ const fetchFeedPage = async (
   const hasTagFilter = filters.tag.trim().length > 0;
   const hasPrefectureFilter = filters.prefecture !== null;
 
+  let matchingLogIdsByTag: string[] | null = null;
+  if (hasTagFilter) {
+    const { data: matchingTagsData, error: matchingTagsError } = await supabase
+      .from('activity_tags')
+      .select('id')
+      .ilike('tag_name', `%${filters.tag.trim()}%`);
+    if (matchingTagsError) {
+      console.error('[index(tab)] fetchFeedPage(tagSearch)', matchingTagsError.message);
+      Alert.alert('投稿の取得に失敗しました。');
+      return;
+    }
+    const tagIds = matchingTagsData.map((tag) => tag.id);
+    if (tagIds.length === 0) {
+      setter([]);
+      loadingSetter(false);
+      return;
+    }
+    const { data: matchingActivitiesData, error: matchingActivitiesError } = await supabase
+      .from('weather_log_activities')
+      .select('weather_log_id')
+      .in('activity_tag_id', tagIds);
+    if (matchingActivitiesError) {
+      console.error('[index(tab)] fetchFeedPage(tagSearch)', matchingActivitiesError.message);
+      Alert.alert('投稿の取得に失敗しました。');
+      return;
+    }
+    matchingLogIdsByTag = Array.from(new Set(matchingActivitiesData.map((row) => row.weather_log_id)));
+    if (matchingLogIdsByTag.length === 0) {
+      setter([]);
+      loadingSetter(false);
+      return;
+    }
+  }
+
   // Supabase の .select() はクエリ文字列がリテラル型でないと戻り値の型を推論できない
   // （テンプレートリテラルで組み立てると string に広がり GenericStringError になる）ため、
-  // 4通りの組み合わせをリテラルのまま持つネストした三項演算子で組み立てている。
-  const selectQuery = hasTagFilter
-    ? hasPrefectureFilter
-      ? 'id, user_id, weather, note, updated_at, profiles!inner(nickname, avatar_emoji, prefecture), weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))'
-      : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji, prefecture), weather_log_activities!inner(activity_tag_id, activity_tags!inner(tag_name))'
-    : hasPrefectureFilter
-      ? 'id, user_id, weather, note, updated_at, profiles!inner(nickname, avatar_emoji, prefecture), weather_log_activities(activity_tag_id, activity_tags(tag_name))'
-      : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji, prefecture), weather_log_activities(activity_tag_id, activity_tags(tag_name))';
+  // リテラルのまま持つ三項演算子で組み立てている。
+  const selectQuery = hasPrefectureFilter
+    ? 'id, user_id, weather, note, updated_at, profiles!inner(nickname, avatar_emoji, prefecture)'
+    : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji, prefecture)';
 
   let query = supabase
     .from('weather_logs')
@@ -186,9 +257,9 @@ const fetchFeedPage = async (
     .range(from, to);
 
   if (filters.weather) query = query.eq('weather', filters.weather);
-  if (hasTagFilter) query = query.ilike('weather_log_activities.activity_tags.tag_name', `%${filters.tag.trim()}%`);
   if (hasPrefectureFilter) query = query.eq('profiles.prefecture', filters.prefecture);
   if (filters.followingOnly) query = query.in('user_id', filters.followedUserIds);
+  if (matchingLogIdsByTag) query = query.in('id', matchingLogIdsByTag);
 
   const { data: weatherLogsData, error: weatherLogsError } = await query;
 
@@ -198,19 +269,12 @@ const fetchFeedPage = async (
     return;
   }
 
+  const tagsByLogId = await fetchTagsByLogIds(weatherLogsData.map((log) => log.id));
+
   const formattedData = weatherLogsData.map((log) => ({
     ...log,
     profiles: Array.isArray(log.profiles) ? log.profiles[0] : log.profiles,
-    tags: log.weather_log_activities
-      .filter((tag) => tag.activity_tags !== null)
-      .map((tag) => {
-        const activityTag = Array.isArray(tag.activity_tags) ? tag.activity_tags[0] : tag.activity_tags;
-        return {
-          id: tag.activity_tag_id,
-          name: activityTag.tag_name,
-        };
-      }),
-    weather_log_activities: undefined,
+    tags: tagsByLogId.get(log.id) ?? [],
   }));
   setter(formattedData);
   loadingSetter(false);

@@ -8,6 +8,7 @@ import IconHeader from '@/components/IconHeader';
 import WeatherCalendar from '@/components/WeatherCalendar';
 import { BrownTheme, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { HistoryLog, WEATHER_CONFIG, WeatherType } from '@/lib/types';
 
@@ -75,7 +76,7 @@ export default function History() {
         setHistoryData(result);
         setCurrentUserId(userId);
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = toDateString();
         const { data: todayData } = await supabase
           .from('weather_logs')
           .select('weather, note, profiles(avatar_emoji)')
@@ -122,7 +123,7 @@ export default function History() {
     for (let i = 0; i < 31; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      if (userDates.has(d.toISOString().split('T')[0])) count++;
+      if (userDates.has(toDateString(d))) count++;
       else break;
     }
     return count;
@@ -152,7 +153,7 @@ export default function History() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toDateString(d);
       if (scoreByDate[dateStr] !== undefined) result.push({ day: d.getDate(), score: scoreByDate[dateStr] });
     }
     return result;
