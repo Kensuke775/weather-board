@@ -1,4 +1,4 @@
-import React, { ComponentProps, useCallback, useEffect, useState } from 'react';
+import React, { ComponentProps, useCallback, useState } from 'react';
 import {
   Alert,
   Pressable,

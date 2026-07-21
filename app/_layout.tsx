@@ -41,6 +41,7 @@ export default function RootLayout() {
     Linking.getInitialURL().then((url) => { if (url) handlePasswordRecoveryUrl(url); });
     const subscription = Linking.addEventListener('url', ({ url }) => handlePasswordRecoveryUrl(url));
     return () => subscription.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toastConfig = {
