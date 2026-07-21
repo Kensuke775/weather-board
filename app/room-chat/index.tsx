@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -34,9 +34,10 @@ export default function TalkHubScreen() {
   const router = useRouter();
   const { user } = useUser();
   const userId = user?.id;
-  const { rooms } = useRoom();
+  const { rooms, refreshRooms } = useRoom();
   const [activeTab, setActiveTab] = useState<'room' | 'dm'>('room');
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,6 +45,13 @@ export default function TalkHubScreen() {
       fetchConversations(userId, setConversations);
     }, [userId]),
   );
+
+  const handleRefresh = async () => {
+    if (!userId) return;
+    setIsRefreshing(true);
+    await Promise.all([fetchConversations(userId, setConversations), refreshRooms()]);
+    setIsRefreshing(false);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
@@ -82,17 +90,21 @@ export default function TalkHubScreen() {
       </View>
 
       {activeTab === 'dm' ? (
-        <View style={{ flex: 1, padding: 16, gap: 12 }}>
-          {conversations.length === 0 && (
+        <FlatList
+          data={conversations}
+          keyExtractor={(conversation) => conversation.id}
+          contentContainerStyle={{ flexGrow: 1, padding: 16 }}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+          ListEmptyComponent={
             <Text style={{ fontSize: 13, color: WeatherBoardColors.textMutedBlack, textAlign: 'center', paddingTop: 24 }}>
               まだDMはありません{'\n'}相手のプロフィールメニューから「DMを送る」で開始できます
             </Text>
-          )}
-          {conversations.map((conversation) => {
+          }
+          renderItem={({ item: conversation }) => {
             const other = conversation.user_a_id === userId ? conversation.user_b : conversation.user_a;
             return (
               <Pressable
-                key={conversation.id}
                 onPress={() => router.push(`/dm-chat/${conversation.id}`)}
                 style={{
                   ...CardStyle,
@@ -110,18 +122,22 @@ export default function TalkHubScreen() {
                 </Text>
               </Pressable>
             );
-          })}
-        </View>
+          }}
+        />
       ) : (
-        <View style={{ flex: 1, padding: 16, gap: 12 }}>
-          {rooms.length === 0 && (
+        <FlatList
+          data={rooms}
+          keyExtractor={({ rooms: room }) => room.id}
+          contentContainerStyle={{ flexGrow: 1, padding: 16 }}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+          ListEmptyComponent={
             <Text style={{ fontSize: 13, color: WeatherBoardColors.textMutedBlack, textAlign: 'center', paddingTop: 24 }}>
               まだルームに参加していません
             </Text>
-          )}
-          {rooms.map(({ rooms: room }) => (
+          }
+          renderItem={({ item: { rooms: room } }) => (
             <Pressable
-              key={room.id}
               onPress={() => router.push(`/room-chat/${room.id}`)}
               style={{
                 ...CardStyle,
@@ -138,8 +154,8 @@ export default function TalkHubScreen() {
                 {room.name}
               </Text>
             </Pressable>
-          ))}
-        </View>
+          )}
+        />
       )}
     </View>
   );

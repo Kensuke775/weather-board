@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
@@ -10,6 +11,12 @@ import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase';
 import { RoomMessageItem } from '@/lib/types';
+
+type RoomMemberItem = {
+  user_id: string;
+  nickname: string;
+  avatar_emoji: string;
+};
 
 const fetchRoomMessages = async (roomId: string, setter: (data: RoomMessageItem[]) => void) => {
   const { data, error } = await supabase
@@ -33,19 +40,90 @@ const fetchBlockedIds = async (userId: string, setter: (ids: Set<string>) => voi
   setter(new Set(data.map((row) => row.blocked_id)));
 };
 
+const fetchMemberCount = async (roomId: string, setter: (count: number) => void) => {
+  const { count, error } = await supabase.from('room_members').select('user_id', { count: 'exact', head: true }).eq('room_id', roomId);
+  if (error) {
+    console.error('[room-chat] fetchMemberCount', error.message);
+    return;
+  }
+  setter(count ?? 0);
+};
+
+const fetchMembers = async (roomId: string, setter: (members: RoomMemberItem[]) => void, loadingSetter: (loading: boolean) => void) => {
+  loadingSetter(true);
+  const { data, error } = await supabase.from('room_members').select('user_id').eq('room_id', roomId);
+  if (error) {
+    console.error('[room-chat] fetchMembers', error.message);
+    loadingSetter(false);
+    return;
+  }
+  const userIds = data.map((row) => row.user_id);
+  if (userIds.length === 0) {
+    setter([]);
+    loadingSetter(false);
+    return;
+  }
+  const { data: profilesData, error: profilesError } = await supabase.from('profiles').select('user_id, nickname, avatar_emoji').in('user_id', userIds);
+  if (profilesError) {
+    console.error('[room-chat] fetchMembers profiles', profilesError.message);
+    loadingSetter(false);
+    return;
+  }
+  const profilesById = new Map(profilesData.map((profile) => [profile.user_id, profile]));
+  setter(
+    userIds.map((memberUserId) => {
+      const profile = profilesById.get(memberUserId);
+      return { user_id: memberUserId, nickname: profile?.nickname ?? '---', avatar_emoji: profile?.avatar_emoji ?? '👤' };
+    }),
+  );
+  loadingSetter(false);
+};
+
 export default function RoomChatScreen() {
+  const router = useRouter();
   const { room_id: roomId } = useLocalSearchParams<{ room_id: string }>();
   const { user } = useUser();
   const userId = user?.id;
-  const { rooms } = useRoom();
+  const { rooms, refreshRooms } = useRoom();
   const roomName = rooms.find((item) => item.rooms.id === roomId)?.rooms.name ?? 'トーク';
   const { bottom } = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<RoomMessageItem[]>([]);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [members, setMembers] = useState<RoomMemberItem[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const memberSheetRef = useRef<BottomSheetModal>(null);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (!roomId) return;
+    refreshRooms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!roomId) return;
+    let channel: ReturnType<typeof supabase.channel>;
+    const setUp = async () => {
+      const channelName = `room-members-count-${roomId}`;
+      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
+      if (existing) await supabase.removeChannel(existing);
+      await fetchMemberCount(roomId, setMemberCount);
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'room_members', filter: `room_id=eq.${roomId}` }, async () => {
+          await fetchMemberCount(roomId, setMemberCount);
+        })
+        .subscribe();
+    };
+    setUp();
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [roomId]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -72,6 +150,17 @@ export default function RoomChatScreen() {
     if (!userId) return;
     fetchBlockedIds(userId, setBlockedIds);
   }, [userId]);
+
+  const handleDeleteMessage = async (messageId: string) => {
+    setMessages((prev) => prev.filter((message) => message.id !== messageId));
+    const { error } = await supabase.from('room_messages').delete().eq('id', messageId);
+    if (error) {
+      console.error('[room-chat] handleDeleteMessage', error.message);
+      Alert.alert('メッセージの削除に失敗しました。');
+      if (roomId) await fetchRoomMessages(roomId, setMessages);
+      return;
+    }
+  };
 
   const handleSend = async () => {
     if (isSending || !roomId || !userId) return;
@@ -101,6 +190,7 @@ export default function RoomChatScreen() {
             from_user_id: userId,
             type: 'room_message',
             room_id: roomId,
+            is_read: false,
           })),
         );
         if (notifyError) console.error('[room-chat] handleSend notify', notifyError.message);
@@ -110,9 +200,28 @@ export default function RoomChatScreen() {
     }
   };
 
+  const handleOpenMembers = () => {
+    memberSheetRef.current?.present();
+    if (roomId) fetchMembers(roomId, setMembers, setIsLoadingMembers);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
-      <Stack.Screen options={{ title: roomName }} />
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <Pressable onPress={handleOpenMembers} style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#000000' }}>{roomName}</Text>
+              {memberCount !== null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>{memberCount}人が参加中</Text>
+                  <Ionicons name="chevron-down" size={11} color={WeatherBoardColors.textMutedBlack} />
+                </View>
+              )}
+            </Pressable>
+          ),
+        }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -138,20 +247,24 @@ export default function RoomChatScreen() {
             return (
               <View style={{ alignItems: isMine ? 'flex-end' : 'flex-start' }}>
                 {showSenderInfo && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4, marginLeft: 4 }}>
+                  <Pressable
+                    onPress={() => router.push(`/user-profile?userId=${item.sender_id}`)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4, marginLeft: 4 }}>
                     <Text style={{ fontSize: 14 }}>{item.profiles?.avatar_emoji}</Text>
                     <Text style={{ fontSize: 12, fontWeight: '600', color: WeatherBoardColors.textMutedBlack }}>
                       {item.profiles?.nickname}
                     </Text>
-                  </View>
+                  </Pressable>
                 )}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, maxWidth: '80%' }}>
-                  {isMine && (
-                    <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
-                      {new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  )}
-                  <View
+                  <Pressable
+                    disabled={!isMine}
+                    onLongPress={() =>
+                      Alert.alert('確認', 'このメッセージを削除しますか？\n削除すると元に戻せません。', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: '削除する', style: 'destructive', onPress: () => handleDeleteMessage(item.id) },
+                      ])
+                    }
                     style={{
                       backgroundColor: isBlocked ? WeatherBoardColors.tagBackground : isMine ? WeatherBoardColors.buttonBackground : '#FFFFFF',
                       borderRadius: 16,
@@ -170,12 +283,10 @@ export default function RoomChatScreen() {
                       }}>
                       {isBlocked ? 'ブロックしたユーザーです' : item.body}
                     </Text>
-                  </View>
-                  {!isMine && (
-                    <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
-                      {new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  )}
+                  </Pressable>
+                  <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
+                    {new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                 </View>
               </View>
             );
@@ -221,6 +332,41 @@ export default function RoomChatScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <BottomSheetModal
+        ref={memberSheetRef}
+        snapPoints={['50%']}
+        enablePanDownToClose
+        backgroundStyle={{ backgroundColor: '#FFFFFF' }}
+        handleIndicatorStyle={{ backgroundColor: WeatherBoardColors.divider }}
+        backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, paddingHorizontal: 20, paddingBottom: 12 }}>
+          参加メンバー({members.length}人)
+        </Text>
+        {isLoadingMembers ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={WeatherBoardColors.buttonBackground} />
+          </View>
+        ) : (
+          <BottomSheetFlatList
+            data={members}
+            keyExtractor={(item) => item.user_id}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider }} />}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => {
+                  memberSheetRef.current?.dismiss();
+                  router.push(`/user-profile?userId=${item.user_id}`);
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
+                <Text style={{ fontSize: 22 }}>{item.avatar_emoji}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>{item.nickname}</Text>
+              </Pressable>
+            )}
+          />
+        )}
+      </BottomSheetModal>
     </View>
   );
 }
