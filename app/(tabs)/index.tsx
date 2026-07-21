@@ -6,30 +6,23 @@ import { useFocusEffect } from 'expo-router';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
+import ActivityFeedSheet from '@/components/ActivityFeedSheet';
 import JapanMapFloatingButton from '@/components/JapanMapFloatingButton';
 import RoomChatFloatingButton from '@/components/RoomChatFloatingButton';
 import WeatherBoard from '@/components/WeatherBoard';
+import { PREFECTURES } from '@/constants/prefectures';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
 import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
-import { CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
+import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
 
 const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
 
 const FEED_PAGE_SIZE = 20;
-
-const PREFECTURES = [
-  '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
-  '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
-  '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県',
-  '岐阜県', '静岡県', '愛知県', '三重県',
-  '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県',
-  '鳥取県', '島根県', '岡山県', '広島県', '山口県',
-  '徳島県', '香川県', '愛媛県', '高知県',
-  '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県',
-];
+// トップバーに並ぶピル状ボタン（本日の天気サマリー・絞り込み・アクティビティフィードなど）の高さを統一する。
+const TOP_BAR_PILL_HEIGHT = 26;
 
 type FeedFilters = {
   weather: WeatherType | null;
@@ -69,6 +62,58 @@ const fetchTodaySummary = async (setter: (data: Record<string, number>) => void)
     {} as Record<string, number>,
   );
   setter(counts);
+};
+
+// comments → weather_logs → profiles のネストしたembedは使わず、段階的に取得してJSでマージする
+// （lib/date.ts と同じ理由。詳しくはメモリのfeedback-postgrest-nested-embedsを参照）。
+const fetchActivityFeed = async (setter: (data: ActivityFeedItem[]) => void) => {
+  const { data: commentsData, error: commentsError } = await supabase
+    .from('comments')
+    .select('id, user_id, weather_log_id, created_at')
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (commentsError) {
+    console.error('[index(tab)] fetchActivityFeed', commentsError.message);
+    return;
+  }
+  if (commentsData.length === 0) {
+    setter([]);
+    return;
+  }
+
+  const logIds = Array.from(new Set(commentsData.map((c) => c.weather_log_id)));
+  const { data: logsData, error: logsError } = await supabase.from('weather_logs').select('id, user_id').in('id', logIds);
+  if (logsError) {
+    console.error('[index(tab)] fetchActivityFeed', logsError.message);
+    return;
+  }
+  const ownerIdByLogId = new Map(logsData.map((log) => [log.id, log.user_id]));
+
+  const userIds = Array.from(new Set([...commentsData.map((c) => c.user_id), ...logsData.map((log) => log.user_id)]));
+  const { data: profilesData, error: profilesError } = await supabase.from('profiles').select('user_id, nickname, avatar_emoji').in('user_id', userIds);
+  if (profilesError) {
+    console.error('[index(tab)] fetchActivityFeed', profilesError.message);
+    return;
+  }
+  const profileByUserId = new Map(profilesData.map((profile) => [profile.user_id, { nickname: profile.nickname, avatar_emoji: profile.avatar_emoji }]));
+
+  const items: ActivityFeedItem[] = commentsData
+    .map((comment) => {
+      const toUserId = ownerIdByLogId.get(comment.weather_log_id);
+      if (!toUserId) return null;
+      return {
+        id: comment.id,
+        from_user_id: comment.user_id,
+        to_user_id: toUserId,
+        weather_log_id: comment.weather_log_id,
+        created_at: comment.created_at,
+        from: profileByUserId.get(comment.user_id) ?? null,
+        to: profileByUserId.get(toUserId) ?? null,
+      };
+    })
+    .filter((item): item is ActivityFeedItem => item !== null);
+
+  setter(items);
 };
 
 const fetchReactionsData = async (setter: (data: Record<string, number>) => void) => {
@@ -296,6 +341,7 @@ export default function HomeScreen() {
   const [hasNewPosts, setHasNewPosts] = useState(false);
 
   const [todaySummary, setTodaySummary] = useState<Record<string, number>>({});
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [weatherFilter, setWeatherFilter] = useState<WeatherType | null>(null);
   const [tagQuery, setTagQuery] = useState('');
   const [debouncedTagQuery, setDebouncedTagQuery] = useState('');
@@ -307,7 +353,13 @@ export default function HomeScreen() {
   const isFilterInitialRender = useRef(true);
   const filterSheetRef = useRef<BottomSheetModal>(null);
   const tagInputRef = useRef<React.ComponentRef<typeof BottomSheetTextInput>>(null);
+  const activityFeedSheetRef = useRef<BottomSheetModal>(null);
   const tabBarHeight = useBottomTabBarHeight();
+
+  const handleOpenActivityFeed = () => {
+    activityFeedSheetRef.current?.present();
+    fetchActivityFeed(setActivityFeed);
+  };
 
   // タグ入力をデバウンス
   useEffect(() => {
@@ -567,9 +619,9 @@ export default function HomeScreen() {
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
       <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
-      <View style={{ paddingTop: 80, flex: 1, paddingHorizontal: 16 }}>
+      <View style={{ paddingTop: 80, flex: 1 }}>
         {/* トップバー：新着バナー＋フィルタトグル */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8, paddingHorizontal: 16 }}>
           {hasNewPosts ? (
             <Pressable
               onPress={handleRefresh}
@@ -601,9 +653,10 @@ export default function HomeScreen() {
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         gap: 2,
+                        height: TOP_BAR_PILL_HEIGHT,
                         paddingHorizontal: 6,
-                        paddingVertical: 3,
                         borderRadius: 100,
                         backgroundColor: 'rgba(255,255,255,0.85)',
                       }}>
@@ -620,12 +673,12 @@ export default function HomeScreen() {
           )}
           <Pressable
             onPress={() => filterSheetRef.current?.present()}
+            accessibilityLabel="絞り込み"
             style={{
-              flexDirection: 'row',
               alignItems: 'center',
-              gap: 4,
-              paddingHorizontal: 12,
-              paddingVertical: 7,
+              justifyContent: 'center',
+              width: TOP_BAR_PILL_HEIGHT,
+              height: TOP_BAR_PILL_HEIGHT,
               borderRadius: 100,
               backgroundColor: isFilterActive ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
             }}>
@@ -634,13 +687,19 @@ export default function HomeScreen() {
               size={14}
               color={isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark}
             />
-            <Text style={{
-              fontSize: 12,
-              fontWeight: '600',
-              color: isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark,
+          </Pressable>
+          <Pressable
+            onPress={handleOpenActivityFeed}
+            accessibilityLabel="アクティビティフィード"
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: TOP_BAR_PILL_HEIGHT,
+              height: TOP_BAR_PILL_HEIGHT,
+              borderRadius: 100,
+              backgroundColor: 'rgba(255,255,255,0.85)',
             }}>
-              絞り込み
-            </Text>
+            <Ionicons name="pulse-outline" size={14} color={WeatherBoardColors.textPrimaryDark} />
           </Pressable>
         </View>
 
@@ -810,6 +869,7 @@ export default function HomeScreen() {
           </Pressable>
         </BottomSheetScrollView>
       </BottomSheetModal>
+      <ActivityFeedSheet bottomSheetRef={activityFeedSheetRef} activityFeed={activityFeed} tabBarHeight={tabBarHeight} />
     </ImageBackground>
   );
 }
