@@ -6,7 +6,7 @@ import { useFocusEffect } from 'expo-router';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
-import JapanMapModal from '@/components/JapanMapModal';
+import JapanMapFloatingButton from '@/components/JapanMapFloatingButton';
 import RoomChatFloatingButton from '@/components/RoomChatFloatingButton';
 import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
@@ -238,7 +238,6 @@ export default function HomeScreen() {
   const [prefectureFilter, setPrefectureFilter] = useState<string | null>(null);
   const [followingOnly, setFollowingOnly] = useState(false);
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
-  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
   const isFilterInitialRender = useRef(true);
@@ -324,8 +323,8 @@ export default function HomeScreen() {
       if (isCancelled) return;
       channel = supabase
         .channel(channelName)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'weather_logs' }, () => {
-          setHasNewPosts(true);
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'weather_logs' }, (payload) => {
+          if (payload.new.user_id !== userId) setHasNewPosts(true);
           fetchTodaySummary(setTodaySummary);
         })
         .subscribe();
@@ -507,19 +506,6 @@ export default function HomeScreen() {
       <View style={{ paddingTop: 80, flex: 1, paddingHorizontal: 16 }}>
         {/* トップバー：新着バナー＋フィルタトグル */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 }}>
-          {/* マップボタン */}
-          <Pressable
-            onPress={() => setIsMapOpen(true)}
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
-              backgroundColor: 'rgba(255,255,255,0.85)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Ionicons name="map-outline" size={18} color={WeatherBoardColors.textPrimaryDark} />
-          </Pressable>
           {hasNewPosts ? (
             <Pressable
               onPress={handleRefresh}
@@ -528,37 +514,43 @@ export default function HomeScreen() {
                 paddingVertical: 8,
                 paddingHorizontal: 16,
                 borderRadius: 100,
-                backgroundColor: 'rgba(98,66,33,0.92)',
+                backgroundColor: WeatherBoardColors.buttonBackground,
               }}>
               <Text className="text-xs font-bold text-white text-center">新着があります・タップで更新</Text>
             </Pressable>
           ) : Object.keys(todaySummary).length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ flex: 1 }}
-              contentContainerStyle={{ gap: 6 }}>
-              {Object.entries(WEATHER_CONFIG)
-                .filter(([key]) => (todaySummary[key] ?? 0) > 0)
-                .map(([key, cfg]) => (
-                  <View
-                    key={key}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                      borderRadius: 100,
-                      backgroundColor: 'rgba(255,255,255,0.85)',
-                    }}>
-                    <Text style={{ fontSize: 13 }}>{cfg.emoji}</Text>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
-                      {todaySummary[key]}
-                    </Text>
-                  </View>
-                ))}
-            </ScrollView>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
+                本日:
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ gap: 4 }}>
+                {Object.entries(WEATHER_CONFIG)
+                  .filter(([key]) => (todaySummary[key] ?? 0) > 0)
+                  .map(([key, cfg]) => (
+                    <View
+                      key={key}
+                      accessibilityLabel={`本日の${cfg.label}の投稿 ${todaySummary[key]}件`}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 2,
+                        paddingHorizontal: 6,
+                        paddingVertical: 3,
+                        borderRadius: 100,
+                        backgroundColor: 'rgba(255,255,255,0.85)',
+                      }}>
+                      <Text style={{ fontSize: 11 }}>{cfg.emoji}</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
+                        {todaySummary[key]}
+                      </Text>
+                    </View>
+                  ))}
+              </ScrollView>
+            </View>
           ) : (
             <View style={{ flex: 1 }} />
           )}
@@ -613,8 +605,8 @@ export default function HomeScreen() {
           )}
         </View>
       </View>
+      <JapanMapFloatingButton />
       <RoomChatFloatingButton />
-      <JapanMapModal visible={isMapOpen} onClose={() => setIsMapOpen(false)} />
 
       <BottomSheetModal
         ref={filterSheetRef}
