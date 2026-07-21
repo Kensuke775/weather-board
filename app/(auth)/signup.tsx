@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -45,8 +45,6 @@ export default function AuthSignUp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-  const [isLastCharVisible, setIsLastCharVisible] = useState(false);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
@@ -61,13 +59,6 @@ export default function AuthSignUp() {
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     setErrorMessage(null);
-    if (text.length > 0) {
-      setIsLastCharVisible(true);
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      hideTimer.current = setTimeout(() => setIsLastCharVisible(false), 800);
-    } else {
-      setIsLastCharVisible(false);
-    }
   };
 
   const handleGoogleSignUp = async () => {
@@ -231,7 +222,7 @@ export default function AuthSignUp() {
                     placeholder="パスワード"
                     placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="newPassword"
-                    secureTextEntry={!isPasswordVisible && !isLastCharVisible}
+                    secureTextEntry={!isPasswordVisible}
                     autoCapitalize="none"
                     style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
                   />

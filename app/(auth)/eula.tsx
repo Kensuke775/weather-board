@@ -8,16 +8,55 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthHeader } from '@/components/AuthHeader';
 import { EulaContent } from '@/components/EulaContent';
 import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
+import { useRoom } from '@/context/RoomContext';
 import { supabase } from '@/lib/supabase';
 
 export default function AuthEula() {
   const router = useRouter();
+  const { refreshRooms } = useRoom();
   const [fontsLoaded] = useFonts({
     DancingScript_400Regular: Fonts.titleFont,
   }) as [boolean, Error | null];
   const [agreed, setAgreed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleGuestSetup = async (userId: string) => {
+    const guestEmojis = ['🌤', '☁️', '🌧', '⛅', '🌈', '❄️', '🌊', '🍃'];
+    const randomEmoji = guestEmojis[Math.floor(Math.random() * guestEmojis.length)];
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({ user_id: userId, nickname: 'ゲスト', avatar_emoji: randomEmoji, is_guest: true });
+    if (profileError) {
+      console.error('[eula] handleGuestSetup profile', profileError.message);
+      setErrorMessage('ゲストプロフィールの作成に失敗しました。');
+      return false;
+    }
+
+    const { data: roomData, error: roomError } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('invite_code', 'demo11')
+      .single();
+    if (roomError || !roomData) {
+      console.error('[eula] handleGuestSetup room', roomError?.message);
+      setErrorMessage('デモルームへの参加に失敗しました。');
+      return false;
+    }
+
+    const { error: memberError } = await supabase
+      .from('room_members')
+      .insert({ room_id: roomData.id, user_id: userId });
+    if (memberError) {
+      console.error('[eula] handleGuestSetup member', memberError.message);
+      setErrorMessage('デモルームへの参加に失敗しました。');
+      return false;
+    }
+
+    await refreshRooms();
+    return true;
+  };
 
   const handleAgree = async () => {
     if (!agreed) {
@@ -27,6 +66,20 @@ export default function AuthEula() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        console.error('[eula] handleAgree', userError?.message);
+        setErrorMessage('ユーザー情報の取得に失敗しました。');
+        return;
+      }
+
+      if (userData.user.is_anonymous) {
+        const succeeded = await handleGuestSetup(userData.user.id);
+        if (!succeeded) return;
+        router.replace('/(tabs)');
+        return;
+      }
+
       router.replace('/(auth)/profile-setup');
     } finally {
       setIsSubmitting(false);

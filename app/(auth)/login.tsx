@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -24,8 +24,6 @@ export default function AuthLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isLastCharVisible, setIsLastCharVisible] = useState(false);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -47,13 +45,6 @@ export default function AuthLogin() {
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     setErrorMessage(null);
-    if (text.length > 0) {
-      setIsLastCharVisible(true);
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      hideTimer.current = setTimeout(() => setIsLastCharVisible(false), 800);
-    } else {
-      setIsLastCharVisible(false);
-    }
   };
 
   const handleGoogleLogin = async () => {
@@ -155,40 +146,8 @@ export default function AuthLogin() {
         setErrorMessage('ゲストログインに失敗しました。');
         return;
       }
-      const userId = authData.user.id;
-      const guestEmojis = ['🌤', '☁️', '🌧', '⛅', '🌈', '❄️', '🌊', '🍃'];
-      const randomEmoji = guestEmojis[Math.floor(Math.random() * guestEmojis.length)];
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({ user_id: userId, nickname: 'ゲスト', avatar_emoji: randomEmoji });
-      if (profileError) {
-        console.error('[login] handleGuestLogin profile', profileError.message);
-        setErrorMessage('ゲストプロフィールの作成に失敗しました。');
-        return;
-      }
-
-      const { data: roomData, error: roomError } = await supabase
-        .from('rooms')
-        .select('id')
-        .eq('invite_code', 'demo11')
-        .single();
-      if (roomError || !roomData) {
-        console.error('[login] handleGuestLogin room', roomError?.message);
-        setErrorMessage('デモルームへの参加に失敗しました。');
-        return;
-      }
-
-      const { error: memberError } = await supabase
-        .from('room_members')
-        .insert({ room_id: roomData.id, user_id: userId });
-      if (memberError) {
-        console.error('[login] handleGuestLogin member', memberError?.message);
-        setErrorMessage('デモルームへの参加に失敗しました。');
-        return;
-      }
-
-      router.replace('/(tabs)');
+      // プロフィール作成・デモルーム参加はEULA同意後（eula.tsx）で行う。
+      router.replace('/(auth)/eula');
     } finally {
       setIsSubmitting(null);
     }
@@ -263,7 +222,7 @@ export default function AuthLogin() {
                     placeholder="パスワード"
                     placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="password"
-                    secureTextEntry={!isPasswordVisible && !isLastCharVisible}
+                    secureTextEntry={!isPasswordVisible}
                     autoCapitalize="none"
                     style={{
                       flex: 1,
@@ -281,7 +240,7 @@ export default function AuthLogin() {
                   </Pressable>
                 </View>
               </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ marginBottom: 12, gap: 4 }}>
                 <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>※6文字以上で設定してください</Text>
                 <Pressable onPress={handleForgotPassword} hitSlop={8}>
                   <Text style={{ fontSize: 12, color: WeatherBoardColors.buttonBackground, textDecorationLine: 'underline' }}>
@@ -345,8 +304,8 @@ export default function AuthLogin() {
                   </View>
                 </Pressable>
 
-                {/* ゲストとして試す */}
-                <Pressable onPress={handleGuestLogin} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
+                {/* ゲストとして試す（本番では非表示・開発用に残す） */}
+                <Pressable onPress={handleGuestLogin} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1, display: 'none' }}>
                   <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: WeatherBoardColors.textMutedBlack, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="eye-outline" size={20} color={WeatherBoardColors.textMutedBlack} style={{ marginLeft: 16 }} />
                     <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '600', marginRight: 36 }}>ゲストとして試す</Text>
