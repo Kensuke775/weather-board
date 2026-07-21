@@ -150,7 +150,21 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
         if (error) console.error('[CommentSection] handleToggleCommentReaction(update)', error.message);
       } else {
         const { error } = await supabase.from('comment_reactions').insert({ from_user_id: userId, comment_id: commentId, reaction_type: type });
-        if (error && error.code !== '23505') console.error('[CommentSection] handleToggleCommentReaction(insert)', error.message);
+        if (error && error.code !== '23505') {
+          console.error('[CommentSection] handleToggleCommentReaction(insert)', error.message);
+        } else if (!error) {
+          const commentAuthorId = comments.find((c) => c.id === commentId)?.user_id;
+          if (commentAuthorId && commentAuthorId !== userId) {
+            const { error: notifyError } = await supabase.from('notifications').insert({
+              to_user_id: commentAuthorId,
+              from_user_id: userId,
+              type: 'reaction',
+              weather_log_id,
+              is_read: false,
+            });
+            if (notifyError) console.error('[CommentSection] handleToggleCommentReaction notify', notifyError.message);
+          }
+        }
       }
       await fetchCommentReactions(weather_log_id, setCommentReactions);
     } finally {
