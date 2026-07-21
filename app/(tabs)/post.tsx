@@ -10,6 +10,7 @@ import IconHeader from '@/components/IconHeader';
 import { BrownTheme, CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { useTabBarSpace } from '@/hooks/useTabBarSpace';
+import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG } from '@/lib/types';
 
@@ -36,16 +37,34 @@ export default function Post() {
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
-      const checkTodayPost = async () => {
-        const today = new Date().toISOString().split('T')[0];
-        const { data, error } = await supabase.from('weather_logs').select('id').eq('user_id', userId).eq('logged_date', today).maybeSingle();
+      const loadTodayPost = async () => {
+        const today = toDateString();
+        const { data, error } = await supabase
+          .from('weather_logs')
+          .select('weather, note, weather_log_activities(activity_tags(id, tag_name, user_id))')
+          .eq('user_id', userId)
+          .eq('logged_date', today)
+          .maybeSingle();
         if (error) {
-          console.error('[post] checkTodayPost', error.message);
+          console.error('[post] loadTodayPost', error.message);
           return;
         }
-        setHasPostedToday(data !== null);
+        if (!data) {
+          setHasPostedToday(false);
+          return;
+        }
+        setHasPostedToday(true);
+        setWeather(data.weather);
+        setNote(data.note ?? '');
+        const weatherKeys = Object.keys(WEATHER_CONFIG);
+        const index = weatherKeys.indexOf(data.weather);
+        setSelectedIndex(index >= 0 ? index : 0);
+        const tags = (data.weather_log_activities ?? [])
+          .map((a) => (Array.isArray(a.activity_tags) ? a.activity_tags[0] : a.activity_tags))
+          .filter((tag): tag is ActivityTag => tag !== null);
+        setSelectedTags(tags);
       };
-      checkTodayPost();
+      loadTodayPost();
     }, [userId]),
   );
 
@@ -60,7 +79,7 @@ export default function Post() {
       }
       const { data: logData, error: logError } = await supabase
         .from('weather_logs')
-        .upsert({ user_id: userId, weather, note, logged_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }, { onConflict: 'user_id,logged_date' })
+        .upsert({ user_id: userId, weather, note, logged_date: toDateString(), updated_at: new Date().toISOString() }, { onConflict: 'user_id,logged_date' })
         .select('id')
         .single();
       if (logError) {
@@ -76,7 +95,7 @@ export default function Post() {
       }
       const { data: historyData, error: historyError } = await supabase
         .from('weather_log_history')
-        .insert({ weather_log_id: logData.id, weather, note, recorded_at: new Date().toISOString().split('T')[0] })
+        .insert({ weather_log_id: logData.id, weather, note, recorded_at: toDateString() })
         .select('id')
         .single();
       if (historyError) {
@@ -113,9 +132,10 @@ export default function Post() {
         await supabase.from('weather_log_history_activities').insert(historyActivitiesData);
       }
 
-      setWeather('');
+      setWeather('sunny');
       setNote('');
       setSelectedTags([]);
+      setSelectedIndex(0);
       setShowPostedConfirmation(true);
       setTimeout(() => {
         router.replace('/(tabs)');

@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 
 import { JAPAN_PREFECTURES, JAPAN_VIEWBOX } from '@/constants/japanPrefectures';
 import { WeatherBoardColors } from '@/constants/theme';
+import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
 
@@ -70,7 +71,7 @@ function pinchDist(
 // ---------------------------------------------------------------------------
 
 const fetchPrefectureData = async (): Promise<Record<string, PrefectureData>> => {
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = toDateString();
   const { data, error } = await supabase
     .from('weather_logs')
     .select('weather, profiles!inner(prefecture)')
@@ -102,7 +103,7 @@ const fetchPrefectureData = async (): Promise<Record<string, PrefectureData>> =>
 };
 
 const fetchPrefectureUsers = async (prefName: string): Promise<PrefUser[]> => {
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = toDateString();
   const { data, error } = await supabase
     .from('weather_logs')
     .select('user_id, weather, profiles!inner(nickname, avatar_emoji, prefecture)')
