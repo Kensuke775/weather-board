@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
+import { REPORT_REASONS } from '@/components/ReportBlockMenu';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { TOAST_DURATION } from '@/constants/ui';
 import { useRoom } from '@/context/RoomContext';
@@ -19,11 +20,12 @@ type ProfileData = {
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
+  isGuest: boolean;
 };
 
 const fetchUserProfile = async (targetUserId: string, currentUserId: string): Promise<ProfileData | null> => {
   const [profileResult, followerResult, followingResult, followingCheckResult] = await Promise.all([
-    supabase.from('profiles').select('nickname, avatar_emoji, prefecture').eq('user_id', targetUserId).single(),
+    supabase.from('profiles').select('nickname, avatar_emoji, prefecture, is_guest').eq('user_id', targetUserId).single(),
     supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('followed_id', targetUserId),
     supabase.from('follows').select('followed_id', { count: 'exact', head: true }).eq('follower_id', targetUserId),
     supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('follower_id', currentUserId).eq('followed_id', targetUserId),
@@ -39,6 +41,7 @@ const fetchUserProfile = async (targetUserId: string, currentUserId: string): Pr
     followerCount: followerResult.count ?? 0,
     followingCount: followingResult.count ?? 0,
     isFollowing: (followingCheckResult.count ?? 0) > 0,
+    isGuest: profileResult.data.is_guest ?? false,
   };
 };
 
@@ -52,6 +55,8 @@ export default function UserProfile() {
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isStartingDm, setIsStartingDm] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
 
   const isOwnProfile = user?.id === targetUserId;
 
@@ -146,6 +151,53 @@ export default function UserProfile() {
     }
   };
 
+  const submitBlock = async () => {
+    if (!user?.id || !targetUserId || isBlocking) return;
+    setIsBlocking(true);
+    try {
+      const { error } = await supabase.from('blocks').insert({ blocker_id: user.id, blocked_id: targetUserId });
+      if (error) {
+        console.error('[user-profile] submitBlock', error.message);
+        Alert.alert('ブロックに失敗しました。');
+        return;
+      }
+      Alert.alert('ブロックしました。');
+      router.back();
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
+  const handleBlockPress = () => {
+    Alert.alert('ブロックしますか？', 'ブロックすると、相手の投稿・コメント・タグが表示されなくなります。', [
+      { text: 'キャンセル', style: 'cancel' },
+      { text: 'ブロックする', style: 'destructive', onPress: submitBlock },
+    ]);
+  };
+
+  const submitReport = async (reason: string) => {
+    if (!user?.id || !targetUserId || isReporting) return;
+    setIsReporting(true);
+    try {
+      const { error } = await supabase.from('reports').insert({ reporter_id: user.id, reported_user_id: targetUserId, reason });
+      if (error) {
+        console.error('[user-profile] submitReport', error.message);
+        Alert.alert('通報の送信に失敗しました。');
+        return;
+      }
+      Alert.alert('通報を受け付けました。');
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
+  const handleReportPress = () => {
+    Alert.alert('通報理由を選んでください', '', [
+      { text: 'キャンセル', style: 'cancel' },
+      ...REPORT_REASONS.map((reason) => ({ text: reason, onPress: () => submitReport(reason) })),
+    ]);
+  };
+
   const handleInviteToRoom = () => {
     if (rooms.length === 0) {
       Alert.alert('参加中のルームがありません。');
@@ -182,6 +234,14 @@ export default function UserProfile() {
             <Text style={{ fontSize: 20, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
               {profile.nickname}
             </Text>
+            {profile.isGuest && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Ionicons name="time-outline" size={12} color={WeatherBoardColors.textMutedBlack} />
+                <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>
+                  ゲストです(お試し用アカウント・1週間で自動削除されます)
+                </Text>
+              </View>
+            )}
             {profile.prefecture && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Ionicons name="location-outline" size={13} color={WeatherBoardColors.textMutedBlack} />
@@ -204,61 +264,101 @@ export default function UserProfile() {
               </View>
             </View>
             {!isOwnProfile && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+              <View style={{ alignSelf: 'stretch', gap: 6, marginTop: 4 }}>
                 <Pressable
                   onPress={handleToggleFollow}
                   disabled={isFollowLoading}
                   style={{
-                    paddingHorizontal: 24,
-                    paddingVertical: 10,
+                    paddingVertical: 8,
                     borderRadius: 100,
                     backgroundColor: profile.isFollowing ? 'rgba(0,0,0,0.07)' : WeatherBoardColors.buttonBackground,
                     opacity: isFollowLoading ? 0.6 : 1,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 6,
+                    justifyContent: 'center',
+                    gap: 4,
                   }}>
                   <Ionicons
                     name={profile.isFollowing ? 'checkmark' : 'add'}
-                    size={15}
+                    size={13}
                     color={profile.isFollowing ? WeatherBoardColors.textPrimaryDark : 'white'}
                   />
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: profile.isFollowing ? WeatherBoardColors.textPrimaryDark : 'white' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: profile.isFollowing ? WeatherBoardColors.textPrimaryDark : 'white' }}>
                     {profile.isFollowing ? 'フォロー中' : 'フォローする'}
                   </Text>
                 </Pressable>
-                <Pressable
-                  onPress={handleSendDm}
-                  disabled={isStartingDm}
-                  style={{
-                    paddingHorizontal: 24,
-                    paddingVertical: 10,
-                    borderRadius: 100,
-                    backgroundColor: 'rgba(0,0,0,0.07)',
-                    opacity: isStartingDm ? 0.6 : 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}>
-                  <Ionicons name="chatbubble-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>DMを送る</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleInviteToRoom}
-                  disabled={isInviting}
-                  style={{
-                    paddingHorizontal: 24,
-                    paddingVertical: 10,
-                    borderRadius: 100,
-                    backgroundColor: 'rgba(0,0,0,0.07)',
-                    opacity: isInviting ? 0.6 : 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}>
-                  <Ionicons name="people-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>ルームに招待する</Text>
-                </Pressable>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Pressable
+                    onPress={handleSendDm}
+                    disabled={isStartingDm}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 100,
+                      backgroundColor: 'rgba(0,0,0,0.07)',
+                      opacity: isStartingDm ? 0.6 : 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}>
+                    <Ionicons name="chatbubble-outline" size={13} color={WeatherBoardColors.textPrimaryDark} />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>DMを送る</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleInviteToRoom}
+                    disabled={isInviting}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 100,
+                      backgroundColor: 'rgba(0,0,0,0.07)',
+                      opacity: isInviting ? 0.6 : 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}>
+                    <Ionicons name="people-outline" size={13} color={WeatherBoardColors.textPrimaryDark} />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>ルーム招待</Text>
+                  </Pressable>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Pressable
+                    onPress={handleReportPress}
+                    disabled={isReporting}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 100,
+                      backgroundColor: 'rgba(239,68,68,0.1)',
+                      opacity: isReporting ? 0.6 : 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}>
+                    <Ionicons name="flag-outline" size={13} color="#EF4444" />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF4444' }}>通報する</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleBlockPress}
+                    disabled={isBlocking}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 100,
+                      backgroundColor: 'rgba(239,68,68,0.1)',
+                      opacity: isBlocking ? 0.6 : 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}>
+                    <Ionicons name="ban-outline" size={13} color="#EF4444" />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF4444' }}>ブロックする</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
           </View>

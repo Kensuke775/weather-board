@@ -20,7 +20,7 @@ export type ReportBlockMenuProps = {
   variant?: 'default' | 'compact' | 'header';
 };
 
-const REPORT_REASONS = ['不適切な投稿内容', '嫌がらせ・誹謗中傷', 'その他'] as const;
+export const REPORT_REASONS = ['不適切な投稿内容', '嫌がらせ・誹謗中傷', 'その他'] as const;
 const OTHER_REASON = 'その他';
 
 export default function ReportBlockMenu({ targetUserId, weatherLogId, commentId, onBlocked, variant = 'default' }: ReportBlockMenuProps) {
