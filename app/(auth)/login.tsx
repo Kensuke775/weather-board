@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 
 const redirectTo = makeRedirectUri();
 
-type SubmittingName = 'google' | 'apple' | 'password' | 'guest' | null;
+type SubmittingName = 'google' | 'apple' | 'password' | 'guest' | 'reset' | null;
 
 export default function AuthLogin() {
   const router = useRouter();
@@ -29,17 +29,27 @@ export default function AuthLogin() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const handleForgotPassword = async () => {
+    if (isSubmitting) return;
     if (email.length === 0) {
       setErrorMessage('メールアドレスを入力してからタップしてください。');
       return;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) {
-      console.error('[login] handleForgotPassword', error.message);
-      setErrorMessage('リセットメールの送信に失敗しました。');
-      return;
+    setIsSubmitting('reset');
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        console.error('[login] handleForgotPassword', error.message);
+        if (error.code === 'over_email_send_rate_limit') {
+          setErrorMessage('送信回数の上限に達しました。しばらく時間をおいてからもう一度お試しください。');
+        } else {
+          setErrorMessage('リセットメールの送信に失敗しました。');
+        }
+        return;
+      }
+      setResetMessage('パスワードリセットのメールを送信しました。メールをご確認ください。');
+    } finally {
+      setIsSubmitting(null);
     }
-    setResetMessage('パスワードリセットのメールを送信しました。メールをご確認ください。');
   };
 
   const handlePasswordChange = (text: string) => {
@@ -242,8 +252,8 @@ export default function AuthLogin() {
               </View>
               <View style={{ marginBottom: 12, gap: 4 }}>
                 <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>※6文字以上で設定してください</Text>
-                <Pressable onPress={handleForgotPassword} hitSlop={8}>
-                  <Text style={{ fontSize: 12, color: WeatherBoardColors.buttonBackground, textDecorationLine: 'underline' }}>
+                <Pressable onPress={handleForgotPassword} disabled={isSubmitting !== null} hitSlop={8}>
+                  <Text style={{ fontSize: 12, color: WeatherBoardColors.buttonBackground, textDecorationLine: 'underline', opacity: isSubmitting !== null ? 0.5 : 1 }}>
                     パスワードをお忘れですか？
                   </Text>
                 </Pressable>
