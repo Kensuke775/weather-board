@@ -154,6 +154,7 @@ export type ActivityFeedItem = {
   id: string;
   from_user_id:string;
   to_user_id: string;
+  weather_log_id: string;
   created_at: string;
   from: { avatar_emoji: string; nickname: string } | null;
   to: { avatar_emoji: string; nickname: string } | null;

@@ -42,18 +42,18 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
       <Pressable
         onPressIn={() => { avatarPressedRef.current = true; }}
         onPress={() => { router.push(`/user-profile?userId=${userId}`); }}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <AvatarWeatherBadge avatarEmoji={avatar_emoji} weather={weather} size={32} variant="glass" />
-        <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }} numberOfLines={1}>
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <AvatarWeatherBadge avatarEmoji={avatar_emoji} weather={weather} size={28} variant="glass" />
+        <Text style={{ flex: 1, fontSize: 11, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }} numberOfLines={1}>
           {nickname}
         </Text>
       </Pressable>
-      <View className="mb-2">
+      <View className="mb-1">
         <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMutedDark, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
           {note}
         </Text>
       </View>
-      <View className="flex-row items-center gap-1.5 flex-wrap overflow-hidden mb-2" style={{ height: CARD_TEXT.tagRowHeight }}>
+      <View className="flex-row items-center gap-1.5 flex-wrap overflow-hidden mb-1" style={{ height: CARD_TEXT.tagRowHeight }}>
         {tags.map((tag) => (
           <View key={tag.id} style={{ backgroundColor: hexToRgba(cardColor, 0.5), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
             <Text numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimaryDark }}>
@@ -62,7 +62,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           </View>
         ))}
       </View>
-      <View className="flex-row items-center gap-2 mb-1">
+      <View className="flex-row items-center gap-1.5 mb-1">
         <View className="flex-row gap-1 items-center">
           <Ionicons name="chatbubble-ellipses-outline" size={12} color={WeatherBoardColors.textMutedDark} />
           <Text className="text-xs font-bold" style={{ color: WeatherBoardColors.textMutedDark }}>
@@ -78,12 +78,12 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           </View>
         )}
         <View className="flex-row items-center gap-1">
-          {commentStatus[weather_log_id]?.commenters.slice(0, 4).map((commenter) => (
+          {commentStatus[weather_log_id]?.commenters.slice(0, 3).map((commenter) => (
             <Text key={commenter.user_id} className="text-[10px]">
               {commenter.emoji}
             </Text>
           ))}
-          {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 4 && (
+          {(commentStatus[weather_log_id]?.commenters.length ?? 0) > 3 && (
             <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMutedDark }}>
               ...
             </Text>
