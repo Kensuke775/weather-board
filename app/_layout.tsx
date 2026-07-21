@@ -115,6 +115,28 @@ export default function RootLayout() {
                       }}
                     />
                     <Stack.Screen
+                      name="terms"
+                      options={{
+                        title: '利用規約',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="privacy-policy"
+                      options={{
+                        title: 'プライバシーポリシー',
+                        headerStyle: { backgroundColor: '#FFFFFF' },
+                        headerTintColor: 'rgba(96, 165, 250)',
+                        headerTitleStyle: { color: '#000000' },
+                        headerBackButtonDisplayMode: 'minimal',
+                        headerShadowVisible: false,
+                      }}
+                    />
+                    <Stack.Screen
                       name="room-chat/index"
                       options={{
                         title: 'トーク',
@@ -144,6 +166,10 @@ export default function RootLayout() {
                         headerBackButtonDisplayMode: 'minimal',
                         headerShadowVisible: false,
                       }}
+                    />
+                    <Stack.Screen
+                      name="japan-map"
+                      options={{ headerShown: false }}
                     />
                     <Stack.Screen
                       name="prefecture-users"
