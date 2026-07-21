@@ -1,14 +1,16 @@
-import { Pressable } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
-import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 
 export default function JapanMapFloatingButton() {
   const router = useRouter();
-  const tabBarTop = useTabBarSpace(16);
+  const { bottom } = useSafeAreaInsets();
+  const tabBarMarginBottom = Platform.OS === 'android' ? 4 : Math.max(bottom - 4, 0);
+  const tabBarTop = tabBarMarginBottom + 60 + 16;
 
   return (
     <Pressable
