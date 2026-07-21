@@ -2,6 +2,7 @@ import React, { ComponentProps, useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
+  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -12,6 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import IconHeader from '@/components/IconHeader';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { supabase } from '@/lib/supabase';
 
 type LoadingName = 'loggingOut' | 'deletingAccount' | null;
@@ -50,6 +52,8 @@ type ProfileSummary = {
 export default function Settings() {
   const router = useRouter();
   const { user } = useUser();
+  // 最後のメニュー項目がタブバーに隠れてスクロールし切れなくなるのを防ぐための下余白。
+  const tabBarSpace = useTabBarSpace(24);
   const [isLoading, setIsLoading] = useState<LoadingName>(null);
   const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
 
@@ -114,7 +118,7 @@ export default function Settings() {
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <IconHeader icon="settings-outline" title="Settings" subtitle="アカウントや各種設定を行います" />
 
-      <View style={{ flex: 1, paddingTop: 20, paddingHorizontal: 20 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: tabBarSpace }}>
         {profileSummary && (
           <View style={{ ...CardStyle, borderRadius: 20, padding: 20, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: WeatherBoardColors.screenBackground, alignItems: 'center', justifyContent: 'center' }}>
@@ -161,13 +165,34 @@ export default function Settings() {
             iconBg={WeatherBoardColors.buttonBackground}
             onPress={() => router.push('/profile-edit')}
           />
-          {DIVIDER}
+        </View>
+
+        <Text style={{ fontSize: 12, fontWeight: '700', color: WeatherBoardColors.textMutedBlack, marginTop: 20, marginBottom: 8, marginLeft: 4 }}>
+          アカウント設定
+        </Text>
+        <View style={{ ...CardStyle, borderRadius: 20, overflow: 'hidden' }}>
           <MenuItem
             label="ブロック一覧"
             description="ブロック中のユーザーを確認・解除します"
             iconName="ban-outline"
             iconBg="#A0A0A0"
             onPress={() => router.push('/block-list')}
+          />
+          {DIVIDER}
+          <MenuItem
+            label="利用規約"
+            description="本アプリの利用規約を確認します"
+            iconName="document-text-outline"
+            iconBg="#A0A0A0"
+            onPress={() => router.push('/terms')}
+          />
+          {DIVIDER}
+          <MenuItem
+            label="プライバシーポリシー"
+            description="個人情報の取り扱いについて確認します"
+            iconName="shield-checkmark-outline"
+            iconBg="#A0A0A0"
+            onPress={() => router.push('/privacy-policy')}
           />
           {DIVIDER}
           <MenuItem
@@ -197,7 +222,7 @@ export default function Settings() {
             }}
           />
         </View>
-      </View>
+      </ScrollView>
 
     </View>
   );
