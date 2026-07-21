@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
@@ -13,17 +13,25 @@ type FollowUser = {
   avatar_emoji: string;
 };
 
+const fetchProfilesByIds = async (userIds: string[]): Promise<Map<string, { nickname: string; avatar_emoji: string }>> => {
+  if (userIds.length === 0) return new Map();
+  const { data, error } = await supabase.from('profiles').select('user_id, nickname, avatar_emoji').in('user_id', userIds);
+  if (error) {
+    console.error('[follow-list] fetchProfilesByIds', error.message);
+    return new Map();
+  }
+  return new Map(data.map((profile) => [profile.user_id, { nickname: profile.nickname, avatar_emoji: profile.avatar_emoji ?? '👤' }]));
+};
+
 const fetchFollowers = async (userId: string): Promise<FollowUser[]> => {
-  const { data, error } = await supabase
-    .from('follows')
-    .select('follower_id, profiles!follower_id(nickname, avatar_emoji)')
-    .eq('followed_id', userId);
+  const { data, error } = await supabase.from('follows').select('follower_id').eq('followed_id', userId);
   if (error) {
     console.error('[follow-list] fetchFollowers', error.message);
     return [];
   }
-  return (data ?? []).map((row) => {
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const profilesById = await fetchProfilesByIds(data.map((row) => row.follower_id));
+  return data.map((row) => {
+    const profile = profilesById.get(row.follower_id);
     return {
       user_id: row.follower_id,
       nickname: profile?.nickname ?? '---',
@@ -33,16 +41,14 @@ const fetchFollowers = async (userId: string): Promise<FollowUser[]> => {
 };
 
 const fetchFollowing = async (userId: string): Promise<FollowUser[]> => {
-  const { data, error } = await supabase
-    .from('follows')
-    .select('followed_id, profiles!followed_id(nickname, avatar_emoji)')
-    .eq('follower_id', userId);
+  const { data, error } = await supabase.from('follows').select('followed_id').eq('follower_id', userId);
   if (error) {
     console.error('[follow-list] fetchFollowing', error.message);
     return [];
   }
-  return (data ?? []).map((row) => {
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  const profilesById = await fetchProfilesByIds(data.map((row) => row.followed_id));
+  return data.map((row) => {
+    const profile = profilesById.get(row.followed_id);
     return {
       user_id: row.followed_id,
       nickname: profile?.nickname ?? '---',
@@ -52,6 +58,7 @@ const fetchFollowing = async (userId: string): Promise<FollowUser[]> => {
 };
 
 export default function FollowList() {
+  const router = useRouter();
   const { user } = useUser();
   const { type } = useLocalSearchParams<{ type: 'followers' | 'following' }>();
   const [users, setUsers] = useState<FollowUser[]>([]);
@@ -87,14 +94,16 @@ export default function FollowList() {
           )}
           ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginLeft: 76 }} />}
           renderItem={({ item }) => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
+            <Pressable
+              onPress={() => router.push(`/user-profile?userId=${item.user_id}`)}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
               <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 24 }}>{item.avatar_emoji}</Text>
               </View>
               <Text style={{ fontSize: 15, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>
                 {item.nickname}
               </Text>
-            </View>
+            </Pressable>
           )}
         />
       )}

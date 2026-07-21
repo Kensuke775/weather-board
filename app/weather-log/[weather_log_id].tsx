@@ -208,7 +208,7 @@ export default function WeatherLogDetailScreen() {
 
       {/* Reaction bar */}
       <View style={{ paddingHorizontal: 16 }}>
-        <PostReactionBar weatherLogId={detail.id} />
+        <PostReactionBar weatherLogId={detail.id} toUserId={detail.user_id} />
       </View>
 
       {/* Comments */}

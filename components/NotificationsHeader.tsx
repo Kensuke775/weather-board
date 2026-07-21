@@ -33,9 +33,6 @@ export default function NotificationsHeader({ activeFilter, onFilterChange, filt
             style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="checkmark-done-outline" size={18} color={WeatherBoardColors.textPrimaryDark} />
           </Pressable>
-          <Pressable style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="settings-outline" size={18} color={WeatherBoardColors.textPrimaryDark} />
-          </Pressable>
         </View>
       }>
       <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 100, padding: 4, gap: 4 }}>
