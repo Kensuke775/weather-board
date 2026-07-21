@@ -5,7 +5,7 @@ import { z } from "zod";
 const NotificationPayloadSchema = z.object({
   to_user_id: z.string().uuid(),
   from_user_id: z.string().uuid(),
-  type: z.enum(['comment', 'talk', 'room_message', 'direct_message', 'reaction'])
+  type: z.enum(['comment', 'talk', 'room_message', 'direct_message', 'reaction', 'follow', 'room_join', 'room_invite'])
 })
 
 // notificationsのINSERTをトリガーにDBから呼ばれるEdge Function
@@ -52,6 +52,17 @@ Deno.serve(async (req) => {
     return new Response("送信元プロフィールの取得に失敗", { status: 400 });
   }
 
+  // アプリアイコンのバッジ数（アプリが閉じていてもOS側で反映されるよう、
+  // この通知を含めた現在の未読数をプッシュのペイロードに乗せる）
+  const { count: unreadCount, error: unreadCountError } = await supabaseClient
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("to_user_id", to_user_id)
+    .eq("is_read", false);
+  if (unreadCountError) {
+    console.error("[send-push-notification]", unreadCountError.message);
+  }
+
   // Expo Push APIで通知を送信
   const pushResponse = await fetch("https://exp.host/--/api/v2/push/send", {
     method: "POST",
@@ -59,6 +70,7 @@ Deno.serve(async (req) => {
     body: JSON.stringify({
       to: profileData.push_token,
       title: "Weather Board",
+      badge: unreadCount ?? undefined,
       body: type === "talk"
         ? `${profileFromData.nickname}から少し話したい`
         : type === "comment"
@@ -67,7 +79,13 @@ Deno.serve(async (req) => {
         ? `${profileFromData.nickname}からグループチャットにメッセージが届きました`
         : type === "direct_message"
         ? `${profileFromData.nickname}からDMが届きました`
-        : `${profileFromData.nickname}があなたの投稿にリアクションしました`,
+        : type === "reaction"
+        ? `${profileFromData.nickname}があなたの投稿にリアクションしました`
+        : type === "follow"
+        ? `${profileFromData.nickname}があなたをフォローしました`
+        : type === "room_join"
+        ? `${profileFromData.nickname}がルームに参加しました`
+        : `${profileFromData.nickname}からルームに招待されました`,
     }),
   });
 

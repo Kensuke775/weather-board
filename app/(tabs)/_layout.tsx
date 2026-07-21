@@ -35,6 +35,7 @@ const fetchUnreadCount = async (userId: string, setter: (count: number | null) =
     return;
   }
   setter(count);
+  await Notifications.setBadgeCountAsync(count ?? 0);
 };
 
 type TabIconProps = {
