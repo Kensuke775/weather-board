@@ -5,7 +5,7 @@ import { z } from "zod";
 const NotificationPayloadSchema = z.object({
   to_user_id: z.string().uuid(),
   from_user_id: z.string().uuid(),
-  type: z.enum(['comment', 'talk'])
+  type: z.enum(['comment', 'talk', 'room_message', 'direct_message', 'reaction'])
 })
 
 // notificationsのINSERTをトリガーにDBから呼ばれるEdge Function
@@ -17,6 +17,13 @@ Deno.serve(async (req) => {
     return new Response("リクエストの形式が正しくありません。", { status: 400 });
   }
   const { to_user_id, from_user_id, type } = parsed.data;
+
+  if (to_user_id === from_user_id) {
+    return new Response(JSON.stringify({ ok: true, skipped: 'self' }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // サービスロールキーで初期化（RLS無視）
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -54,7 +61,13 @@ Deno.serve(async (req) => {
       title: "Weather Board",
       body: type === "talk"
         ? `${profileFromData.nickname}から少し話したい`
-        : `${profileFromData.nickname}からコメントが届きました`,
+        : type === "comment"
+        ? `${profileFromData.nickname}からコメントが届きました`
+        : type === "room_message"
+        ? `${profileFromData.nickname}からグループチャットにメッセージが届きました`
+        : type === "direct_message"
+        ? `${profileFromData.nickname}からDMが届きました`
+        : `${profileFromData.nickname}があなたの投稿にリアクションしました`,
     }),
   });
 
