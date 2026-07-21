@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
@@ -56,6 +56,7 @@ const checkIsBlocked = async (myUserId: string, otherUserId: string, setter: (bl
 };
 
 export default function DmChatScreen() {
+  const router = useRouter();
   const { conversation_id: conversationId } = useLocalSearchParams<{ conversation_id: string }>();
   const { user } = useUser();
   const userId = user?.id;
@@ -99,6 +100,17 @@ export default function DmChatScreen() {
     };
   }, [conversationId]);
 
+  const handleDeleteMessage = async (messageId: string) => {
+    setMessages((prev) => prev.filter((message) => message.id !== messageId));
+    const { error } = await supabase.from('direct_messages').delete().eq('id', messageId);
+    if (error) {
+      console.error('[dm-chat] handleDeleteMessage', error.message);
+      Alert.alert('メッセージの削除に失敗しました。');
+      if (conversationId) await fetchMessages(conversationId, setMessages);
+      return;
+    }
+  };
+
   const handleSend = async () => {
     if (isSending || !conversationId || !userId || isBlocked) return;
     const body = inputText.trim();
@@ -119,6 +131,7 @@ export default function DmChatScreen() {
           from_user_id: userId,
           type: 'direct_message',
           conversation_id: conversationId,
+          is_read: false,
         });
         if (notifyError) console.error('[dm-chat] handleSend notify', notifyError.message);
       }
@@ -150,12 +163,28 @@ export default function DmChatScreen() {
             return (
               <View style={{ alignItems: isMine ? 'flex-end' : 'flex-start' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, maxWidth: '80%' }}>
-                  {isMine && (
-                    <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
-                      {new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
+                  {!isMine && (
+                    <Pressable
+                      onPress={() => otherUser && router.push(`/user-profile?userId=${otherUser.id}`)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.05)',
+                      }}>
+                      <Text style={{ fontSize: 15 }}>{otherUser?.avatar_emoji}</Text>
+                    </Pressable>
                   )}
-                  <View
+                  <Pressable
+                    disabled={!isMine}
+                    onLongPress={() =>
+                      Alert.alert('確認', 'このメッセージを削除しますか？\n削除すると元に戻せません。', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: '削除する', style: 'destructive', onPress: () => handleDeleteMessage(item.id) },
+                      ])
+                    }
                     style={{
                       backgroundColor: isMine ? WeatherBoardColors.buttonBackground : '#FFFFFF',
                       borderRadius: 16,
@@ -167,12 +196,10 @@ export default function DmChatScreen() {
                       shadowRadius: 4,
                     }}>
                     <Text style={{ fontSize: 14, color: isMine ? '#FFFFFF' : WeatherBoardColors.textPrimaryDark }}>{item.body}</Text>
-                  </View>
-                  {!isMine && (
-                    <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
-                      {new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  )}
+                  </Pressable>
+                  <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedBlack }}>
+                    {new Date(item.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                 </View>
               </View>
             );
