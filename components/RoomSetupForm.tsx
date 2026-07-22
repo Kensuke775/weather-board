@@ -1,9 +1,7 @@
-import { useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
-import { PREFECTURES } from '@/constants/prefectures';
 import { WeatherBoardColors } from '@/constants/theme';
 
 const ROOM_ICONS = ['☀️', '⛅', '🌧️', '🌈', '❄️', '🌙'];
@@ -15,8 +13,6 @@ type RoomSetupFormProps = {
   onChangeIcon: (emoji: string) => void;
   roomName: string;
   onChangeRoomName: (text: string) => void;
-  prefecture: string | null;
-  onChangePrefecture: (prefecture: string | null) => void;
   inviteCode: string;
   onChangeInviteCode: (text: string) => void;
   onPasteInviteCode: () => void;
@@ -29,13 +25,10 @@ export function RoomSetupForm({
   onChangeIcon,
   roomName,
   onChangeRoomName,
-  prefecture,
-  onChangePrefecture,
   inviteCode,
   onChangeInviteCode,
   onPasteInviteCode,
 }: RoomSetupFormProps) {
-  const [isPrefecturePickerOpen, setIsPrefecturePickerOpen] = useState(false);
   return (
     <View style={{ gap: 20 }}>
       {/* タブスイッチャー */}
@@ -167,63 +160,6 @@ export function RoomSetupForm({
               {roomName.length} / 30
             </Text>
           </View>
-
-          {/* 都道府県（任意） */}
-          <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>
-              都道府県(任意)
-            </Text>
-            <Pressable
-              onPress={() => setIsPrefecturePickerOpen(true)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: 'white',
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: 'rgba(0,0,0,0.12)',
-                paddingHorizontal: 14,
-                paddingVertical: 13,
-              }}>
-              <Text style={{ fontSize: 14, color: prefecture ? WeatherBoardColors.textPrimaryDark : WeatherBoardColors.textMutedBlack }}>
-                {prefecture ?? '未設定'}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={WeatherBoardColors.textMutedBlack} />
-            </Pressable>
-          </View>
-
-          <Modal visible={isPrefecturePickerOpen} animationType="slide" presentationStyle="pageSheet">
-            <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: WeatherBoardColors.divider }}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>都道府県を選択</Text>
-                <Pressable onPress={() => setIsPrefecturePickerOpen(false)} hitSlop={8}>
-                  <Ionicons name="close" size={24} color={WeatherBoardColors.textPrimaryDark} />
-                </Pressable>
-              </View>
-              <FlatList
-                data={PREFECTURES}
-                keyExtractor={(item) => item}
-                ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider }} />}
-                ListHeaderComponent={
-                  <Pressable
-                    onPress={() => { onChangePrefecture(null); setIsPrefecturePickerOpen(false); }}
-                    style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 15, color: WeatherBoardColors.textMutedBlack }}>未設定に戻す</Text>
-                    {prefecture === null && <Ionicons name="checkmark" size={18} color={WeatherBoardColors.buttonBackground} />}
-                  </Pressable>
-                }
-                renderItem={({ item }) => (
-                  <Pressable
-                    onPress={() => { onChangePrefecture(item); setIsPrefecturePickerOpen(false); }}
-                    style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 15, color: WeatherBoardColors.textPrimaryDark }}>{item}</Text>
-                    {prefecture === item && <Ionicons name="checkmark" size={18} color={WeatherBoardColors.buttonBackground} />}
-                  </Pressable>
-                )}
-              />
-            </View>
-          </Modal>
         </View>
       ) : (
         <View style={{ gap: 20 }}>
