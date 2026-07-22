@@ -50,6 +50,9 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
         return;
       }
       setUserCreatedTags((prev) => (prev.some((tag) => tag.id === userTagsData.id) ? prev : [...prev, userTagsData]));
+      if (maxSelected === undefined || selectedTags.length < maxSelected) {
+        setSelectedTags([...selectedTags, userTagsData]);
+      }
       setInputText('');
     } finally {
       setIsAddingTag(false);
