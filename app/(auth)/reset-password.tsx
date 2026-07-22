@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { BrownTheme, Fonts } from '@/constants/theme';
+import { AuthHeader } from '@/components/AuthHeader';
+import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
-
-const backgroundImage = require('@/assets/images/weather/login.png');
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -50,92 +49,100 @@ export default function ResetPassword() {
   if (!fontsLoaded) return null;
 
   return (
-    <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <AuthHeader title="New Password" subtitle="新しいパスワードを設定してください" />
         <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 48 }}
-            keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
 
+            {/* カード（島） */}
             <View style={{
+              ...CardStyle,
               marginHorizontal: 24,
-              backgroundColor: BrownTheme.cardBackground,
+              marginTop: 20,
               borderRadius: 24,
               paddingHorizontal: 28,
               paddingVertical: 32,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.12,
-              shadowRadius: 20,
-              elevation: 10,
             }}>
-
-              {/* ヘッダー */}
-              <View style={{ alignItems: 'center', marginBottom: 24 }}>
-                <Ionicons name="leaf-outline" size={22} color={BrownTheme.primaryText} style={{ marginBottom: 4 }} />
-                <Text style={{ fontFamily: 'DancingScript_400Regular', fontSize: 38, color: BrownTheme.primaryText, lineHeight: 48 }}>
-                  New Password
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', width: '55%', marginTop: 6 }}>
-                  <View style={{ flex: 1, height: 1, backgroundColor: BrownTheme.contentBorder }} />
-                </View>
-              </View>
 
               {/* 新しいパスワード */}
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Ionicons name="lock-closed-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>新しいパスワード</Text>
+                  <Ionicons name="lock-closed-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>新しいパスワード</Text>
                 </View>
-                <View style={{ backgroundColor: 'white', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14 }}>
+                <View style={{
+                  backgroundColor: 'white',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(0,0,0,0.12)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 14,
+                }}>
                   <TextInput
                     value={newPassword}
                     onChangeText={(text) => { setNewPassword(text); setErrorMessage(null); }}
                     placeholder="6文字以上"
-                    placeholderTextColor={BrownTheme.mutedText}
+                    placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="newPassword"
                     secureTextEntry={!isNewPasswordVisible}
+                    selectTextOnFocus={false}
                     autoCapitalize="none"
-                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: BrownTheme.primaryText }}
+                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
                   />
                   <Pressable onPress={() => setIsNewPasswordVisible((v) => !v)} hitSlop={8}>
-                    <Ionicons name={isNewPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={BrownTheme.mutedText} />
+                    <Ionicons name={isNewPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={WeatherBoardColors.textMutedBlack} />
                   </Pressable>
                 </View>
+                <Text style={{ fontSize: 11, color: '#27AE60', marginTop: 4 }}>
+                  ※候補の「強力なパスワード」を使うと、次回から自動でログインできて便利です
+                </Text>
               </View>
 
               {/* 確認用パスワード */}
               <View style={{ marginBottom: 20 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Ionicons name="lock-closed-outline" size={15} color={BrownTheme.primaryText} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: BrownTheme.primaryText }}>パスワード（確認）</Text>
+                  <Ionicons name="lock-closed-outline" size={15} color={WeatherBoardColors.textPrimaryDark} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>パスワード（確認）</Text>
                 </View>
-                <View style={{ backgroundColor: 'white', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14 }}>
+                <View style={{
+                  backgroundColor: 'white',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(0,0,0,0.12)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 14,
+                }}>
                   <TextInput
                     value={confirmPassword}
                     onChangeText={(text) => { setConfirmPassword(text); setErrorMessage(null); }}
                     placeholder="もう一度入力"
-                    placeholderTextColor={BrownTheme.mutedText}
+                    placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="newPassword"
                     secureTextEntry={!isConfirmPasswordVisible}
+                    selectTextOnFocus={false}
                     autoCapitalize="none"
-                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: BrownTheme.primaryText }}
+                    style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
                   />
                   <Pressable onPress={() => setIsConfirmPasswordVisible((v) => !v)} hitSlop={8}>
-                    <Ionicons name={isConfirmPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={BrownTheme.mutedText} />
+                    <Ionicons name={isConfirmPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={WeatherBoardColors.textMutedBlack} />
                   </Pressable>
                 </View>
+                {!isConfirmPasswordVisible && (
+                  <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack, marginTop: 4 }}>
+                    ※非表示のまま入力し直すと、内容が全て消えて上書きされます
+                  </Text>
+                )}
               </View>
 
               {errorMessage && (
                 <Text style={{ fontSize: 13, color: '#C0392B', marginBottom: 12 }}>{errorMessage}</Text>
               )}
 
-              <Pressable
-                onPress={handleResetPassword}
-                disabled={isSubmitting}
-                style={{ opacity: isSubmitting ? 0.7 : 1 }}>
-                <View style={{ backgroundColor: BrownTheme.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
+              <Pressable onPress={handleResetPassword} disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.7 : 1 }}>
+                <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="checkmark-circle-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>
                     パスワードを変更する
@@ -147,6 +154,6 @@ export default function ResetPassword() {
           </ScrollView>
         </Pressable>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
