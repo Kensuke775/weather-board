@@ -10,7 +10,6 @@ export default function useRoomCreate(onSuccess?: (roomId: string) => Promise<vo
   const { user } = useUser();
   const [roomName, setRoomName] = useState('');
   const [iconEmoji, setIconEmoji] = useState('☀️');
-  const [prefecture, setPrefecture] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const userId = user?.id;
   const handleCreateRoom = async () => {
@@ -26,7 +25,7 @@ export default function useRoomCreate(onSuccess?: (roomId: string) => Promise<vo
         return;
       }
       const roomId = Crypto.randomUUID();
-      const { error: roomError } = await supabase.from('rooms').insert({ id: roomId, name: roomName, invite_code: Math.random().toString(36).slice(2, 8), created_by: userId, icon_emoji: iconEmoji, prefecture });
+      const { error: roomError } = await supabase.from('rooms').insert({ id: roomId, name: roomName, invite_code: Math.random().toString(36).slice(2, 8), created_by: userId, icon_emoji: iconEmoji });
       if (roomError) {
         console.error('[useRoomCreate] handleCreateRoom', roomError.message)
         Alert.alert('ルームの記録に失敗しました。');
@@ -43,5 +42,5 @@ export default function useRoomCreate(onSuccess?: (roomId: string) => Promise<vo
       setIsCreating(false);
     }
   };
-  return { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, prefecture, setPrefecture, isCreating };
+  return { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, isCreating };
 }

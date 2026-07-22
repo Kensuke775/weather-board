@@ -19,9 +19,8 @@ export default function RoomSetupScreen() {
   useFocusEffect(useCallback(() => { refreshRooms(); }, [refreshRooms]));
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
 
-  const { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, prefecture, setPrefecture, isCreating } = useRoomCreate(async (roomId) => {
+  const { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, isCreating } = useRoomCreate(async (roomId) => {
     setRoomName('');
-    setPrefecture(null);
     await refreshRooms();
     setCurrentRoomId(roomId);
     Toast.show({ type: 'success', text1: 'ルームを作成しました', visibilityTime: TOAST_DURATION.default });
@@ -55,8 +54,6 @@ export default function RoomSetupScreen() {
                 onChangeIcon={setIconEmoji}
                 roomName={roomName}
                 onChangeRoomName={(text) => setRoomName(text.slice(0, 30))}
-                prefecture={prefecture}
-                onChangePrefecture={setPrefecture}
                 inviteCode={inviteCode}
                 onChangeInviteCode={setInviteCode}
                 onPasteInviteCode={handlePasteInviteCode}
