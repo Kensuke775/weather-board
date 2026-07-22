@@ -134,6 +134,8 @@ export default function AuthSignUp() {
         console.error('[signup] handleSignUp', error.message);
         if (error.message === 'Network request failed') {
           setErrorMessage('通信エラーが発生しました。ネットワークを確認してください。');
+        } else if (error.code === 'user_already_exists') {
+          setErrorMessage('すでに登録されているメールアドレスです。');
         } else {
           setErrorMessage('登録に失敗しました。メールアドレスをご確認ください。');
         }
@@ -223,6 +225,7 @@ export default function AuthSignUp() {
                     placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="newPassword"
                     secureTextEntry={!isPasswordVisible}
+                    selectTextOnFocus={false}
                     autoCapitalize="none"
                     style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
                   />
@@ -247,6 +250,9 @@ export default function AuthSignUp() {
                     </Text>
                   </View>
                 )}
+                <Text style={{ fontSize: 11, color: '#27AE60', marginTop: 4 }}>
+                  ※候補の「強力なパスワード」を使うと、次回から自動でログインできて便利です
+                </Text>
               </View>
 
               {/* パスワード確認 */}
@@ -272,6 +278,7 @@ export default function AuthSignUp() {
                     placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="newPassword"
                     secureTextEntry={!isConfirmPasswordVisible}
+                    selectTextOnFocus={false}
                     autoCapitalize="none"
                     style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: WeatherBoardColors.textPrimaryDark }}
                   />
@@ -282,6 +289,11 @@ export default function AuthSignUp() {
                 </View>
                 {passwordsMatch && (
                   <Text style={{ fontSize: 11, color: '#27AE60' }}>パスワードが一致しています</Text>
+                )}
+                {!isConfirmPasswordVisible && (
+                  <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack, marginTop: 2 }}>
+                    ※非表示のまま入力し直すと、内容が全て消えて上書きされます
+                  </Text>
                 )}
               </View>
 
