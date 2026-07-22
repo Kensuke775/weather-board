@@ -27,10 +27,32 @@ type WeatherLogDetail = {
   tags: { id: string; name: string }[];
 };
 
+// weather_log_activities → activity_tags のネストしたembedは使わず、2段階取得+JSでのマージに統一する
+// （lib/date.ts・app/(tabs)/index.tsxのfetchTagsByLogIdsと同じ理由。メモリのfeedback-postgrest-nested-embeds参照）。
+const fetchTagsForWeatherLog = async (weatherLogId: string): Promise<{ id: string; name: string }[]> => {
+  const { data: activitiesData, error: activitiesError } = await supabase
+    .from('weather_log_activities')
+    .select('activity_tag_id')
+    .eq('weather_log_id', weatherLogId);
+  if (activitiesError) {
+    console.error('[weather-log/[id]] fetchTagsForWeatherLog', activitiesError.message);
+    return [];
+  }
+  const tagIds = Array.from(new Set(activitiesData.map((row) => row.activity_tag_id).filter((id): id is string => id !== null)));
+  if (tagIds.length === 0) return [];
+
+  const { data: tagsData, error: tagsError } = await supabase.from('activity_tags').select('id, tag_name').in('id', tagIds);
+  if (tagsError) {
+    console.error('[weather-log/[id]] fetchTagsForWeatherLog', tagsError.message);
+    return [];
+  }
+  return tagsData.map((tag) => ({ id: tag.id, name: tag.tag_name }));
+};
+
 const fetchWeatherLogDetail = async (weatherLogId: string, setter: (data: WeatherLogDetail) => void, loadingSetter: (loading: boolean) => void) => {
   const { data, error } = await supabase
     .from('weather_logs')
-    .select('id, user_id, weather, note, updated_at, logged_date, profiles(nickname, avatar_emoji), weather_log_activities(activity_tag_id, activity_tags(tag_name))')
+    .select('id, user_id, weather, note, updated_at, logged_date, profiles(nickname, avatar_emoji)')
     .eq('id', weatherLogId)
     .single();
   if (error) {
@@ -39,12 +61,7 @@ const fetchWeatherLogDetail = async (weatherLogId: string, setter: (data: Weathe
     return;
   }
   const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
-  const tags = data.weather_log_activities
-    .filter((tag) => tag.activity_tags !== null)
-    .map((tag) => {
-      const activityTag = Array.isArray(tag.activity_tags) ? tag.activity_tags[0] : tag.activity_tags;
-      return { id: tag.activity_tag_id, name: activityTag.tag_name };
-    });
+  const tags = await fetchTagsForWeatherLog(weatherLogId);
   setter({
     id: data.id,
     user_id: data.user_id,

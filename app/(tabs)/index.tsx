@@ -200,14 +200,22 @@ const fetchFollowedUserIds = async (userId: string, setter: (ids: Set<string>) =
 // weather_log_activities → activity_tags のネストしたembedは、room_members↔profiles・follows↔profiles と
 // 同様にPostgRESTのリレーション解決が不安定（同一セッション内でも結果が空になることがある）なため使わず、
 // 2段階取得＋JSでのマージに統一する。
+// Supabase側のPostgRESTスキーマキャッシュが一時的に不安定になり、エラーにはならず
+// 「正常に空」の結果が返ってくることがある。空だった場合は1回だけ間を置いて再取得する。
+const fetchWeatherLogActivitiesWithRetry = async (logIds: string[]) => {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const result = await supabase.from('weather_log_activities').select('weather_log_id, activity_tag_id').in('weather_log_id', logIds);
+    if (result.error || result.data.length > 0) return result;
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  return supabase.from('weather_log_activities').select('weather_log_id, activity_tag_id').in('weather_log_id', logIds);
+};
+
 const fetchTagsByLogIds = async (logIds: string[]): Promise<Map<string, { id: string; name: string }[]>> => {
   const tagsByLogId = new Map<string, { id: string; name: string }[]>();
   if (logIds.length === 0) return tagsByLogId;
 
-  const { data: activitiesData, error: activitiesError } = await supabase
-    .from('weather_log_activities')
-    .select('weather_log_id, activity_tag_id')
-    .in('weather_log_id', logIds);
+  const { data: activitiesData, error: activitiesError } = await fetchWeatherLogActivitiesWithRetry(logIds);
   if (activitiesError) {
     console.error('[index(tab)] fetchTagsByLogIds', activitiesError.message);
     return tagsByLogId;
