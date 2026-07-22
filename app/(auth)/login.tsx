@@ -233,6 +233,7 @@ export default function AuthLogin() {
                     placeholderTextColor={WeatherBoardColors.textMutedBlack}
                     textContentType="password"
                     secureTextEntry={!isPasswordVisible}
+                    selectTextOnFocus={false}
                     autoCapitalize="none"
                     style={{
                       flex: 1,
@@ -249,9 +250,11 @@ export default function AuthLogin() {
                     />
                   </Pressable>
                 </View>
+                <Text style={{ fontSize: 11, color: '#27AE60', marginTop: 4 }}>
+                  ※候補の「強力なパスワード」を使うと、次回から自動でログインできて便利です
+                </Text>
               </View>
               <View style={{ marginBottom: 12, gap: 4 }}>
-                <Text style={{ fontSize: 11, color: WeatherBoardColors.textMutedBlack }}>※6文字以上で設定してください</Text>
                 <Pressable onPress={handleForgotPassword} disabled={isSubmitting !== null} hitSlop={8}>
                   <Text style={{ fontSize: 12, color: WeatherBoardColors.buttonBackground, textDecorationLine: 'underline', opacity: isSubmitting !== null ? 0.5 : 1 }}>
                     パスワードをお忘れですか？
@@ -310,7 +313,7 @@ export default function AuthLogin() {
                 <Pressable onPress={() => router.push('/(auth)/signup')}>
                   <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: WeatherBoardColors.textMutedBlack, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="person-add-outline" size={20} color={WeatherBoardColors.textMutedBlack} style={{ marginLeft: 16 }} />
-                    <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '600', marginRight: 36 }}>アカウントを新しく作る</Text>
+                    <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '600', marginRight: 36 }}>新規登録</Text>
                   </View>
                 </Pressable>
 
