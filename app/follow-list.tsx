@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 
 type FollowUser = {
@@ -58,7 +59,7 @@ const fetchFollowing = async (userId: string): Promise<FollowUser[]> => {
 };
 
 export default function FollowList() {
-  const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const { user } = useUser();
   const { type } = useLocalSearchParams<{ type: 'followers' | 'following' }>();
   const [users, setUsers] = useState<FollowUser[]>([]);
@@ -95,7 +96,7 @@ export default function FollowList() {
           ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginLeft: 76 }} />}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => router.push(`/user-profile?userId=${item.user_id}`)}
+              onPress={() => navigateToProfile(item.user_id)}
               style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 }}>
               <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 24 }}>{item.avatar_emoji}</Text>

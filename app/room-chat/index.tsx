@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { ConversationItem } from '@/lib/types';
 
@@ -32,12 +33,14 @@ const fetchConversations = async (userId: string, setter: (data: ConversationIte
 
 export default function TalkHubScreen() {
   const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const { user } = useUser();
   const userId = user?.id;
   const { rooms, refreshRooms } = useRoom();
   const [activeTab, setActiveTab] = useState<'room' | 'dm'>('room');
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const avatarPressedRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -103,9 +106,16 @@ export default function TalkHubScreen() {
           }
           renderItem={({ item: conversation }) => {
             const other = conversation.user_a_id === userId ? conversation.user_b : conversation.user_a;
+            const otherUserId = conversation.user_a_id === userId ? conversation.user_b_id : conversation.user_a_id;
             return (
               <Pressable
-                onPress={() => router.push(`/dm-chat/${conversation.id}`)}
+                onPress={() => {
+                  if (avatarPressedRef.current) {
+                    avatarPressedRef.current = false;
+                    return;
+                  }
+                  router.push(`/dm-chat/${conversation.id}`);
+                }}
                 style={{
                   ...CardStyle,
                   borderRadius: 16,
@@ -114,9 +124,12 @@ export default function TalkHubScreen() {
                   alignItems: 'center',
                   gap: 12,
                 }}>
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+                <Pressable
+                  onPressIn={() => { avatarPressedRef.current = true; }}
+                  onPress={() => navigateToProfile(otherUserId)}
+                  style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 24 }}>{other.avatar_emoji}</Text>
-                </View>
+                </Pressable>
                 <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }} numberOfLines={1}>
                   {other.nickname}
                 </Text>

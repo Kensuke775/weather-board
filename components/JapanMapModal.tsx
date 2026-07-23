@@ -4,10 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 
 import { JAPAN_PREFECTURES, JAPAN_VIEWBOX } from '@/constants/japanPrefectures';
 import { WeatherBoardColors } from '@/constants/theme';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
@@ -134,7 +134,7 @@ type Props = { visible: boolean; onClose: () => void };
 
 export default function JapanMapModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const [prefData, setPrefData] = useState<Record<string, PrefectureData>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPref, setSelectedPref] = useState<string | null>(null);
@@ -388,7 +388,7 @@ export default function JapanMapModal({ visible, onClose }: Props) {
                   keyExtractor={(item) => item.user_id}
                   renderItem={({ item }) => (
                     <Pressable
-                      onPress={() => { onClose(); router.push(`/user-profile?userId=${item.user_id}`); }}
+                      onPress={() => { onClose(); navigateToProfile(item.user_id); }}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
