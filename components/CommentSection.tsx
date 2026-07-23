@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType, WeatherType } from '@/lib/types';
 
@@ -65,7 +65,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
   const { bottom } = useSafeAreaInsets();
   const { user } = useUser();
   const userId = user?.id;
-  const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const [inputText, setInputText] = useState('');
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +86,33 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
     if (sortOrder === 'oldest') sorted.reverse();
     return sorted;
   }, [comments, sortOrder]);
+
+  // レンダーループ内の commentReactions.filter() を O(1) にするため、
+  // comment_id × reaction_type の2段階 Map を useMemo で事前構築する。
+  const reactionCountsByCommentAndType = useMemo(() => {
+    const outer = new Map<string, Map<ReactionType, number>>();
+    for (const row of commentReactions) {
+      let byType = outer.get(row.comment_id);
+      if (!byType) {
+        byType = new Map();
+        outer.set(row.comment_id, byType);
+      }
+      byType.set(row.reaction_type, (byType.get(row.reaction_type) ?? 0) + 1);
+    }
+    return outer;
+  }, [commentReactions]);
+
+  // 自分のリアクション（comment_id → row）を O(1) で引くための Map。
+  const myReactionByCommentId = useMemo(() => {
+    const map = new Map<string, CommentReactionRow>();
+    for (const row of commentReactions) {
+      if (row.from_user_id === userId) map.set(row.comment_id, row);
+    }
+    return map;
+  }, [commentReactions, userId]);
+
+  // コメント投稿者（comment_id → user_id）を O(1) で引くための Map。
+  const commentAuthorById = useMemo(() => new Map(comments.map((c) => [c.id, c.user_id])), [comments]);
 
   const handlePressSort = () => {
     Alert.alert('並び替え', '', [
@@ -141,7 +168,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
     if (pendingCommentReactions.has(key)) return;
     setPendingCommentReactions((prev) => new Set(prev).add(key));
     try {
-      const myExisting = commentReactions.find((row) => row.comment_id === commentId && row.from_user_id === userId);
+      const myExisting = myReactionByCommentId.get(commentId);
       if (myExisting?.reaction_type === type) {
         const { error } = await supabase.from('comment_reactions').delete().eq('from_user_id', userId).eq('comment_id', commentId);
         if (error) console.error('[CommentSection] handleToggleCommentReaction(delete)', error.message);
@@ -153,7 +180,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
         if (error && error.code !== '23505') {
           console.error('[CommentSection] handleToggleCommentReaction(insert)', error.message);
         } else if (!error) {
-          const commentAuthorId = comments.find((c) => c.id === commentId)?.user_id;
+          const commentAuthorId = commentAuthorById.get(commentId);
           if (commentAuthorId && commentAuthorId !== userId) {
             const { error: notifyError } = await supabase.from('notifications').insert({
               to_user_id: commentAuthorId,
@@ -181,14 +208,14 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
     setIsCommenting(true);
     try {
       if (inputText === '') return Alert.alert('入力欄が空です。');
-      const { error: commentError } = await supabase.from('comments').insert({ weather_log_id, user_id: userId, body: inputText });
+      const { data: commentData, error: commentError } = await supabase.from('comments').insert({ weather_log_id, user_id: userId, body: inputText }).select('id').single();
       if (commentError) {
         console.error('[CommentSection] handleSendComment', commentError.message);
         Alert.alert('コメントの書き込みに失敗しました。');
         return;
       }
       if (userId !== to_user_id) {
-        const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, from_user_id: userId, is_read: false });
+        const { error: notificationError } = await supabase.from('notifications').insert({ type: 'comment', to_user_id, weather_log_id, comment_id: commentData.id, from_user_id: userId, is_read: false });
         if (notificationError) {
           console.error('[CommentSection] handleSendComment', notificationError.message);
           Alert.alert('コメントの書き込みに失敗しました。');
@@ -271,7 +298,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
             <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <Pressable
-                  onPress={() => router.push(`/user-profile?userId=${item.user_id}`)}
+                  onPress={() => navigateToProfile(item.user_id)}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <AvatarWeatherBadge
                     avatarEmoji={item.profiles.avatar_emoji}
@@ -284,8 +311,8 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
                 </Pressable>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {REACTION_TYPES.map(({ type, emoji }) => {
-                    const rowsForType = commentReactions.filter((row) => row.comment_id === item.id && row.reaction_type === type);
-                    const isSelected = rowsForType.some((row) => row.from_user_id === userId);
+                    const count = reactionCountsByCommentAndType.get(item.id)?.get(type) ?? 0;
+                    const isSelected = myReactionByCommentId.get(item.id)?.reaction_type === type;
                     const key = `${item.id}:${type}`;
                     return (
                       <Pressable
@@ -303,7 +330,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
                           opacity: pendingCommentReactions.has(key) ? 0.5 : 1,
                         }}>
                         <Text style={{ fontSize: 11 }}>{emoji}</Text>
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{rowsForType.length}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{count}</Text>
                       </Pressable>
                     );
                   })}
