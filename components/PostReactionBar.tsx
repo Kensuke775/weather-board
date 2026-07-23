@@ -77,17 +77,27 @@ export default function PostReactionBar({ weatherLogId, toUserId }: PostReaction
     };
   }, [weatherLogId]);
 
-  const myReactionType = useMemo(() => reactions.find((row) => row.from_user_id === userId)?.reaction_type ?? null, [reactions, userId]);
+  // reactions を1回のループで走査し、自分のリアクション種別とタイプ別カウントを同時に確定する。
+  // 従来は .find() × 1 + .filter() × REACTION_TYPES.length の複数スキャンだった。
+  const { myReactionType, countsByReactionType } = useMemo(() => {
+    let myType: ReactionType | null = null;
+    const counts = new Map<ReactionType, number>();
+    for (const row of reactions) {
+      if (row.from_user_id === userId) myType = row.reaction_type;
+      counts.set(row.reaction_type, (counts.get(row.reaction_type) ?? 0) + 1);
+    }
+    return { myReactionType: myType, countsByReactionType: counts };
+  }, [reactions, userId]);
 
   const summaries = useMemo(
     () =>
       REACTION_TYPES.map(({ type, emoji }) => ({
         type,
         emoji,
-        count: reactions.filter((row) => row.reaction_type === type).length,
+        count: countsByReactionType.get(type) ?? 0,
         isSelected: myReactionType === type,
       })),
-    [reactions, myReactionType],
+    [countsByReactionType, myReactionType],
   );
 
   const totalReactorCount = useMemo(() => new Set(reactions.map((row) => row.from_user_id)).size, [reactions]);
