@@ -26,10 +26,8 @@ type WeatherCardProps = {
   reactionCount: number;
 };
 
-const hexToRgba = (hex: string, alpha: number): string => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+const rgbStringToRgba = (rgb: string, alpha: number): string => {
+  const [r, g, b] = rgb.match(/\d+/g)!.map(Number);
   return `rgba(${r},${g},${b},${alpha})`;
 };
 
@@ -59,7 +57,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
       </View>
       <View className="flex-row items-center gap-1.5 flex-wrap overflow-hidden mb-1" style={{ height: CARD_TEXT.tagRowHeight }}>
         {tags.map((tag) => (
-          <View key={tag.id} style={{ backgroundColor: hexToRgba(cardColor, 0.2), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+          <View key={tag.id} style={{ backgroundColor: rgbStringToRgba(cardColor, 0.2), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
             <Text numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimaryDark }}>
               #{tag.name}
             </Text>
@@ -133,7 +131,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
               <BlurView intensity={20} tint="light" pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
               <LinearGradient
                 pointerEvents="none"
-                colors={[hexToRgba(cardColor, 0.28), hexToRgba(cardColor, 0.55)]}
+                colors={[rgbStringToRgba(cardColor, 0.28), rgbStringToRgba(cardColor, 0.55)]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
@@ -142,7 +140,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           ) : (
             <LinearGradient
               pointerEvents="none"
-              colors={[hexToRgba(cardColor, 0.55), hexToRgba(cardColor, 0.80)]}
+              colors={[rgbStringToRgba(cardColor, 0.55), rgbStringToRgba(cardColor, 0.80)]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
