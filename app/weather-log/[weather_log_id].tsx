@@ -12,6 +12,7 @@ import ReportBlockMenu from '@/components/ReportBlockMenu';
 import TalkButton from '@/components/TalkButton';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { WeatherType } from '@/lib/types';
 
@@ -116,6 +117,7 @@ const handleDeletePost = async (weatherLogId: string, onDeleted: () => void) => 
 export default function WeatherLogDetailScreen() {
   const { weather_log_id } = useLocalSearchParams<{ weather_log_id: string }>();
   const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const userId = user?.id;
@@ -194,7 +196,7 @@ export default function WeatherLogDetailScreen() {
       <View style={{ ...CardStyle, marginHorizontal: 16, borderRadius: 20, padding: 16, marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <Pressable
-            onPress={() => router.push(`/user-profile?userId=${detail.user_id}`)}
+            onPress={() => navigateToProfile(detail.user_id)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
             <AvatarWeatherBadge avatarEmoji={detail.avatar_emoji} weather={detail.weather} size={44} />
             <View style={{ flex: 1 }}>

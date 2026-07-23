@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 
 import { JAPAN_PREFECTURES, JAPAN_VIEWBOX } from '@/constants/japanPrefectures';
 import { WeatherBoardColors } from '@/constants/theme';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
@@ -128,6 +129,7 @@ const CARD_STYLE = {
 export default function JapanMapScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const [prefData, setPrefData] = useState<Record<string, PrefectureData>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPref, setSelectedPref] = useState<string | null>(null);
@@ -369,7 +371,7 @@ export default function JapanMapScreen() {
                   <View key={item.user_id}>
                     {index > 0 && <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginLeft: 56 }} />}
                     <Pressable
-                      onPress={() => router.push(`/user-profile?userId=${item.user_id}`)}
+                      onPress={() => navigateToProfile(item.user_id)}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',

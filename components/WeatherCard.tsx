@@ -3,12 +3,14 @@ import { Platform, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 
 import { CARD_TEXT } from '@/constants/ui';
 import { WeatherBoardColors } from '@/constants/theme';
 import { CommentsStatus, WEATHER_CONFIG, WeatherType } from '@/lib/types';
 import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 
 type WeatherCardProps = {
   nickname: string;
@@ -33,21 +35,23 @@ const hexToRgba = (hex: string, alpha: number): string => {
 
 export default function WeatherCard({ nickname, avatar_emoji, weather, note, updated_at, weather_log_id, userId, unreadCount, tags, commentStatus, reactionCount }: WeatherCardProps): JSX.Element {
   const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const avatarPressedRef = useRef(false);
   const formattedDate = new Date(updated_at).toLocaleTimeString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   const cardColor = WEATHER_CONFIG[weather].cardColor;
 
   const cardContent = (
     <View style={{ padding: 14 }}>
-      <Pressable
-        onPressIn={() => { avatarPressedRef.current = true; }}
-        onPress={() => { router.push(`/user-profile?userId=${userId}`); }}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-        <AvatarWeatherBadge avatarEmoji={avatar_emoji} weather={weather} size={28} variant="glass" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <Pressable
+          onPressIn={() => { avatarPressedRef.current = true; }}
+          onPress={() => { navigateToProfile(userId); }}>
+          <AvatarWeatherBadge avatarEmoji={avatar_emoji} weather={weather} size={28} variant="glass" />
+        </Pressable>
         <Text style={{ flex: 1, fontSize: 11, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }} numberOfLines={1}>
           {nickname}
         </Text>
-      </Pressable>
+      </View>
       <View className="mb-1">
         <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMutedDark, height: CARD_TEXT.noteHeight }} numberOfLines={2}>
           {note}
@@ -55,7 +59,7 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
       </View>
       <View className="flex-row items-center gap-1.5 flex-wrap overflow-hidden mb-1" style={{ height: CARD_TEXT.tagRowHeight }}>
         {tags.map((tag) => (
-          <View key={tag.id} style={{ backgroundColor: hexToRgba(cardColor, 0.5), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+          <View key={tag.id} style={{ backgroundColor: hexToRgba(cardColor, 0.2), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
             <Text numberOfLines={1} className="text-[10px]" style={{ color: WeatherBoardColors.textPrimaryDark }}>
               #{tag.name}
             </Text>
@@ -127,17 +131,22 @@ export default function WeatherCard({ nickname, avatar_emoji, weather, note, upd
           {Platform.OS === 'ios' ? (
             <>
               <BlurView intensity={20} tint="light" pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.28) }} />
-              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.18) }} />
-              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '55%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.16) }} />
-              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '75%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.14) }} />
+              <LinearGradient
+                pointerEvents="none"
+                colors={[hexToRgba(cardColor, 0.28), hexToRgba(cardColor, 0.55)]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              />
             </>
           ) : (
-            <>
-              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.55) }} />
-              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '30%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.2) }} />
-              <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: '60%', right: 0, bottom: 0, backgroundColor: hexToRgba(cardColor, 0.15) }} />
-            </>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[hexToRgba(cardColor, 0.55), hexToRgba(cardColor, 0.80)]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            />
           )}
           {cardContent}
         </View>

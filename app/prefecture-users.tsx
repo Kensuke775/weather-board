@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 
 import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import { WeatherBoardColors } from '@/constants/theme';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { WeatherType } from '@/lib/types';
@@ -42,7 +43,7 @@ const fetchPrefectureUsers = async (prefecture: string): Promise<PrefectureUser[
 
 export default function PrefectureUsersScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();
-  const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const [users, setUsers] = useState<PrefectureUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -88,7 +89,7 @@ export default function PrefectureUsersScreen() {
             )}
             renderItem={({ item }) => (
               <Pressable
-                onPress={() => router.push(`/user-profile?userId=${item.user_id}`)}
+                onPress={() => navigateToProfile(item.user_id)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
                 <AvatarWeatherBadge
                   avatarEmoji={item.avatar_emoji}

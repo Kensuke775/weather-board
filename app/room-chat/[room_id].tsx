@@ -3,12 +3,13 @@ import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Pla
 
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { RoomMessageItem } from '@/lib/types';
 
@@ -80,7 +81,7 @@ const fetchMembers = async (roomId: string, setter: (members: RoomMemberItem[]) 
 };
 
 export default function RoomChatScreen() {
-  const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const { room_id: roomId } = useLocalSearchParams<{ room_id: string }>();
   const { user } = useUser();
   const userId = user?.id;
@@ -248,7 +249,7 @@ export default function RoomChatScreen() {
               <View style={{ alignItems: isMine ? 'flex-end' : 'flex-start' }}>
                 {showSenderInfo && (
                   <Pressable
-                    onPress={() => router.push(`/user-profile?userId=${item.sender_id}`)}
+                    onPress={() => navigateToProfile(item.sender_id)}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4, marginLeft: 4 }}>
                     <Text style={{ fontSize: 14 }}>{item.profiles?.avatar_emoji}</Text>
                     <Text style={{ fontSize: 12, fontWeight: '600', color: WeatherBoardColors.textMutedBlack }}>
@@ -357,7 +358,7 @@ export default function RoomChatScreen() {
               <Pressable
                 onPress={() => {
                   memberSheetRef.current?.dismiss();
-                  router.push(`/user-profile?userId=${item.user_id}`);
+                  navigateToProfile(item.user_id);
                 }}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
                 <Text style={{ fontSize: 22 }}>{item.avatar_emoji}</Text>
