@@ -231,16 +231,22 @@ const fetchTagsByLogIds = async (logIds: string[]): Promise<Map<string, { id: st
   }
   const tagNameById = new Map(tagsData.map((tag) => [tag.id, tag.tag_name]));
 
+  // weather_log_activities に同じ (weather_log_id, activity_tag_id) の行が一時的に重複することがあるため、
+  // Set で重複を弾く。list.some() による O(n²) スキャンを O(1) に置き換える。
+  const seenTagIdsByLogId = new Map<string, Set<string>>();
   for (const activity of activitiesData) {
     if (!activity.activity_tag_id) continue;
     const tagName = tagNameById.get(activity.activity_tag_id);
     if (!tagName) continue;
-    const list = tagsByLogId.get(activity.weather_log_id) ?? [];
-    // weather_log_activities に同じ (weather_log_id, activity_tag_id) の行が一時的に重複することがあるため、
-    // 表示直前にもう一段防御的に重複を弾く。
-    if (list.some((tag) => tag.id === activity.activity_tag_id)) continue;
-    list.push({ id: activity.activity_tag_id, name: tagName });
-    tagsByLogId.set(activity.weather_log_id, list);
+    let seenIds = seenTagIdsByLogId.get(activity.weather_log_id);
+    if (!seenIds) {
+      seenIds = new Set();
+      seenTagIdsByLogId.set(activity.weather_log_id, seenIds);
+      tagsByLogId.set(activity.weather_log_id, []);
+    }
+    if (seenIds.has(activity.activity_tag_id)) continue;
+    seenIds.add(activity.activity_tag_id);
+    tagsByLogId.get(activity.weather_log_id)!.push({ id: activity.activity_tag_id, name: tagName });
   }
   return tagsByLogId;
 };
