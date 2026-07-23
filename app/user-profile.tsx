@@ -227,7 +227,20 @@ export default function UserProfile() {
         </View>
       ) : (
         <View style={{ padding: 20, gap: 16 }}>
-          <View style={{ ...CardStyle, borderRadius: 20, padding: 24, alignItems: 'center', gap: 12 }}>
+          <View style={{ ...CardStyle, borderRadius: 20, padding: 24, alignItems: 'center', gap: 12, position: 'relative' }}>
+            {!isOwnProfile && (
+              <Pressable
+                onPress={() => {
+                  Alert.alert('', '', [
+                    { text: '通報する', onPress: handleReportPress },
+                    { text: 'ブロックする', style: 'destructive', onPress: handleBlockPress },
+                    { text: 'キャンセル', style: 'cancel' },
+                  ]);
+                }}
+                style={{ position: 'absolute', top: 12, right: 12, padding: 4 }}>
+                <Ionicons name="ellipsis-horizontal" size={20} color={WeatherBoardColors.textMutedBlack} />
+              </Pressable>
+            )}
             <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: WeatherBoardColors.screenBackground, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 40 }}>{profile.avatar_emoji}</Text>
             </View>
@@ -321,42 +334,6 @@ export default function UserProfile() {
                     }}>
                     <Ionicons name="people-outline" size={13} color={WeatherBoardColors.textPrimaryDark} />
                     <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>ルーム招待</Text>
-                  </Pressable>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  <Pressable
-                    onPress={handleReportPress}
-                    disabled={isReporting}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 100,
-                      backgroundColor: 'rgba(239,68,68,0.1)',
-                      opacity: isReporting ? 0.6 : 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                    }}>
-                    <Ionicons name="flag-outline" size={13} color="#EF4444" />
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF4444' }}>通報する</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={handleBlockPress}
-                    disabled={isBlocking}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 100,
-                      backgroundColor: 'rgba(239,68,68,0.1)',
-                      opacity: isBlocking ? 0.6 : 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                    }}>
-                    <Ionicons name="ban-outline" size={13} color="#EF4444" />
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF4444' }}>ブロックする</Text>
                   </Pressable>
                 </View>
               </View>
