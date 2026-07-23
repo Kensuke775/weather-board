@@ -43,13 +43,13 @@ export type WeatherLogHistory = {
 };
 
 export const WEATHER_CONFIG = {
-  sunny: { label: 'Feeling Amazing', emoji: '☀️', color: 'rgba(251, 146, 60, 0.3)', darkColor: 'rgba(188, 110, 45, 0.95)', cardColor: '#F5C896' },
-  partly_cloudy: { label: 'Pretty Good', emoji: '🌤️', color: 'rgba(252, 211, 77, 0.3)', darkColor: 'rgba(189, 158, 58, 0.95)', cardColor: '#F5DEB8' },
-  cloudy: { label: 'Feeling Blah', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)', darkColor: 'rgba(111, 122, 138, 0.95)', cardColor: '#EDE0CC' },
-  rainy: { label: 'A Little Down', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)', darkColor: 'rgba(72, 124, 188, 0.95)', cardColor: '#B8D4F0' },
+  sunny: { label: 'Feeling Amazing', emoji: '☀️', color: 'rgba(251, 146, 60, 0.3)', darkColor: 'rgba(188, 110, 45, 0.95)', cardColor: '#f5a905' },
+  partly_cloudy: { label: 'Pretty Good', emoji: '🌤️', color: 'rgba(252, 211, 77, 0.3)', darkColor: 'rgba(189, 158, 58, 0.95)', cardColor: '#f2df63' },
+  cloudy: { label: 'Feeling Blah', emoji: '☁️', color: 'rgba(148, 163, 184, 0.3)', darkColor: 'rgba(111, 122, 138, 0.95)', cardColor: '#818282' },
+  rainy: { label: 'A Little Down', emoji: '☔️', color: 'rgba(96, 165, 250, 0.3)', darkColor: 'rgba(72, 124, 188, 0.95)', cardColor: '#6675fa' },
   stormy: { label: 'Rough Day', emoji: '⛈️', color: 'rgba(99, 102, 241, 0.3)', darkColor: 'rgba(74, 77, 181, 0.95)', cardColor: '#C8B8E0' },
-  snowy: { label: 'Feeling Sick', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)', darkColor: 'rgba(140, 173, 190, 0.85)', cardColor: '#C8E0F0' },
-  foggy: { label: 'Foggy & Sleepy', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)', darkColor: 'rgba(157, 160, 164, 0.85)', cardColor: '#DCDCD0' },
+  snowy: { label: 'Feeling Sick', emoji: '❄️', color: 'rgba(186, 230, 253, 0.3)', darkColor: 'rgba(140, 173, 190, 0.85)', cardColor: '#9bfaf4' },
+  foggy: { label: 'Foggy & Sleepy', emoji: '🌫️', color: 'rgba(209, 213, 219, 0.3)', darkColor: 'rgba(157, 160, 164, 0.85)', cardColor: '#c8cccf' },
 };
 
 export type WeatherBoardItem = {
@@ -79,12 +79,14 @@ export type Notification = {
   weather_log_id: string | null;
   room_id: string | null;
   conversation_id: string | null;
+  comment_id: string | null;
+  direct_message_id: string | null;
   is_read: boolean;
   created_at: string;
   profiles: NameAvatar | null;
   weather: WeatherType | null;
-  note: string | null;
-  tags: { id: string; name: string }[];
+  comment_body: string | null;
+  direct_message_body: string | null;
 };
 
 export type NameAvatar = {

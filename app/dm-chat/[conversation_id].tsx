@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { DirectMessageItem } from '@/lib/types';
 
@@ -56,7 +57,7 @@ const checkIsBlocked = async (myUserId: string, otherUserId: string, setter: (bl
 };
 
 export default function DmChatScreen() {
-  const router = useRouter();
+  const navigateToProfile = useUserProfileNavigation();
   const { conversation_id: conversationId } = useLocalSearchParams<{ conversation_id: string }>();
   const { user } = useUser();
   const userId = user?.id;
@@ -117,7 +118,7 @@ export default function DmChatScreen() {
     if (body === '') return;
     setIsSending(true);
     try {
-      const { error } = await supabase.from('direct_messages').insert({ conversation_id: conversationId, sender_id: userId, body });
+      const { data: messageData, error } = await supabase.from('direct_messages').insert({ conversation_id: conversationId, sender_id: userId, body }).select('id').single();
       if (error) {
         console.error('[dm-chat] handleSend', error.message);
         return;
@@ -131,6 +132,7 @@ export default function DmChatScreen() {
           from_user_id: userId,
           type: 'direct_message',
           conversation_id: conversationId,
+          direct_message_id: messageData.id,
           is_read: false,
         });
         if (notifyError) console.error('[dm-chat] handleSend notify', notifyError.message);
@@ -165,7 +167,7 @@ export default function DmChatScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, maxWidth: '80%' }}>
                   {!isMine && (
                     <Pressable
-                      onPress={() => otherUser && router.push(`/user-profile?userId=${otherUser.id}`)}
+                      onPress={() => otherUser && navigateToProfile(otherUser.id)}
                       style={{
                         width: 28,
                         height: 28,
