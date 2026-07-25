@@ -11,10 +11,13 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { isDaytimeNow } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
-const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
+const backgroundImage = isDaytimeNow()
+  ? require('@/assets/images/weather/index-bg-day.jpg')
+  : require('@/assets/images/weather/index-bg-night.jpg');
 
 if (!(isExpoGo && Platform.OS === 'android')) {
   Notifications.setNotificationHandler({
