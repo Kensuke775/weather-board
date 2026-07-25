@@ -4,3 +4,9 @@
 export function toDateString(date: Date = new Date()): string {
   return date.toLocaleDateString('en-CA');
 }
+
+// ホーム画面背景の昼夜切り替えなど、時間帯判定はここに一本化する。
+export function isDaytimeNow(date: Date = new Date()): boolean {
+  const hour = date.getHours();
+  return hour >= 6 && hour < 18;
+}

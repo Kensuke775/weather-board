@@ -14,11 +14,13 @@ import { PREFECTURES } from '@/constants/prefectures';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
-import { toDateString } from '@/lib/date';
+import { isDaytimeNow, toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
 
-const backgroundImage = require('@/assets/images/weather/new-index-bg.png');
+const backgroundImage = isDaytimeNow()
+  ? require('@/assets/images/weather/index-bg-day.jpg')
+  : require('@/assets/images/weather/index-bg-night.jpg');
 
 const FEED_PAGE_SIZE = 20;
 // トップバーに並ぶピル状ボタン（本日の天気サマリー・絞り込み・アクティビティフィードなど）の高さを統一する。
@@ -632,7 +634,7 @@ export default function HomeScreen() {
 
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
-      <View className="absolute inset-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }} />
+      <View className="absolute inset-0" />
       <View style={{ paddingTop: 80, flex: 1 }}>
         {/* トップバー：新着バナー＋フィルタトグル */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8, paddingHorizontal: 16 }}>
