@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from 'expo-router';
 
 import ActivityFeedSheet from '@/components/ActivityFeedSheet';
 import JapanMapFloatingButton from '@/components/JapanMapFloatingButton';
@@ -18,9 +19,7 @@ import { isDaytimeNow, toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
 
-const backgroundImage = isDaytimeNow()
-  ? require('@/assets/images/weather/index-bg-day.jpg')
-  : require('@/assets/images/weather/index-bg-night.jpg');
+const backgroundImage = isDaytimeNow() ? require('@/assets/images/weather/index-bg-day.jpg') : require('@/assets/images/weather/index-bg-night.jpg');
 
 const FEED_PAGE_SIZE = 20;
 // トップバーに並ぶピル状ボタン（本日の天気サマリー・絞り込み・アクティビティフィードなど）の高さを統一する。
@@ -41,17 +40,11 @@ const DEFAULT_FILTERS: FeedFilters = {
   followedUserIds: [],
 };
 
-const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [
-  { label: 'All', value: null },
-  ...Object.entries(WEATHER_CONFIG).map(([key, cfg]) => ({ label: cfg.emoji, value: key as WeatherType })),
-];
+const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [{ label: 'All', value: null }, ...Object.entries(WEATHER_CONFIG).map(([key, cfg]) => ({ label: cfg.emoji, value: key as WeatherType }))];
 
 const fetchTodaySummary = async (setter: (data: Record<string, number>) => void) => {
   const today = toDateString();
-  const { data, error } = await supabase
-    .from('weather_logs')
-    .select('weather')
-    .eq('logged_date', today);
+  const { data, error } = await supabase.from('weather_logs').select('weather').eq('logged_date', today);
   if (error) {
     console.error('[index(tab)] fetchTodaySummary', error.message);
     return;
@@ -69,11 +62,7 @@ const fetchTodaySummary = async (setter: (data: Record<string, number>) => void)
 // comments → weather_logs → profiles のネストしたembedは使わず、段階的に取得してJSでマージする
 // （lib/date.ts と同じ理由。詳しくはメモリのfeedback-postgrest-nested-embedsを参照）。
 const fetchActivityFeed = async (setter: (data: ActivityFeedItem[]) => void) => {
-  const { data: commentsData, error: commentsError } = await supabase
-    .from('comments')
-    .select('id, user_id, weather_log_id, created_at')
-    .order('created_at', { ascending: false })
-    .limit(30);
+  const { data: commentsData, error: commentsError } = await supabase.from('comments').select('id, user_id, weather_log_id, created_at').order('created_at', { ascending: false }).limit(30);
   if (commentsError) {
     console.error('[index(tab)] fetchActivityFeed', commentsError.message);
     return;
@@ -188,10 +177,7 @@ const fetchCommentsData = async (setter: (data: CommentsStatus) => void) => {
 };
 
 const fetchFollowedUserIds = async (userId: string, setter: (ids: Set<string>) => void) => {
-  const { data, error } = await supabase
-    .from('follows')
-    .select('followed_id')
-    .eq('follower_id', userId);
+  const { data, error } = await supabase.from('follows').select('followed_id').eq('follower_id', userId);
   if (error) {
     console.error('[index(tab)] fetchFollowedUserIds', error.message);
     return;
@@ -253,12 +239,7 @@ const fetchTagsByLogIds = async (logIds: string[]): Promise<Map<string, { id: st
   return tagsByLogId;
 };
 
-const fetchFeedPage = async (
-  page: number,
-  setter: (data: WeatherBoardItem[]) => void,
-  loadingSetter: (loading: boolean) => void,
-  filters: FeedFilters = DEFAULT_FILTERS,
-) => {
+const fetchFeedPage = async (page: number, setter: (data: WeatherBoardItem[]) => void, loadingSetter: (loading: boolean) => void, filters: FeedFilters = DEFAULT_FILTERS) => {
   if (filters.followingOnly && filters.followedUserIds.length === 0) {
     setter([]);
     loadingSetter(false);
@@ -272,10 +253,7 @@ const fetchFeedPage = async (
 
   let matchingLogIdsByTag: string[] | null = null;
   if (hasTagFilter) {
-    const { data: matchingTagsData, error: matchingTagsError } = await supabase
-      .from('activity_tags')
-      .select('id')
-      .ilike('tag_name', `%${filters.tag.trim()}%`);
+    const { data: matchingTagsData, error: matchingTagsError } = await supabase.from('activity_tags').select('id').ilike('tag_name', `%${filters.tag.trim()}%`);
     if (matchingTagsError) {
       console.error('[index(tab)] fetchFeedPage(tagSearch)', matchingTagsError.message);
       Alert.alert('投稿の取得に失敗しました。');
@@ -287,10 +265,7 @@ const fetchFeedPage = async (
       loadingSetter(false);
       return;
     }
-    const { data: matchingActivitiesData, error: matchingActivitiesError } = await supabase
-      .from('weather_log_activities')
-      .select('weather_log_id')
-      .in('activity_tag_id', tagIds);
+    const { data: matchingActivitiesData, error: matchingActivitiesError } = await supabase.from('weather_log_activities').select('weather_log_id').in('activity_tag_id', tagIds);
     if (matchingActivitiesError) {
       console.error('[index(tab)] fetchFeedPage(tagSearch)', matchingActivitiesError.message);
       Alert.alert('投稿の取得に失敗しました。');
@@ -307,15 +282,9 @@ const fetchFeedPage = async (
   // Supabase の .select() はクエリ文字列がリテラル型でないと戻り値の型を推論できない
   // （テンプレートリテラルで組み立てると string に広がり GenericStringError になる）ため、
   // リテラルのまま持つ三項演算子で組み立てている。
-  const selectQuery = hasPrefectureFilter
-    ? 'id, user_id, weather, note, updated_at, profiles!inner(nickname, avatar_emoji, prefecture)'
-    : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji, prefecture)';
+  const selectQuery = hasPrefectureFilter ? 'id, user_id, weather, note, updated_at, profiles!inner(nickname, avatar_emoji, prefecture)' : 'id, user_id, weather, note, updated_at, profiles(nickname, avatar_emoji, prefecture)';
 
-  let query = supabase
-    .from('weather_logs')
-    .select(selectQuery)
-    .order('updated_at', { ascending: false })
-    .range(from, to);
+  let query = supabase.from('weather_logs').select(selectQuery).order('updated_at', { ascending: false }).range(from, to);
 
   if (filters.weather) query = query.eq('weather', filters.weather);
   if (hasPrefectureFilter) query = query.eq('profiles.prefecture', filters.prefecture);
@@ -441,7 +410,7 @@ export default function HomeScreen() {
     if (!userId) return;
     setPage(0);
     loadFeedPage(0, false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weatherFilter, debouncedTagQuery, prefectureFilter, followingOnly]);
 
   useEffect(() => {
@@ -634,7 +603,10 @@ export default function HomeScreen() {
 
   return (
     <ImageBackground source={backgroundImage} className="flex-1">
-      <View className="absolute inset-0" />
+      <LinearGradient
+        colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.1)']}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
       <View style={{ paddingTop: 80, flex: 1 }}>
         {/* トップバー：新着バナー＋フィルタトグル */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8, paddingHorizontal: 16 }}>
@@ -652,14 +624,8 @@ export default function HomeScreen() {
             </Pressable>
           ) : Object.keys(todaySummary).length > 0 ? (
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
-                本日:
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ flex: 1 }}
-                contentContainerStyle={{ gap: 4 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>本日:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 4 }}>
                 {Object.entries(WEATHER_CONFIG)
                   .filter(([key]) => (todaySummary[key] ?? 0) > 0)
                   .map(([key, cfg]) => (
@@ -677,9 +643,7 @@ export default function HomeScreen() {
                         backgroundColor: 'rgba(255,255,255,0.85)',
                       }}>
                       <Text style={{ fontSize: 11 }}>{cfg.emoji}</Text>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
-                        {todaySummary[key]}
-                      </Text>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>{todaySummary[key]}</Text>
                     </View>
                   ))}
               </ScrollView>
@@ -698,11 +662,7 @@ export default function HomeScreen() {
               borderRadius: 100,
               backgroundColor: isFilterActive ? WeatherBoardColors.buttonBackground : 'rgba(255,255,255,0.85)',
             }}>
-            <Ionicons
-              name="options-outline"
-              size={14}
-              color={isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark}
-            />
+            <Ionicons name="options-outline" size={14} color={isFilterActive ? 'white' : WeatherBoardColors.textPrimaryDark} />
           </Pressable>
           <Pressable
             onPress={handleOpenActivityFeed}
@@ -778,9 +738,7 @@ export default function HomeScreen() {
                       borderRadius: 100,
                       backgroundColor: selected ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
                     }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                      {label}
-                    </Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>{label}</Text>
                   </Pressable>
                 );
               })}
@@ -789,14 +747,15 @@ export default function HomeScreen() {
 
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>タグ</Text>
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: WeatherBoardColors.tagBackground,
-              borderRadius: 100,
-              paddingHorizontal: 14,
-              paddingVertical: 7,
-            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: WeatherBoardColors.tagBackground,
+                borderRadius: 100,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+              }}>
               <Ionicons name="search-outline" size={14} color={WeatherBoardColors.textMutedBlack} style={{ marginRight: 6 }} />
               <BottomSheetTextInput
                 ref={tagInputRef}
@@ -830,9 +789,7 @@ export default function HomeScreen() {
                   borderRadius: 100,
                   backgroundColor: prefectureFilter === null ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
                 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === null ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                  全国
-                </Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === null ? 'white' : WeatherBoardColors.textPrimaryDark }}>全国</Text>
               </Pressable>
               {PREFECTURES.map((pref) => (
                 <Pressable
@@ -844,9 +801,7 @@ export default function HomeScreen() {
                     borderRadius: 100,
                     backgroundColor: prefectureFilter === pref ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
                   }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === pref ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                    {pref}
-                  </Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === pref ? 'white' : WeatherBoardColors.textPrimaryDark }}>{pref}</Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -867,9 +822,7 @@ export default function HomeScreen() {
                 backgroundColor: followingOnly ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
               }}>
               <Ionicons name="people-outline" size={13} color={followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark }}>
-                フォロー中の投稿のみ
-              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark }}>フォロー中の投稿のみ</Text>
             </Pressable>
           </View>
 
