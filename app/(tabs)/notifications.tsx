@@ -19,7 +19,7 @@ import {
   groupKeyFor,
   isRoomNotification,
   matchesFilter,
-} from './notifications.helpers';
+} from '@/lib/notifications.helpers';
 
 
 const TYPE_LABEL: Record<Notification['type'], string> = {
