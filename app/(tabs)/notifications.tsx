@@ -12,6 +12,15 @@ import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { Notification } from '@/lib/types';
 
+import {
+  dateSectionLabel,
+  getGroupedNotificationBody,
+  getNavigationTarget,
+  groupKeyFor,
+  isRoomNotification,
+  matchesFilter,
+} from './notifications.helpers';
+
 
 const TYPE_LABEL: Record<Notification['type'], string> = {
   comment: 'コメント',
@@ -33,60 +42,6 @@ const TYPE_PILL_COLOR: Record<Notification['type'], string> = {
   follow: 'rgba(251,191,36,0.35)',
   room_message: 'rgba(196,181,253,0.35)',
   direct_message: 'rgba(96,165,250,0.25)',
-};
-
-// 戻り値の型は書かない: expo-router の typed routes は Href がリテラル型である
-// ことを要求するため、`string` に型注釈すると幅が広がり router.push に渡せなくなる
-// （app/(tabs)/index.tsx の selectQuery と同じ理由）。
-const getNavigationTarget = (item: Notification) => {
-  if (item.type === 'room_message' && item.room_id) return `/room-chat/${item.room_id}` as const;
-  if (item.type === 'room_join' && item.room_id) return `/room-chat/${item.room_id}` as const;
-  if (item.type === 'room_invite' && item.room_id) return `/room-chat/${item.room_id}` as const;
-  if (item.type === 'direct_message' && item.conversation_id) return `/dm-chat/${item.conversation_id}` as const;
-  if (item.type !== 'follow' && item.type !== 'room_join' && item.weather_log_id) return `/weather-log/${item.weather_log_id}` as const;
-  return null;
-};
-
-const isRoomNotification = (type: Notification['type']): boolean => type === 'room_message' || type === 'room_join' || type === 'room_invite';
-
-// 通知本文の固定文言。comment・direct_message は本文をそのまま表示するため、
-// このマップには含めず getNotificationBody 側でフォールバックする。
-const NOTIFICATION_BODY_LABEL: Partial<Record<Notification['type'], string>> = {
-  follow: 'あなたをフォローしました',
-  room_join: 'ルームに参加しました',
-  room_invite: 'ルームに招待されました',
-  room_message: 'ルームチャットに新しいメッセージがあります',
-  talk: '投稿にリアクションがつきました',
-  reaction: '投稿にリアクションがつきました',
-};
-
-// comment・direct_message は本文をそのまま表示する。投稿本文やタグは自分の投稿のように見えてしまうため使わない。
-const getNotificationBody = (item: Notification): string => {
-  const fixedLabel = NOTIFICATION_BODY_LABEL[item.type];
-  if (fixedLabel) return fixedLabel;
-  if (item.type === 'direct_message') return item.direct_message_body ?? '';
-  return item.comment_body ?? '';
-};
-
-// リアクション・ルームチャットの新着メッセージは同じ投稿/ルームへの通知が連続して届きやすいので、
-// 同じ日付セクション内・同じ対象（投稿 or ルーム）ならまとめて1行にする。
-const groupKeyFor = (item: Notification): string | null => {
-  if ((item.type === 'reaction' || item.type === 'talk') && item.weather_log_id) return `reaction:${item.weather_log_id}`;
-  if (item.type === 'room_message' && item.room_id) return `room_message:${item.room_id}`;
-  return null;
-};
-
-const getGroupedNotificationBody = (items: Notification[]): string => {
-  if (items.length === 1) return getNotificationBody(items[0]);
-  if (items[0].type === 'reaction' || items[0].type === 'talk') return `${items.length}件のリアクションが届きました`;
-  return `${items.length}件の新着メッセージがあります`;
-};
-
-const matchesFilter = (type: Notification['type'], filter: FilterKey): boolean => {
-  if (filter === 'all') return true;
-  if (filter === 'comment') return type === 'comment';
-  if (filter === 'dm') return type === 'direct_message';
-  return type === 'room_join' || type === 'room_invite' || type === 'room_message';
 };
 
 // comments のネストしたembedは使わず、2段階取得+JSでのマージに統一する
@@ -149,17 +104,6 @@ const handleMarkAllRead = async (userId: string) => {
     console.error('[notifications] handleMarkAllRead', error.message);
     Alert.alert('既読の更新に失敗しました。');
   }
-};
-
-const dateSectionLabel = (createdAt: string): string => {
-  const date = new Date(createdAt);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const isSameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (isSameDay(date, today)) return '今日';
-  if (isSameDay(date, yesterday)) return '昨日';
-  return date.toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' });
 };
 
 type ListRow = { kind: 'section'; label: string } | { kind: 'notification'; items: Notification[] };
