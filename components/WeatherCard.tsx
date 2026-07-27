@@ -26,7 +26,7 @@ type WeatherCardProps = {
   reactionCount: number;
 };
 
-const rgbStringToRgba = (rgb: string, alpha: number): string => {
+export const rgbStringToRgba = (rgb: string, alpha: number): string => {
   const [r, g, b] = rgb.match(/\d+/g)!.map(Number);
   return `rgba(${r},${g},${b},${alpha})`;
 };
