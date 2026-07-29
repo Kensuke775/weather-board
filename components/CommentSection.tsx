@@ -8,7 +8,9 @@ import AvatarWeatherBadge from '@/components/AvatarWeatherBadge';
 import ReportBlockMenu from '@/components/ReportBlockMenu';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { useSupabaseRealtimeSync } from '@/hooks/useSupabaseRealtimeSync';
 import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
+import { toggleReaction } from '@/lib/reactions';
 import { supabase } from '@/lib/supabase';
 import { CommentItem, CommentSectionProps, REACTION_TYPES, ReactionType, WeatherType } from '@/lib/types';
 
@@ -33,17 +35,13 @@ type CommentReactionRow = {
 };
 
 const fetchCommentReactions = async (weatherLogId: string, setter: (rows: CommentReactionRow[]) => void) => {
-  const { data, error } = await supabase
-    .from('comment_reactions')
-    .select('comment_id, from_user_id, reaction_type, comments!inner(weather_log_id)')
-    .eq('comments.weather_log_id', weatherLogId);
+  const { data, error } = await supabase.from('comment_reactions').select('comment_id, from_user_id, reaction_type, comments!inner(weather_log_id)').eq('comments.weather_log_id', weatherLogId);
   if (error) {
     console.error('[CommentSection] fetchCommentReactions', error.message);
     return;
   }
   setter(data.map(({ comment_id, from_user_id, reaction_type }) => ({ comment_id, from_user_id, reaction_type })));
 };
-
 
 const fetchComments = async (weatherLogId: string, setter: (data: CommentItem[]) => void, loadingSetter: (loading: boolean) => void) => {
   const { data: commentsData, error: commentsError } = await supabase
@@ -69,7 +67,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
   const [inputText, setInputText] = useState('');
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isComenting, setIsCommenting] = useState(false);
+  const [isCommenting, setIsCommenting] = useState(false);
   const [commentReactions, setCommentReactions] = useState<CommentReactionRow[]>([]);
   const [pendingCommentReactions, setPendingCommentReactions] = useState<Set<string>>(new Set());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -122,45 +120,17 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
     ]);
   };
 
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>;
-    const setUp = async () => {
-      const channelName = `comments-${weather_log_id}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      await fetchComments(weather_log_id, setComments, setIsLoading);
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async () => {
-          await fetchComments(weather_log_id, setComments, setIsLoading);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [weather_log_id]);
+  useSupabaseRealtimeSync({
+    channelName: `comments-${weather_log_id}`,
+    table: 'comments',
+    callback: () => fetchComments(weather_log_id, setComments, setIsLoading),
+  });
 
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>;
-    const setUp = async () => {
-      const channelName = `comment-reactions-${weather_log_id}`;
-      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      await fetchCommentReactions(weather_log_id, setCommentReactions);
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'comment_reactions' }, async () => {
-          await fetchCommentReactions(weather_log_id, setCommentReactions);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [weather_log_id]);
+  useSupabaseRealtimeSync({
+    channelName: `comment-reactions-${weather_log_id}`,
+    table: 'comment_reactions',
+    callback: () => fetchCommentReactions(weather_log_id, setCommentReactions),
+  });
 
   const handleToggleCommentReaction = async (commentId: string, type: ReactionType) => {
     if (!userId) return;
@@ -168,31 +138,17 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
     if (pendingCommentReactions.has(key)) return;
     setPendingCommentReactions((prev) => new Set(prev).add(key));
     try {
-      const myExisting = myReactionByCommentId.get(commentId);
-      if (myExisting?.reaction_type === type) {
-        const { error } = await supabase.from('comment_reactions').delete().eq('from_user_id', userId).eq('comment_id', commentId);
-        if (error) console.error('[CommentSection] handleToggleCommentReaction(delete)', error.message);
-      } else if (myExisting) {
-        const { error } = await supabase.from('comment_reactions').update({ reaction_type: type }).eq('from_user_id', userId).eq('comment_id', commentId);
-        if (error) console.error('[CommentSection] handleToggleCommentReaction(update)', error.message);
-      } else {
-        const { error } = await supabase.from('comment_reactions').insert({ from_user_id: userId, comment_id: commentId, reaction_type: type });
-        if (error && error.code !== '23505') {
-          console.error('[CommentSection] handleToggleCommentReaction(insert)', error.message);
-        } else if (!error) {
-          const commentAuthorId = commentAuthorById.get(commentId);
-          if (commentAuthorId && commentAuthorId !== userId) {
-            const { error: notifyError } = await supabase.from('notifications').insert({
-              to_user_id: commentAuthorId,
-              from_user_id: userId,
-              type: 'reaction',
-              weather_log_id,
-              is_read: false,
-            });
-            if (notifyError) console.error('[CommentSection] handleToggleCommentReaction notify', notifyError.message);
-          }
-        }
-      }
+      const commentAuthorId = commentAuthorById.get(commentId);
+      await toggleReaction({
+        table: 'comment_reactions',
+        matchColumn: 'comment_id',
+        matchValue: commentId,
+        userId,
+        type,
+        myExistingType: myReactionByCommentId.get(commentId)?.reaction_type ?? null,
+        notifyToUserId: commentAuthorId && commentAuthorId !== userId ? commentAuthorId : null,
+        weatherLogId: weather_log_id,
+      });
       await fetchCommentReactions(weather_log_id, setCommentReactions);
     } finally {
       setPendingCommentReactions((prev) => {
@@ -204,7 +160,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
   };
 
   const handleSendComment = async () => {
-    if (isComenting) return;
+    if (isCommenting) return;
     setIsCommenting(true);
     try {
       if (inputText === '') return Alert.alert('入力欄が空です。');
@@ -242,9 +198,7 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
     <View style={{ flex: 1 }}>
       {/* コメント件数ラベル・並び替え */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>
-          コメント（{comments.length}件）
-        </Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark }}>コメント（{comments.length}件）</Text>
         <Pressable
           onPress={handlePressSort}
           style={{
@@ -273,23 +227,20 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
           ListEmptyComponent={
             !isLoading ? (
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 48 }}>
-                <View style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  backgroundColor: 'rgba(0,0,0,0.05)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 16,
-                }}>
+                <View
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
+                    backgroundColor: 'rgba(0,0,0,0.05)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                  }}>
                   <Text style={{ fontSize: 28 }}>🌱</Text>
                 </View>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, marginBottom: 6 }}>
-                  コメントはまだありません
-                </Text>
-                <Text style={{ fontSize: 12, color: WeatherBoardColors.textMutedDark }}>
-                  最初のコメントを送ってみましょう！
-                </Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, marginBottom: 6 }}>コメントはまだありません</Text>
+                <Text style={{ fontSize: 12, color: WeatherBoardColors.textMutedDark }}>最初のコメントを送ってみましょう！</Text>
               </View>
             ) : null
           }
@@ -297,17 +248,9 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
           renderItem={({ item }) => (
             <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <Pressable
-                  onPress={() => navigateToProfile(item.user_id)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <AvatarWeatherBadge
-                    avatarEmoji={item.profiles.avatar_emoji}
-                    weather={commenterWeathers[item.user_id] ?? 'cloudy'}
-                    size={28}
-                  />
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>
-                    {item.profiles.nickname}
-                  </Text>
+                <Pressable onPress={() => navigateToProfile(item.user_id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <AvatarWeatherBadge avatarEmoji={item.profiles.avatar_emoji} weather={commenterWeathers[item.user_id] ?? 'cloudy'} size={28} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: WeatherBoardColors.textPrimaryDark }}>{item.profiles.nickname}</Text>
                 </Pressable>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {REACTION_TYPES.map(({ type, emoji }) => {
@@ -349,12 +292,8 @@ export default function CommentSection({ weather_log_id, to_user_id, readOnly }:
                   )}
                 </View>
               </View>
-              <Text style={{ fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingLeft: 40 }}>
-                {item.body}
-              </Text>
-              <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedDark, textAlign: 'right', marginTop: 4 }}>
-                {new Date(item.created_at).toLocaleTimeString('jp-JP', { hour: '2-digit', minute: '2-digit' })}
-              </Text>
+              <Text style={{ fontSize: 13, color: WeatherBoardColors.textPrimaryDark, paddingLeft: 40 }}>{item.body}</Text>
+              <Text style={{ fontSize: 10, color: WeatherBoardColors.textMutedDark, textAlign: 'right', marginTop: 4 }}>{new Date(item.created_at).toLocaleTimeString('jp-JP', { hour: '2-digit', minute: '2-digit' })}</Text>
             </View>
           )}
         />
