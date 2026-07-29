@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +6,8 @@ import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal } from '@gor
 
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { useSupabaseRealtimeSync } from '@/hooks/useSupabaseRealtimeSync';
+import { toggleReaction } from '@/lib/reactions';
 import { supabase } from '@/lib/supabase';
 import { REACTION_TYPES, ReactionType } from '@/lib/types';
 
@@ -57,25 +59,11 @@ export default function PostReactionBar({ weatherLogId, toUserId }: PostReaction
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
 
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>;
-    const setUp = async () => {
-      const channelName = `post-reactions-${weatherLogId}`;
-      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      await fetchReactions(weatherLogId, setReactions);
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, async () => {
-          await fetchReactions(weatherLogId, setReactions);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [weatherLogId]);
+  useSupabaseRealtimeSync({
+    channelName: `post-reactions-${weatherLogId}`,
+    table: 'post_reactions',
+    callback: () => fetchReactions(weatherLogId, setReactions),
+  });
 
   // reactions を1回のループで走査し、自分のリアクション種別とタイプ別カウントを同時に確定する。
   // 従来は .find() × 1 + .filter() × REACTION_TYPES.length の複数スキャンだった。
@@ -102,39 +90,22 @@ export default function PostReactionBar({ weatherLogId, toUserId }: PostReaction
 
   const totalReactorCount = useMemo(() => new Set(reactions.map((row) => row.from_user_id)).size, [reactions]);
 
-  const reactorListData = useMemo(
-    () => REACTION_TYPES.flatMap(({ type, emoji }) => reactionDetails.filter((row) => row.reaction_type === type).map((row) => ({ ...row, emoji }))),
-    [reactionDetails],
-  );
+  const reactorListData = useMemo(() => REACTION_TYPES.flatMap(({ type, emoji }) => reactionDetails.filter((row) => row.reaction_type === type).map((row) => ({ ...row, emoji }))), [reactionDetails]);
 
   const handleToggleReaction = async (type: ReactionType) => {
     if (!userId || pendingTypes.has(type)) return;
     setPendingTypes((prev) => new Set(prev).add(type));
     try {
-      if (myReactionType === type) {
-        // 同じ種類を押した → 解除
-        const { error } = await supabase.from('post_reactions').delete().eq('from_user_id', userId).eq('weather_log_id', weatherLogId);
-        if (error) console.error('[PostReactionBar] handleToggleReaction(delete)', error.message);
-      } else if (myReactionType) {
-        // 別の種類を押した → 切り替え
-        const { error } = await supabase.from('post_reactions').update({ reaction_type: type }).eq('from_user_id', userId).eq('weather_log_id', weatherLogId);
-        if (error) console.error('[PostReactionBar] handleToggleReaction(update)', error.message);
-      } else {
-        // まだ反応していない → 新規追加
-        const { error } = await supabase.from('post_reactions').insert({ from_user_id: userId, weather_log_id: weatherLogId, reaction_type: type });
-        if (error && error.code !== '23505') {
-          console.error('[PostReactionBar] handleToggleReaction(insert)', error.message);
-        } else if (!error && userId !== toUserId) {
-          const { error: notifyError } = await supabase.from('notifications').insert({
-            to_user_id: toUserId,
-            from_user_id: userId,
-            type: 'reaction',
-            weather_log_id: weatherLogId,
-            is_read: false,
-          });
-          if (notifyError) console.error('[PostReactionBar] handleToggleReaction notify', notifyError.message);
-        }
-      }
+      await toggleReaction({
+        table: 'post_reactions',
+        matchColumn: 'weather_log_id',
+        matchValue: weatherLogId,
+        userId,
+        type,
+        myExistingType: myReactionType,
+        notifyToUserId: userId !== toUserId ? toUserId : null,
+        weatherLogId,
+      });
       await fetchReactions(weatherLogId, setReactions);
     } finally {
       setPendingTypes((prev) => {
