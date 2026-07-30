@@ -12,6 +12,20 @@ Weather Boardは気軽に、正直に共有できる。
 
 **デモ用ルーム**（一時公開・ダミーデータ）：ルーム名「Demo」／招待コード `demo11`
 
+## スクリーンショット
+
+| ホーム | 投稿 | ヒストリーカレンダー |
+|---|---|---|
+| ![ホーム](screenshots/home-screen.png) | ![投稿](screenshots/post.png) | ![ヒストリーカレンダー](screenshots/history-calendar.png) |
+
+| AI分析 | 通知 | ログイン |
+|---|---|---|
+| ![AI分析](screenshots/analysis.png) | ![通知](screenshots/notifications.png) | ![ログイン](screenshots/login.png) |
+
+| サインアップ | プロフィール設定 | 設定 |
+|---|---|---|
+| ![サインアップ](screenshots/sign-up.png) | ![プロフィール設定](screenshots/profile-setup.png) | ![設定](screenshots/settings.png) |
+
 ## 制作のきっかけ
 
 海外のシェアハウスで、毎朝付箋に気分を書いてボードに貼り、住人同士で共有する「Weather Board」という文化を見たことが着想のきっかけです。言葉で直接は言いづらい気持ちも、天気というワンクッションを置くことで、相手の方から気づいて声をかけてもらえる。そんな間接的なコミュニケーションをデジタルで実現したいと思い、開発しました。
@@ -72,20 +86,6 @@ npm run test
 - **接続・Realtime**：複数アカウントを同時に使い、Supabase Realtime経由での投稿・コメント・ブロックなどの即時反映を確認
 - **表示崩れ**：長いニックネーム・長いコメント・複数行のテキストなどを実際に入力し、レイアウトが崩れないことを確認
 - **API通信**：Claude API（AI分析）、Expo Push API（プッシュ通知）について、実際にリクエストを送って正常にレスポンス・通知が返ってくることを実機で確認
-
-## スクリーンショット
-
-| ホーム | 投稿 | ヒストリーカレンダー |
-|---|---|---|
-| ![ホーム](screenshots/home-screen.png) | ![投稿](screenshots/post.png) | ![ヒストリーカレンダー](screenshots/history-calendar.png) |
-
-| AI分析 | 通知 | ログイン |
-|---|---|---|
-| ![AI分析](screenshots/analysis.png) | ![通知](screenshots/notifications.png) | ![ログイン](screenshots/login.png) |
-
-| サインアップ | プロフィール設定 | 設定 |
-|---|---|---|
-| ![サインアップ](screenshots/sign-up.png) | ![プロフィール設定](screenshots/profile-setup.png) | ![設定](screenshots/settings.png) |
 
 ## セットアップ
 
