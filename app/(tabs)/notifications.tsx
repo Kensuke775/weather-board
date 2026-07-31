@@ -221,9 +221,9 @@ export default function Notifications() {
           const latest = items[0];
           const isGrouped = items.length > 1;
           const hasUnread = items.some((i) => !i.is_read);
+          const target = getNavigationTarget(latest);
           const handleIdentityPress = () => {
             if (isGrouped || isRoomNotification(latest.type)) {
-              const target = getNavigationTarget(latest);
               if (target) router.push(target);
               return;
             }
@@ -232,7 +232,6 @@ export default function Notifications() {
           return (
             <Pressable
               onPress={() => {
-                const target = getNavigationTarget(latest);
                 if (target) router.push(target);
               }}
               style={{
@@ -290,7 +289,7 @@ export default function Notifications() {
                       {getGroupedNotificationBody(items)}
                     </Text>
                   </View>
-                  {getNavigationTarget(latest) && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
+                  {target && <Ionicons name="chevron-forward" size={16} color={WeatherBoardColors.textMutedBlack} />}
                 </View>
               </View>
             </Pressable>
