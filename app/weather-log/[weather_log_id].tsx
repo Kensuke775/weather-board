@@ -175,7 +175,7 @@ export default function WeatherLogDetailScreen() {
           <Ionicons name="chevron-back" size={20} color={WeatherBoardColors.textPrimaryDark} />
         </Pressable>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {!isOwnPost && <TalkButton to_user_id={detail.user_id} weather_log_id={detail.id} variant="light" />}
+          {!isOwnPost && <TalkButton to_user_id={detail.user_id} weather_log_id={detail.id} />}
           {isOwnPost && (
             <Pressable
               onPress={() =>

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
@@ -11,10 +10,9 @@ import { supabase } from '@/lib/supabase';
 type TalkButtonProps = {
   to_user_id: string;
   weather_log_id: string;
-  variant?: 'dark' | 'light';
 };
 
-export default function TalkButton({ to_user_id, weather_log_id, variant = 'dark' }: TalkButtonProps) {
+export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonProps) {
   const [isActiveButton, setIsActiveButton] = useState(false);
   const { user } = useUser();
   const userId = user?.id;
@@ -57,45 +55,27 @@ export default function TalkButton({ to_user_id, weather_log_id, variant = 'dark
       setIsSending(false);
     }
   };
-  if (variant === 'light') {
-    return (
-      <View style={{ alignItems: 'flex-end' }}>
-        <Pressable
-          onPress={handleTalk}
-          disabled={isActiveButton || isOwnPost}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            backgroundColor: 'rgba(255,255,255,0.85)',
-            borderRadius: 18,
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderWidth: 1,
-            borderColor: WeatherBoardColors.divider,
-            opacity: isActiveButton ? 0.4 : 1,
-          }}>
-          <Ionicons name="chatbubble-ellipses-outline" size={16} color={WeatherBoardColors.textPrimaryDark} />
-          <Text style={{ fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, fontSize: 13 }}>TALK</Text>
-        </Pressable>
-        <Text style={{ fontSize: 9, color: WeatherBoardColors.textMutedBlack, marginTop: 2 }}>{isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={{ alignSelf: 'flex-start' }}>
-      <Pressable onPress={handleTalk} disabled={isActiveButton || isOwnPost} className="mb-2" style={{ opacity: isActiveButton ? 0.4 : 1 }}>
-        <BlurView intensity={40} tint="dark" className="py-2 px-5" style={{ borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' }}>
-          <Text className="font-bold" style={{ color: WeatherBoardColors.textPrimary }}>
-            TALK
-          </Text>
-        </BlurView>
+    <View style={{ alignItems: 'flex-end' }}>
+      <Pressable
+        onPress={handleTalk}
+        disabled={isActiveButton || isOwnPost}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          borderRadius: 18,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderWidth: 1,
+          borderColor: WeatherBoardColors.divider,
+          opacity: isActiveButton ? 0.4 : 1,
+        }}>
+        <Ionicons name="chatbubble-ellipses-outline" size={16} color={WeatherBoardColors.textPrimaryDark} />
+        <Text style={{ fontWeight: '700', color: WeatherBoardColors.textPrimaryDark, fontSize: 13 }}>TALK</Text>
       </Pressable>
-
-      <Text className="text-[10px]" style={{ color: WeatherBoardColors.textMuted, textAlign: 'right' }}>
-        {isOwnPost ? '※自分の投稿です。' : isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}
-      </Text>
+      <Text style={{ fontSize: 9, color: WeatherBoardColors.textMutedBlack, marginTop: 2 }}>{isActiveButton ? '※通知しました。' : '※相手に通知が届きます。'}</Text>
     </View>
   );
 }
