@@ -90,6 +90,9 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
     if (!userId) return;
     fetchUserTags(userId, setUserCreatedTags);
   }, [userId]);
+
+  const isLimitReached = maxSelected !== undefined && selectedTags.length >= maxSelected;
+
   return (
     <View>
       <View className="mb-4">
@@ -105,7 +108,6 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
         <View className="flex-wrap flex-row gap-3">
           {userCreatedTags.map((tag) => {
             const isSelected = selectedTagIds.has(tag.id);
-            const isLimitReached = maxSelected !== undefined && selectedTags.length >= maxSelected;
             const isDisabled = !isSelected && isLimitReached;
             return (
               <View
