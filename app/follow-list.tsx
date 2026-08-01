@@ -24,34 +24,22 @@ const fetchProfilesByIds = async (userIds: string[]): Promise<Map<string, { nick
   return new Map(data.map((profile) => [profile.user_id, { nickname: profile.nickname, avatar_emoji: profile.avatar_emoji ?? '👤' }]));
 };
 
-const fetchFollowers = async (userId: string): Promise<FollowUser[]> => {
-  const { data, error } = await supabase.from('follows').select('follower_id').eq('followed_id', userId);
+const fetchFollowRelations = async (userId: string, direction: 'followers' | 'following'): Promise<FollowUser[]> => {
+  const query =
+    direction === 'followers'
+      ? supabase.from('follows').select('follower_id').eq('followed_id', userId)
+      : supabase.from('follows').select('followed_id').eq('follower_id', userId);
+  const { data, error } = await query;
   if (error) {
-    console.error('[follow-list] fetchFollowers', error.message);
+    console.error('[follow-list] fetchFollowRelations', error.message);
     return [];
   }
-  const profilesById = await fetchProfilesByIds(data.map((row) => row.follower_id));
-  return data.map((row) => {
-    const profile = profilesById.get(row.follower_id);
+  const relatedUserIds = data.map((row) => (direction === 'followers' ? (row as { follower_id: string }).follower_id : (row as { followed_id: string }).followed_id));
+  const profilesById = await fetchProfilesByIds(relatedUserIds);
+  return relatedUserIds.map((relatedUserId) => {
+    const profile = profilesById.get(relatedUserId);
     return {
-      user_id: row.follower_id,
-      nickname: profile?.nickname ?? '---',
-      avatar_emoji: profile?.avatar_emoji ?? '👤',
-    };
-  });
-};
-
-const fetchFollowing = async (userId: string): Promise<FollowUser[]> => {
-  const { data, error } = await supabase.from('follows').select('followed_id').eq('follower_id', userId);
-  if (error) {
-    console.error('[follow-list] fetchFollowing', error.message);
-    return [];
-  }
-  const profilesById = await fetchProfilesByIds(data.map((row) => row.followed_id));
-  return data.map((row) => {
-    const profile = profilesById.get(row.followed_id);
-    return {
-      user_id: row.followed_id,
+      user_id: relatedUserId,
       nickname: profile?.nickname ?? '---',
       avatar_emoji: profile?.avatar_emoji ?? '👤',
     };
@@ -69,8 +57,7 @@ export default function FollowList() {
     useCallback(() => {
       if (!user?.id) return;
       setIsLoading(true);
-      const load = type === 'followers' ? fetchFollowers : fetchFollowing;
-      load(user.id).then((result) => {
+      fetchFollowRelations(user.id, type).then((result) => {
         setUsers(result);
         setIsLoading(false);
       });
