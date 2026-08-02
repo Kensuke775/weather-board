@@ -9,6 +9,7 @@ import ActivityTagPicker, { ActivityTag } from '@/components/ActivityTagPicker';
 import IconHeader from '@/components/IconHeader';
 import { BrownTheme, CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
@@ -26,7 +27,7 @@ export default function Post() {
   const [note, setNote] = useState('');
   const [selectedTags, setSelectedTags] = useState<ActivityTag[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isPosting, setIsPosting] = useState(false);
+  const postAction = usePendingAction();
   const [hasPostedToday, setHasPostedToday] = useState(false);
   const [showPostedConfirmation, setShowPostedConfirmation] = useState(false);
   // フォーム下部がタブバーに隠れないようにするための下余白。
@@ -68,10 +69,8 @@ export default function Post() {
     }, [userId]),
   );
 
-  const handlePost = async () => {
-    if (isPosting) return;
-    setIsPosting(true);
-    try {
+  const handlePost = () =>
+    postAction.preventDuplicateRun(async () => {
       if (!userId) return;
       if (!weather) {
         Alert.alert('今の気分を選んでください。');
@@ -140,10 +139,7 @@ export default function Post() {
       setTimeout(() => {
         router.replace('/(tabs)');
       }, POSTED_CONFIRMATION_DELAY);
-    } finally {
-      setIsPosting(false);
-    }
-  };
+    });
 
   const now = new Date().toLocaleString('ja-JP', { month: '2-digit', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
   return (
@@ -266,7 +262,7 @@ export default function Post() {
 
           <View style={{ height: 1, backgroundColor: BrownTheme.contentBorder, marginVertical: 20 }} />
 
-          <Pressable onPress={handlePost} disabled={isPosting} className="w-full flex-row justify-center items-center gap-3 py-4" style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.buttonBackground, opacity: isPosting ? 0.7 : 1 }}>
+          <Pressable onPress={handlePost} disabled={postAction.isPending} className="w-full flex-row justify-center items-center gap-3 py-4" style={{ borderRadius: 100, backgroundColor: WeatherBoardColors.buttonBackground, opacity: postAction.isPending ? 0.7 : 1 }}>
             <Ionicons name="sunny-outline" size={22} color="white" />
             <Text className="text-base font-bold text-white">天気を投稿する</Text>
           </Pressable>
