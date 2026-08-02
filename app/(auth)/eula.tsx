@@ -9,6 +9,7 @@ import { AuthHeader } from '@/components/AuthHeader';
 import { EulaContent } from '@/components/EulaContent';
 import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 export default function AuthEula() {
@@ -19,7 +20,7 @@ export default function AuthEula() {
   }) as [boolean, Error | null];
   const [agreed, setAgreed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const agreeAction = usePendingAction();
 
   const handleGuestSetup = async (userId: string) => {
     const guestEmojis = ['🌤', '☁️', '🌧', '⛅', '🌈', '❄️', '🌊', '🍃'];
@@ -58,14 +59,12 @@ export default function AuthEula() {
     return true;
   };
 
-  const handleAgree = async () => {
-    if (!agreed) {
-      setErrorMessage('利用規約への同意が必要です。');
-      return;
-    }
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    try {
+  const handleAgree = () =>
+    agreeAction.preventDuplicateRun(async () => {
+      if (!agreed) {
+        setErrorMessage('利用規約への同意が必要です。');
+        return;
+      }
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
         console.error('[eula] handleAgree', userError?.message);
@@ -81,10 +80,7 @@ export default function AuthEula() {
       }
 
       router.replace('/(auth)/profile-setup');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    });
 
   const handleDisagree = async () => {
     const { error } = await supabase.auth.signOut();
@@ -143,7 +139,7 @@ export default function AuthEula() {
 
               {/* ボタン */}
               <View style={{ gap: 8, paddingBottom: 8 }}>
-                <Pressable onPress={handleAgree} disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.7 : 1 }}>
+                <Pressable onPress={handleAgree} disabled={agreeAction.isPending} style={{ opacity: agreeAction.isPending ? 0.7 : 1 }}>
                   <View style={{
                     backgroundColor: WeatherBoardColors.buttonBackground,
                     borderRadius: 12,
