@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 type TalkButtonProps = {
@@ -16,7 +17,7 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
   const [isActiveButton, setIsActiveButton] = useState(false);
   const { user } = useUser();
   const userId = user?.id;
-  const [isSending, setIsSending] = useState(false);
+  const talkAction = usePendingAction();
   const isOwnPost = userId === to_user_id;
 
   useEffect(() => {
@@ -32,10 +33,8 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
     fetchReactionData();
   }, [weather_log_id, userId]);
 
-  const handleTalk = async () => {
-    if (isSending) return;
-    setIsSending(true);
-    try {
+  const handleTalk = () =>
+    talkAction.preventDuplicateRun(async () => {
       const { error: reactionError } = await supabase.from('reactions').insert({ from_user_id: userId, to_user_id, weather_log_id });
       if (reactionError) {
         console.error('[TalkButton] handleTalk', reactionError.message);
@@ -51,10 +50,7 @@ export default function TalkButton({ to_user_id, weather_log_id }: TalkButtonPro
         }
       }
       setIsActiveButton(true);
-    } finally {
-      setIsSending(false);
-    }
-  };
+    });
   return (
     <View style={{ alignItems: 'flex-end' }}>
       <Pressable
