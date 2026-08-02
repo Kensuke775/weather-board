@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
+import { useSupabaseRealtimeSync } from '@/hooks/useSupabaseRealtimeSync';
 import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { DirectMessageItem } from '@/lib/types';
@@ -67,7 +69,7 @@ export default function DmChatScreen() {
   const [messages, setMessages] = useState<DirectMessageItem[]>([]);
   const [isBlocked, setIsBlocked] = useState(false);
   const [inputText, setInputText] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const sendAction = usePendingAction();
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -80,26 +82,12 @@ export default function DmChatScreen() {
     checkIsBlocked(userId, otherUser.id, setIsBlocked);
   }, [userId, otherUser]);
 
-  useEffect(() => {
-    if (!conversationId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    const setUp = async () => {
-      const channelName = `direct-messages-${conversationId}`;
-      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      await fetchMessages(conversationId, setMessages);
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages', filter: `conversation_id=eq.${conversationId}` }, async () => {
-          await fetchMessages(conversationId, setMessages);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [conversationId]);
+  useSupabaseRealtimeSync({
+    channelName: `direct-messages-${conversationId ?? 'none'}`,
+    table: 'direct_messages',
+    filter: conversationId ? `conversation_id=eq.${conversationId}` : undefined,
+    callback: () => (conversationId ? fetchMessages(conversationId, setMessages) : Promise.resolve()),
+  });
 
   const handleDeleteMessage = async (messageId: string) => {
     setMessages((prev) => prev.filter((message) => message.id !== messageId));
@@ -112,12 +100,11 @@ export default function DmChatScreen() {
     }
   };
 
-  const handleSend = async () => {
-    if (isSending || !conversationId || !userId || isBlocked) return;
-    const body = inputText.trim();
-    if (body === '') return;
-    setIsSending(true);
-    try {
+  const handleSend = () =>
+    sendAction.preventDuplicateRun(async () => {
+      if (!conversationId || !userId || isBlocked) return;
+      const body = inputText.trim();
+      if (body === '') return;
       const { data: messageData, error } = await supabase.from('direct_messages').insert({ conversation_id: conversationId, sender_id: userId, body }).select('id').single();
       if (error) {
         console.error('[dm-chat] handleSend', error.message);
@@ -137,10 +124,7 @@ export default function DmChatScreen() {
         });
         if (notifyError) console.error('[dm-chat] handleSend notify', notifyError.message);
       }
-    } finally {
-      setIsSending(false);
-    }
-  };
+    });
 
   return (
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
@@ -240,7 +224,7 @@ export default function DmChatScreen() {
             </View>
             <Pressable
               onPress={handleSend}
-              disabled={isSending || inputText.trim() === ''}
+              disabled={sendAction.isPending || inputText.trim() === ''}
               style={{
                 width: 44,
                 height: 44,
@@ -248,7 +232,7 @@ export default function DmChatScreen() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: WeatherBoardColors.buttonBackground,
-                opacity: isSending || inputText.trim() === '' ? 0.5 : 1,
+                opacity: sendAction.isPending || inputText.trim() === '' ? 0.5 : 1,
               }}>
               <Ionicons name="send" size={18} color="#FFFFFF" />
             </Pressable>
