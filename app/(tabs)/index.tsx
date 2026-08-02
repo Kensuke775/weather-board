@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, Text, View } from 'react-native';
+import React, { ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, StyleProp, Text, View, ViewStyle } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
@@ -41,6 +41,36 @@ const DEFAULT_FILTERS: FeedFilters = {
 };
 
 const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [{ label: 'All', value: null }, ...Object.entries(WEATHER_CONFIG).map(([key, cfg]) => ({ label: cfg.emoji, value: key as WeatherType }))];
+
+type FilterChipProps = {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  icon?: ComponentProps<typeof Ionicons>['name'];
+  style?: StyleProp<ViewStyle>;
+};
+
+function FilterChip({ label, selected, onPress, icon, style }: FilterChipProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: icon ? 6 : 0,
+          paddingHorizontal: 14,
+          paddingVertical: 7,
+          borderRadius: 100,
+          backgroundColor: selected ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
+        },
+        style,
+      ]}>
+      {icon && <Ionicons name={icon} size={13} color={selected ? 'white' : WeatherBoardColors.textPrimaryDark} />}
+      <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>{label}</Text>
+    </Pressable>
+  );
+}
 
 const fetchTodaySummary = async (setter: (data: Record<string, number>) => void) => {
   const today = toDateString();
@@ -726,22 +756,9 @@ export default function HomeScreen() {
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>天気</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              {WEATHER_FILTER_OPTIONS.map(({ label, value }) => {
-                const selected = weatherFilter === value;
-                return (
-                  <Pressable
-                    key={label}
-                    onPress={() => setWeatherFilter(value)}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 7,
-                      borderRadius: 100,
-                      backgroundColor: selected ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
-                    }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: selected ? 'white' : WeatherBoardColors.textPrimaryDark }}>{label}</Text>
-                  </Pressable>
-                );
-              })}
+              {WEATHER_FILTER_OPTIONS.map(({ label, value }) => (
+                <FilterChip key={label} label={label} selected={weatherFilter === value} onPress={() => setWeatherFilter(value)} />
+              ))}
             </ScrollView>
           </View>
 
@@ -781,49 +798,22 @@ export default function HomeScreen() {
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>エリア</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              <Pressable
-                onPress={() => setPrefectureFilter(null)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
-                  borderRadius: 100,
-                  backgroundColor: prefectureFilter === null ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
-                }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === null ? 'white' : WeatherBoardColors.textPrimaryDark }}>全国</Text>
-              </Pressable>
+              <FilterChip label="全国" selected={prefectureFilter === null} onPress={() => setPrefectureFilter(null)} />
               {PREFECTURES.map((pref) => (
-                <Pressable
-                  key={pref}
-                  onPress={() => setPrefectureFilter(pref)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderRadius: 100,
-                    backgroundColor: prefectureFilter === pref ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
-                  }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: prefectureFilter === pref ? 'white' : WeatherBoardColors.textPrimaryDark }}>{pref}</Text>
-                </Pressable>
+                <FilterChip key={pref} label={pref} selected={prefectureFilter === pref} onPress={() => setPrefectureFilter(pref)} />
               ))}
             </ScrollView>
           </View>
 
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>フォロー</Text>
-            <Pressable
+            <FilterChip
+              label="フォロー中の投稿のみ"
+              selected={followingOnly}
               onPress={() => setFollowingOnly((prev) => !prev)}
-              style={{
-                alignSelf: 'flex-start',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: 100,
-                backgroundColor: followingOnly ? WeatherBoardColors.buttonBackground : WeatherBoardColors.tagBackground,
-              }}>
-              <Ionicons name="people-outline" size={13} color={followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: followingOnly ? 'white' : WeatherBoardColors.textPrimaryDark }}>フォロー中の投稿のみ</Text>
-            </Pressable>
+              icon="people-outline"
+              style={{ alignSelf: 'flex-start' }}
+            />
           </View>
 
           <Pressable
