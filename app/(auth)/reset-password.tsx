@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { AuthHeader } from '@/components/AuthHeader';
 import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 export default function ResetPassword() {
@@ -18,22 +19,20 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isNewPasswordVisible, setIsNewPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitAction = usePendingAction();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleResetPassword = async () => {
-    if (isSubmitting) return;
-    setErrorMessage(null);
-    if (newPassword.length < 6) {
-      setErrorMessage('パスワードは6文字以上で設定してください。');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setErrorMessage('パスワードが一致しません。');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
+  const handleResetPassword = () =>
+    submitAction.preventDuplicateRun(async () => {
+      setErrorMessage(null);
+      if (newPassword.length < 6) {
+        setErrorMessage('パスワードは6文字以上で設定してください。');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setErrorMessage('パスワードが一致しません。');
+        return;
+      }
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
         console.error('[reset-password] handleResetPassword', error.message);
@@ -41,10 +40,7 @@ export default function ResetPassword() {
         return;
       }
       router.replace('/(tabs)');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    });
 
   if (!fontsLoaded) return null;
 
@@ -141,7 +137,7 @@ export default function ResetPassword() {
                 <Text style={{ fontSize: 13, color: '#C0392B', marginBottom: 12 }}>{errorMessage}</Text>
               )}
 
-              <Pressable onPress={handleResetPassword} disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.7 : 1 }}>
+              <Pressable onPress={handleResetPassword} disabled={submitAction.isPending} style={{ opacity: submitAction.isPending ? 0.7 : 1 }}>
                 <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="checkmark-circle-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>
