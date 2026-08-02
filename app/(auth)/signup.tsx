@@ -13,12 +13,9 @@ import { EulaContent } from '@/components/EulaContent';
 import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
 import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
+import { isValidEmail } from '@/lib/validation';
 
 const redirectTo = makeRedirectUri();
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 function getPasswordStrength(password: string): { level: number; label: string } {
   if (password.length === 0) return { level: 0, label: '' };
