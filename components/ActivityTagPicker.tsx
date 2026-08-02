@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BrownTheme, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
@@ -31,17 +32,15 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
   const { user } = useUser();
   const [userCreatedTags, setUserCreatedTags] = useState<ActivityTag[]>([]);
   const [inputText, setInputText] = useState('');
-  const [isAddingTag, setIsAddingTag] = useState(false);
+  const addTagAction = usePendingAction();
   const userId = user?.id;
   const selectedTagIds = useMemo(
     () => new Set(selectedTags.map((t) => t.id)),
     [selectedTags]
   );
 
-  const handleInsertTag = async () => {
-    if (isAddingTag) return;
-    setIsAddingTag(true);
-    try {
+  const handleInsertTag = () =>
+    addTagAction.preventDuplicateRun(async () => {
       if (inputText === '') return Alert.alert('入力欄が空です。');
       const { data: userTagsData, error: userTagsError } = await supabase.from('activity_tags').insert({ tag_name: inputText, user_id: userId }).select('id, tag_name, user_id').single();
       if (userTagsError) {
@@ -54,10 +53,7 @@ export default function ActivityTagPicker({ selectedTags, setSelectedTags, maxSe
         setSelectedTags([...selectedTags, userTagsData]);
       }
       setInputText('');
-    } finally {
-      setIsAddingTag(false);
-    }
-  };
+    });
 
   const handleToggleTag = (tag: ActivityTag) => {
     const isSelected = selectedTags.some((item) => item.id === tag.id);
