@@ -13,10 +13,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import IconHeader from '@/components/IconHeader';
 import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { useTabBarSpace } from '@/hooks/useTabBarSpace';
 import { supabase } from '@/lib/supabase';
-
-type LoadingName = 'loggingOut' | 'deletingAccount' | null;
 
 type MenuItemProps = {
   label: string;
@@ -54,7 +53,7 @@ export default function Settings() {
   const { user } = useUser();
   // 最後のメニュー項目がタブバーに隠れてスクロールし切れなくなるのを防ぐための下余白。
   const tabBarSpace = useTabBarSpace(24);
-  const [isLoading, setIsLoading] = useState<LoadingName>(null);
+  const accountAction = usePendingAction();
   const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
 
   useFocusEffect(
@@ -81,25 +80,18 @@ export default function Settings() {
     }, [user?.id]),
   );
 
-  const handleLogout = async () => {
-    if (isLoading) return;
-    setIsLoading('loggingOut');
-    try {
+  const handleLogout = () =>
+    accountAction.preventDuplicateRun(async () => {
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('[settings] handleLogout', error.message);
         Alert.alert('ログアウトに失敗しました。');
         return;
       }
-    } finally {
-      setIsLoading(null);
-    }
-  };
+    });
 
-  const handleDeleteAccount = async () => {
-    if (isLoading) return;
-    setIsLoading('deletingAccount');
-    try {
+  const handleDeleteAccount = () =>
+    accountAction.preventDuplicateRun(async () => {
       const { error } = await supabase.functions.invoke('delete-account');
       if (error) {
         console.error('[settings] handleDeleteAccount', error.message);
@@ -107,10 +99,7 @@ export default function Settings() {
         return;
       }
       await supabase.auth.signOut();
-    } finally {
-      setIsLoading(null);
-    }
-  };
+    });
 
   const DIVIDER = <View style={{ height: 1, backgroundColor: WeatherBoardColors.divider, marginLeft: 76 }} />;
 
