@@ -10,11 +10,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { AuthHeader } from '@/components/AuthHeader';
 import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 const redirectTo = makeRedirectUri();
-
-type SubmittingName = 'google' | 'apple' | 'password' | 'guest' | 'reset' | null;
 
 export default function AuthLogin() {
   const router = useRouter();
@@ -24,18 +23,16 @@ export default function AuthLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
+  const submitAction = usePendingAction();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  const handleForgotPassword = async () => {
-    if (isSubmitting) return;
-    if (email.length === 0) {
-      setErrorMessage('メールアドレスを入力してからタップしてください。');
-      return;
-    }
-    setIsSubmitting('reset');
-    try {
+  const handleForgotPassword = () =>
+    submitAction.preventDuplicateRun(async () => {
+      if (email.length === 0) {
+        setErrorMessage('メールアドレスを入力してからタップしてください。');
+        return;
+      }
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) {
         console.error('[login] handleForgotPassword', error.message);
@@ -47,20 +44,15 @@ export default function AuthLogin() {
         return;
       }
       setResetMessage('パスワードリセットのメールを送信しました。メールをご確認ください。');
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     setErrorMessage(null);
   };
 
-  const handleGoogleLogin = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting('google');
-    try {
+  const handleGoogleLogin = () =>
+    submitAction.preventDuplicateRun(async () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -86,42 +78,34 @@ export default function AuthLogin() {
         });
         router.replace('/(tabs)');
       }
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
-  const handleAppleLogin = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting('apple');
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
-      });
-      if (!credential.identityToken) return;
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
-        token: credential.identityToken,
-      });
-      if (error) {
-        console.error('[login] handleAppleLogin', error.message);
-        return;
+  const handleAppleLogin = () =>
+    submitAction.preventDuplicateRun(async () => {
+      try {
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+        });
+        if (!credential.identityToken) return;
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: credential.identityToken,
+        });
+        if (error) {
+          console.error('[login] handleAppleLogin', error.message);
+          return;
+        }
+        router.replace('/(tabs)');
+      } catch (e: any) {
+        if (e.code !== 'ERR_REQUEST_CANCELED') {
+          console.error('[login] handleAppleLogin', e);
+        }
       }
-      router.replace('/(tabs)');
-    } catch (e: any) {
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
-        console.error('[login] handleAppleLogin', e);
-      }
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
-  const handleLogin = async () => {
-    if (isSubmitting) return;
-    setErrorMessage(null);
-    setIsSubmitting('password');
-    try {
+  const handleLogin = () =>
+    submitAction.preventDuplicateRun(async () => {
+      setErrorMessage(null);
       if (email.length === 0) {
         setErrorMessage('メールアドレスを入力してください。');
         return;
@@ -141,15 +125,10 @@ export default function AuthLogin() {
         return;
       }
       router.replace('/(tabs)');
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
-  const handleGuestLogin = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting('guest');
-    try {
+  const handleGuestLogin = () =>
+    submitAction.preventDuplicateRun(async () => {
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       if (authError || !authData.user) {
         console.error('[login] handleGuestLogin', authError?.message);
@@ -158,10 +137,7 @@ export default function AuthLogin() {
       }
       // プロフィール作成・デモルーム参加はEULA同意後（eula.tsx）で行う。
       router.replace('/(auth)/eula');
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
   if (!fontsLoaded) return null;
 
@@ -255,8 +231,8 @@ export default function AuthLogin() {
                 </Text>
               </View>
               <View style={{ marginBottom: 12, gap: 4 }}>
-                <Pressable onPress={handleForgotPassword} disabled={isSubmitting !== null} hitSlop={8}>
-                  <Text style={{ fontSize: 12, color: WeatherBoardColors.buttonBackground, textDecorationLine: 'underline', opacity: isSubmitting !== null ? 0.5 : 1 }}>
+                <Pressable onPress={handleForgotPassword} disabled={submitAction.isPending} hitSlop={8}>
+                  <Text style={{ fontSize: 12, color: WeatherBoardColors.buttonBackground, textDecorationLine: 'underline', opacity: submitAction.isPending ? 0.5 : 1 }}>
                     パスワードをお忘れですか？
                   </Text>
                 </Pressable>
@@ -273,7 +249,7 @@ export default function AuthLogin() {
               )}
 
               {/* ログインボタン */}
-              <Pressable onPress={handleLogin} disabled={isSubmitting !== null} style={{ marginBottom: 20, opacity: isSubmitting !== null ? 0.7 : 1 }}>
+              <Pressable onPress={handleLogin} disabled={submitAction.isPending} style={{ marginBottom: 20, opacity: submitAction.isPending ? 0.7 : 1 }}>
                 <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="log-in-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>ログイン</Text>
@@ -291,8 +267,8 @@ export default function AuthLogin() {
                 {/* Google */}
                 <Pressable
                   onPress={handleGoogleLogin}
-                  disabled={isSubmitting !== null}
-                  style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
+                  disabled={submitAction.isPending}
+                  style={{ opacity: submitAction.isPending ? 0.7 : 1 }}>
                   <View style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginLeft: 16 }} />
                     <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textPrimaryDark, fontSize: 15, fontWeight: '600', marginRight: 36 }}>Google でログイン</Text>
@@ -301,7 +277,7 @@ export default function AuthLogin() {
 
                 {/* Apple (iOS のみ) */}
                 {Platform.OS === 'ios' && (
-                  <Pressable onPress={handleAppleLogin} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
+                  <Pressable onPress={handleAppleLogin} disabled={submitAction.isPending} style={{ opacity: submitAction.isPending ? 0.7 : 1 }}>
                     <View style={{ backgroundColor: '#000', borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                       <Ionicons name="logo-apple" size={20} color="white" style={{ marginLeft: 16 }} />
                       <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '600', marginRight: 36 }}>Apple でログイン</Text>
@@ -318,7 +294,7 @@ export default function AuthLogin() {
                 </Pressable>
 
                 {/* ゲストとして試す（本番では非表示・開発用に残す） */}
-                <Pressable onPress={handleGuestLogin} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1, display: 'none' }}>
+                <Pressable onPress={handleGuestLogin} disabled={submitAction.isPending} style={{ opacity: submitAction.isPending ? 0.7 : 1, display: 'none' }}>
                   <View style={{ borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: WeatherBoardColors.textMutedBlack, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="eye-outline" size={20} color={WeatherBoardColors.textMutedBlack} style={{ marginLeft: 16 }} />
                     <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textMutedBlack, fontSize: 15, fontWeight: '600', marginRight: 36 }}>ゲストとして試す</Text>
