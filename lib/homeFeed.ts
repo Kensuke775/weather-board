@@ -21,6 +21,16 @@ export const DEFAULT_FILTERS: FeedFilters = {
   followedUserIds: [],
 };
 
+// 絞り込みボトムシートでユーザーが直接操作する3項目（天気・エリア・フォロー中のみ）をまとめたもの。
+// tagQueryはデバウンス処理が別に必要、followedUserIdsはRealtimeで自動更新されるため、あえて含めない
+// （変わる理由が異なるstateは一緒にしない）。
+export type QuickFilters = Pick<FeedFilters, 'weather' | 'prefecture' | 'followingOnly'>;
+export const DEFAULT_QUICK_FILTERS: QuickFilters = {
+  weather: null,
+  prefecture: null,
+  followingOnly: false,
+};
+
 export const fetchTodaySummary = async (setter: (data: Record<string, number>) => void) => {
   const today = toDateString();
   const { data, error } = await supabase.from('weather_logs').select('weather').eq('logged_date', today);

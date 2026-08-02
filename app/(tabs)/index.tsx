@@ -19,6 +19,7 @@ import { useSupabaseRealtimeSync } from '@/hooks/useSupabaseRealtimeSync';
 import { isDaytimeNow } from '@/lib/date';
 import {
   DEFAULT_FILTERS,
+  DEFAULT_QUICK_FILTERS,
   FEED_PAGE_SIZE,
   fetchActivityFeed,
   fetchCommentsData,
@@ -28,9 +29,10 @@ import {
   fetchReactionsData,
   fetchTodaySummary,
   FeedFilters,
+  QuickFilters,
 } from '@/lib/homeFeed';
 import { supabase } from '@/lib/supabase';
-import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
+import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem } from '@/lib/types';
 
 const backgroundImage = isDaytimeNow() ? require('@/assets/images/weather/index-bg-day.jpg') : require('@/assets/images/weather/index-bg-night.jpg');
 
@@ -54,11 +56,9 @@ export default function HomeScreen() {
 
   const [todaySummary, setTodaySummary] = useState<Record<string, number>>({});
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
-  const [weatherFilter, setWeatherFilter] = useState<WeatherType | null>(null);
+  const [quickFilters, setQuickFilters] = useState<QuickFilters>(DEFAULT_QUICK_FILTERS);
   const [tagQuery, setTagQuery] = useState('');
   const [debouncedTagQuery, setDebouncedTagQuery] = useState('');
-  const [prefectureFilter, setPrefectureFilter] = useState<string | null>(null);
-  const [followingOnly, setFollowingOnly] = useState(false);
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
 
   const currentFiltersRef = useRef<FeedFilters>(DEFAULT_FILTERS);
@@ -81,13 +81,13 @@ export default function HomeScreen() {
   // フィルタ ref を最新状態に同期
   useEffect(() => {
     currentFiltersRef.current = {
-      weather: weatherFilter,
+      weather: quickFilters.weather,
       tag: debouncedTagQuery,
-      prefecture: prefectureFilter,
-      followingOnly,
+      prefecture: quickFilters.prefecture,
+      followingOnly: quickFilters.followingOnly,
       followedUserIds: Array.from(followedUserIds),
     };
-  }, [weatherFilter, debouncedTagQuery, prefectureFilter, followingOnly, followedUserIds]);
+  }, [quickFilters, debouncedTagQuery, followedUserIds]);
 
   const loadFeedPage = useCallback(async (pageToLoad: number, append: boolean) => {
     await fetchFeedPage(
@@ -137,7 +137,7 @@ export default function HomeScreen() {
     setPage(0);
     loadFeedPage(0, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weatherFilter, debouncedTagQuery, prefectureFilter, followingOnly]);
+  }, [quickFilters, debouncedTagQuery]);
 
   useEffect(() => {
     if (!userId) return;
@@ -218,7 +218,7 @@ export default function HomeScreen() {
     setIsRefreshing(false);
   };
 
-  const isFilterActive = weatherFilter !== null || debouncedTagQuery.length > 0 || prefectureFilter !== null || followingOnly;
+  const isFilterActive = quickFilters.weather !== null || debouncedTagQuery.length > 0 || quickFilters.prefecture !== null || quickFilters.followingOnly;
 
   if (roomIsLoading) {
     return (
@@ -340,14 +340,10 @@ export default function HomeScreen() {
       <FilterSheet
         bottomSheetRef={filterSheetRef}
         tabBarHeight={tabBarHeight}
-        weatherFilter={weatherFilter}
-        setWeatherFilter={setWeatherFilter}
+        quickFilters={quickFilters}
+        setQuickFilters={setQuickFilters}
         tagQuery={tagQuery}
         setTagQuery={setTagQuery}
-        prefectureFilter={prefectureFilter}
-        setPrefectureFilter={setPrefectureFilter}
-        followingOnly={followingOnly}
-        setFollowingOnly={setFollowingOnly}
       />
       <ActivityFeedSheet bottomSheetRef={activityFeedSheetRef} activityFeed={activityFeed} tabBarHeight={tabBarHeight} />
     </ImageBackground>
