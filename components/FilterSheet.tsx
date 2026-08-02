@@ -6,6 +6,7 @@ import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, BottomShe
 
 import { PREFECTURES } from '@/constants/prefectures';
 import { WeatherBoardColors } from '@/constants/theme';
+import { DEFAULT_QUICK_FILTERS, QuickFilters } from '@/lib/homeFeed';
 import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
 
 const WEATHER_FILTER_OPTIONS: { label: string; value: WeatherType | null }[] = [
@@ -46,36 +47,26 @@ function FilterChip({ label, selected, onPress, icon, style }: FilterChipProps) 
 type FilterSheetProps = {
   bottomSheetRef: RefObject<BottomSheetModal | null>;
   tabBarHeight: number;
-  weatherFilter: WeatherType | null;
-  setWeatherFilter: Dispatch<SetStateAction<WeatherType | null>>;
+  quickFilters: QuickFilters;
+  setQuickFilters: Dispatch<SetStateAction<QuickFilters>>;
   tagQuery: string;
   setTagQuery: Dispatch<SetStateAction<string>>;
-  prefectureFilter: string | null;
-  setPrefectureFilter: Dispatch<SetStateAction<string | null>>;
-  followingOnly: boolean;
-  setFollowingOnly: Dispatch<SetStateAction<boolean>>;
 };
 
 export default function FilterSheet({
   bottomSheetRef,
   tabBarHeight,
-  weatherFilter,
-  setWeatherFilter,
+  quickFilters,
+  setQuickFilters,
   tagQuery,
   setTagQuery,
-  prefectureFilter,
-  setPrefectureFilter,
-  followingOnly,
-  setFollowingOnly,
 }: FilterSheetProps) {
   const tagInputRef = useRef<React.ComponentRef<typeof BottomSheetTextInput>>(null);
 
   const handleResetFilters = () => {
-    setWeatherFilter(null);
+    setQuickFilters(DEFAULT_QUICK_FILTERS);
     setTagQuery('');
     tagInputRef.current?.clear();
-    setPrefectureFilter(null);
-    setFollowingOnly(false);
   };
 
   return (
@@ -99,7 +90,7 @@ export default function FilterSheet({
           <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>天気</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
             {WEATHER_FILTER_OPTIONS.map(({ label, value }) => (
-              <FilterChip key={label} label={label} selected={weatherFilter === value} onPress={() => setWeatherFilter(value)} />
+              <FilterChip key={label} label={label} selected={quickFilters.weather === value} onPress={() => setQuickFilters((prev) => ({ ...prev, weather: value }))} />
             ))}
           </ScrollView>
         </View>
@@ -140,9 +131,9 @@ export default function FilterSheet({
         <View style={{ gap: 8 }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>エリア</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            <FilterChip label="全国" selected={prefectureFilter === null} onPress={() => setPrefectureFilter(null)} />
+            <FilterChip label="全国" selected={quickFilters.prefecture === null} onPress={() => setQuickFilters((prev) => ({ ...prev, prefecture: null }))} />
             {PREFECTURES.map((pref) => (
-              <FilterChip key={pref} label={pref} selected={prefectureFilter === pref} onPress={() => setPrefectureFilter(pref)} />
+              <FilterChip key={pref} label={pref} selected={quickFilters.prefecture === pref} onPress={() => setQuickFilters((prev) => ({ ...prev, prefecture: pref }))} />
             ))}
           </ScrollView>
         </View>
@@ -151,8 +142,8 @@ export default function FilterSheet({
           <Text style={{ fontSize: 13, fontWeight: '700', color: WeatherBoardColors.textMutedBlack }}>フォロー</Text>
           <FilterChip
             label="フォロー中の投稿のみ"
-            selected={followingOnly}
-            onPress={() => setFollowingOnly((prev) => !prev)}
+            selected={quickFilters.followingOnly}
+            onPress={() => setQuickFilters((prev) => ({ ...prev, followingOnly: !prev.followingOnly }))}
             icon="people-outline"
             style={{ alignSelf: 'flex-start' }}
           />
