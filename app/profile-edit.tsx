@@ -10,6 +10,7 @@ import { CardStyle, WeatherBoardColors } from '@/constants/theme';
 import { PREFECTURES } from '@/constants/prefectures';
 import { TOAST_DURATION } from '@/constants/ui';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 export default function ProfileEdit() {
@@ -20,7 +21,7 @@ export default function ProfileEdit() {
   const [avatar, setAvatar] = useState('');
   const [prefecture, setPrefecture] = useState<string | null>(null);
   const [isPrefecturePickerOpen, setIsPrefecturePickerOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const saveAction = usePendingAction();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchCurrentProfile = useCallback(async () => {
@@ -43,27 +44,25 @@ export default function ProfileEdit() {
     fetchCurrentProfile();
   }, [fetchCurrentProfile]);
 
-  const handleSave = async () => {
-    if (isSubmitting) return;
-    setErrorMessage(null);
-    if (!user?.id) {
-      setErrorMessage('ユーザー情報が取得できませんでした。');
-      return;
-    }
-    if (nickname.trim().length === 0) {
-      setErrorMessage('ニックネームを入力してください。');
-      return;
-    }
-    if (nickname.length > 6) {
-      setErrorMessage('ニックネームは6文字以内で入力してください。');
-      return;
-    }
-    if (avatar === '') {
-      setErrorMessage('アバターを選んでください。');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
+  const handleSave = () =>
+    saveAction.preventDuplicateRun(async () => {
+      setErrorMessage(null);
+      if (!user?.id) {
+        setErrorMessage('ユーザー情報が取得できませんでした。');
+        return;
+      }
+      if (nickname.trim().length === 0) {
+        setErrorMessage('ニックネームを入力してください。');
+        return;
+      }
+      if (nickname.length > 6) {
+        setErrorMessage('ニックネームは6文字以内で入力してください。');
+        return;
+      }
+      if (avatar === '') {
+        setErrorMessage('アバターを選んでください。');
+        return;
+      }
       const { error } = await supabase
         .from('profiles')
         .upsert({ user_id: user.id, nickname: nickname.trim(), avatar_emoji: avatar, prefecture }, { onConflict: 'user_id' });
@@ -74,10 +73,7 @@ export default function ProfileEdit() {
       }
       Toast.show({ type: 'success', text1: 'プロフィールを変更しました。', visibilityTime: TOAST_DURATION.default });
       router.back();
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    });
 
   return (
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
@@ -142,7 +138,7 @@ export default function ProfileEdit() {
                 <Text style={{ fontSize: 13, color: '#C0392B', marginTop: 20 }}>{errorMessage}</Text>
               )}
 
-              <Pressable onPress={handleSave} disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.7 : 1, marginTop: 24 }}>
+              <Pressable onPress={handleSave} disabled={saveAction.isPending} style={{ opacity: saveAction.isPending ? 0.7 : 1, marginTop: 24 }}>
                 <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="checkmark-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>保存する</Text>
