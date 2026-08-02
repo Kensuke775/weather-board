@@ -252,25 +252,13 @@ const fetchFeedPage = async (page: number, setter: (data: WeatherBoardItem[]) =>
 
   let matchingLogIdsByTag: string[] | null = null;
   if (hasTagFilter) {
-    const { data: matchingTagsData, error: matchingTagsError } = await supabase.from('activity_tags').select('id').ilike('tag_name', `%${filters.tag.trim()}%`);
-    if (matchingTagsError) {
-      console.error('[index(tab)] fetchFeedPage(tagSearch)', matchingTagsError.message);
+    const { data: matchingLogIdsData, error: matchingLogIdsError } = await supabase.rpc('search_weather_log_ids_by_tag', { search_term: filters.tag.trim() });
+    if (matchingLogIdsError) {
+      console.error('[index(tab)] fetchFeedPage(tagSearch)', matchingLogIdsError.message);
       Alert.alert('投稿の取得に失敗しました。');
       return;
     }
-    const tagIds = matchingTagsData.map((tag) => tag.id);
-    if (tagIds.length === 0) {
-      setter([]);
-      loadingSetter(false);
-      return;
-    }
-    const { data: matchingActivitiesData, error: matchingActivitiesError } = await supabase.from('weather_log_activities').select('weather_log_id').in('activity_tag_id', tagIds);
-    if (matchingActivitiesError) {
-      console.error('[index(tab)] fetchFeedPage(tagSearch)', matchingActivitiesError.message);
-      Alert.alert('投稿の取得に失敗しました。');
-      return;
-    }
-    matchingLogIdsByTag = Array.from(new Set(matchingActivitiesData.map((row) => row.weather_log_id)));
+    matchingLogIdsByTag = (matchingLogIdsData as { weather_log_id: string }[]).map((row) => row.weather_log_id);
     if (matchingLogIdsByTag.length === 0) {
       setter([]);
       loadingSetter(false);
