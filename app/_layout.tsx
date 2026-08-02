@@ -172,17 +172,6 @@ export default function RootLayout() {
                       name="japan-map"
                       options={{ headerShown: false }}
                     />
-                    <Stack.Screen
-                      name="prefecture-users"
-                      options={{
-                        title: '',
-                        headerStyle: { backgroundColor: '#FFFFFF' },
-                        headerTintColor: 'rgba(96, 165, 250)',
-                        headerTitleStyle: { color: '#000000' },
-                        headerBackButtonDisplayMode: 'minimal',
-                        headerShadowVisible: false,
-                      }}
-                    />
                   </Stack>
                   <Toast position="bottom" bottomOffset={40} config={toastConfig} />
                 </BottomSheetModalProvider>
