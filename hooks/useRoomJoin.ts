@@ -2,17 +2,16 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 export default function useRoomJoin(onSuccess?: (roomName: string, roomId: string) => Promise<void>) {
   const { user } = useUser();
   const [inviteCode, setInviteCode] = useState('');
-  const [isJoining, setIsJoining] = useState(false);
+  const joinAction = usePendingAction();
   const userId = user?.id;
-  const handleJoinRoom = async () => {
-    if (isJoining) return;
-    setIsJoining(true);
-    try {
+  const handleJoinRoom = () =>
+    joinAction.preventDuplicateRun(async () => {
       if (inviteCode === '') {
         Alert.alert('招待コードを入力してください。');
         return;
@@ -60,11 +59,7 @@ export default function useRoomJoin(onSuccess?: (roomName: string, roomId: strin
         }
       }
       await onSuccess?.(roomData.name, roomData.id);
-    } finally {
-      setIsJoining(false);
-    }
-  };
+    });
 
-  return { inviteCode, setInviteCode, isJoining, handleJoinRoom };
-
+  return { inviteCode, setInviteCode, isJoining: joinAction.isPending, handleJoinRoom };
 }
