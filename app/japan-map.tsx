@@ -10,6 +10,7 @@ import { JAPAN_PREFECTURES, JAPAN_VIEWBOX } from '@/constants/japanPrefectures';
 import { WeatherBoardColors } from '@/constants/theme';
 import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { toDateString } from '@/lib/date';
+import { clampVb, pinchDist, Vb } from '@/lib/mapGeometry';
 import { supabase } from '@/lib/supabase';
 import { WEATHER_CONFIG, WeatherType } from '@/lib/types';
 
@@ -32,23 +33,10 @@ const WEATHER_MAP_COLOR: Record<WeatherType, string> = {
 
 const [INIT_X, INIT_Y, INIT_W, INIT_H] = JAPAN_VIEWBOX.split(' ').map(Number);
 const ASPECT = INIT_W / INIT_H;
-
-type Vb = { x: number; y: number; w: number; h: number };
-
-function clampVb(vb: Vb): Vb {
-  const w = Math.max(2, Math.min(INIT_W, vb.w));
-  const h = w / ASPECT;
-  const x = Math.max(INIT_X, Math.min(INIT_X + INIT_W - w, vb.x));
-  const y = Math.max(INIT_Y, Math.min(INIT_Y + INIT_H - h, vb.y));
-  return { x, y, w, h };
-}
+const MAP_BOUNDS: Vb = { x: INIT_X, y: INIT_Y, w: INIT_W, h: INIT_H };
 
 function vbToStr({ x, y, w, h }: Vb): string {
   return `${x.toFixed(3)} ${y.toFixed(3)} ${w.toFixed(3)} ${h.toFixed(3)}`;
-}
-
-function pinchDist(t0: { pageX: number; pageY: number }, t1: { pageX: number; pageY: number }): number {
-  return Math.hypot(t1.pageX - t0.pageX, t1.pageY - t0.pageY);
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +131,7 @@ export default function JapanMapScreen() {
   const svgPxWidth = useRef(300);
 
   const applyVb = (vb: Vb) => {
-    const c = clampVb(vb);
+    const c = clampVb(vb, MAP_BOUNDS);
     vbRef.current = c;
     setViewBoxStr(vbToStr(c));
   };
