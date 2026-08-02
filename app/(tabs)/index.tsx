@@ -15,6 +15,7 @@ import WeatherBoard from '@/components/WeatherBoard';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
+import { useSupabaseRealtimeSync } from '@/hooks/useSupabaseRealtimeSync';
 import { isDaytimeNow, toDateString } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { ActivityFeedItem, CommentsStatus, WEATHER_CONFIG, WeatherBoardItem, WeatherType } from '@/lib/types';
@@ -434,130 +435,42 @@ export default function HomeScreen() {
     };
   }, [userId]);
 
-  useEffect(() => {
-    if (!userId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    let isCancelled = false;
-    const setUp = async () => {
-      const channelName = `unreadCounts-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      if (isCancelled) return;
-      await fetchNotificationsData(userId, setUnreadCounts);
-      if (isCancelled) return;
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
-          await fetchNotificationsData(userId, setUnreadCounts);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      isCancelled = true;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [userId]);
+  useSupabaseRealtimeSync({
+    channelName: `unreadCounts-${userId ?? 'none'}`,
+    table: 'notifications',
+    callback: () => (userId ? fetchNotificationsData(userId, setUnreadCounts) : Promise.resolve()),
+  });
 
-  useEffect(() => {
-    if (!userId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    let isCancelled = false;
-    const setUp = async () => {
-      const channelName = `blocks-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      if (isCancelled) return;
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'blocks' }, async () => {
-          setPage(0);
-          await loadFeedPage(0, false);
-          await fetchCommentsData(setCommentStatus);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      isCancelled = true;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [userId, loadFeedPage]);
-
-  useEffect(() => {
-    if (!userId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    let isCancelled = false;
-    const setUp = async () => {
-      const channelName = `comment-status-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      if (isCancelled) return;
+  useSupabaseRealtimeSync({
+    channelName: `blocks-${userId ?? 'none'}`,
+    table: 'blocks',
+    skipInitialFetch: true,
+    callback: async () => {
+      if (!userId) return;
+      setPage(0);
+      await loadFeedPage(0, false);
       await fetchCommentsData(setCommentStatus);
-      if (isCancelled) return;
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, async () => {
-          await fetchCommentsData(setCommentStatus);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      isCancelled = true;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [userId]);
+    },
+  });
 
-  useEffect(() => {
-    if (!userId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    let isCancelled = false;
-    const setUp = async () => {
-      const channelName = `reaction-status-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      if (isCancelled) return;
-      await fetchReactionsData(setReactionStatus);
-      if (isCancelled) return;
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, async () => {
-          await fetchReactionsData(setReactionStatus);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      isCancelled = true;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [userId]);
+  useSupabaseRealtimeSync({
+    channelName: `comment-status-${userId ?? 'none'}`,
+    table: 'comments',
+    callback: () => (userId ? fetchCommentsData(setCommentStatus) : Promise.resolve()),
+  });
 
-  useEffect(() => {
-    if (!userId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    let isCancelled = false;
-    const setUp = async () => {
-      const channelName = `follows-${userId}`;
-      const existing = supabase.getChannels().find((channel) => channel.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      if (isCancelled) return;
-      await fetchFollowedUserIds(userId, setFollowedUserIds);
-      if (isCancelled) return;
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` }, async () => {
-          await fetchFollowedUserIds(userId, setFollowedUserIds);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      isCancelled = true;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [userId]);
+  useSupabaseRealtimeSync({
+    channelName: `reaction-status-${userId ?? 'none'}`,
+    table: 'post_reactions',
+    callback: () => (userId ? fetchReactionsData(setReactionStatus) : Promise.resolve()),
+  });
+
+  useSupabaseRealtimeSync({
+    channelName: `follows-${userId ?? 'none'}`,
+    table: 'follows',
+    filter: userId ? `follower_id=eq.${userId}` : undefined,
+    callback: () => (userId ? fetchFollowedUserIds(userId, setFollowedUserIds) : Promise.resolve()),
+  });
 
   const handleLoadMore = () => {
     if (isLoadingMore || !hasMore || isLoading) return;
