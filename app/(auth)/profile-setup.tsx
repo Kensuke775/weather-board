@@ -10,6 +10,7 @@ import { ProfileForm } from '@/components/ProfileForm';
 import { PREFECTURES } from '@/constants/prefectures';
 import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 export default function ProfileSetUp() {
@@ -24,31 +25,29 @@ export default function ProfileSetUp() {
   const [prefecture, setPrefecture] = useState<string | null>(null);
   const [isPrefecturePickerOpen, setIsPrefecturePickerOpen] = useState(false);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitAction = usePendingAction();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-    setErrorMessage(null);
-    if (!user?.id) {
-      setErrorMessage('ユーザー情報が取得できませんでした。');
-      return;
-    }
-    if (nickname.trim().length === 0) {
-      setErrorMessage('ニックネームを入力してください。');
-      return;
-    }
-    if (nickname.length > 6) {
-      setErrorMessage('ニックネームは6文字以内で入力してください。');
-      return;
-    }
-    if (avatar === '') {
-      setErrorMessage('アバターを選んでください。');
-      return;
-    }
+  const handleSubmit = () =>
+    submitAction.preventDuplicateRun(async () => {
+      setErrorMessage(null);
+      if (!user?.id) {
+        setErrorMessage('ユーザー情報が取得できませんでした。');
+        return;
+      }
+      if (nickname.trim().length === 0) {
+        setErrorMessage('ニックネームを入力してください。');
+        return;
+      }
+      if (nickname.length > 6) {
+        setErrorMessage('ニックネームは6文字以内で入力してください。');
+        return;
+      }
+      if (avatar === '') {
+        setErrorMessage('アバターを選んでください。');
+        return;
+      }
 
-    setIsSubmitting(true);
-    try {
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({ user_id: user.id, nickname: nickname.trim(), avatar_emoji: avatar, prefecture }, { onConflict: 'user_id' });
@@ -59,10 +58,7 @@ export default function ProfileSetUp() {
       }
 
       router.replace('/(tabs)');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    });
 
   if (!fontsLoaded) return null;
 
@@ -151,7 +147,7 @@ export default function ProfileSetUp() {
               )}
 
               {/* はじめるボタン */}
-              <Pressable onPress={handleSubmit} disabled={isSubmitting} style={{ opacity: isSubmitting ? 0.7 : 1, marginTop: 24 }}>
+              <Pressable onPress={handleSubmit} disabled={submitAction.isPending} style={{ opacity: submitAction.isPending ? 0.7 : 1, marginTop: 24 }}>
                 <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="arrow-forward-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>はじめる</Text>
