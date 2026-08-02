@@ -128,7 +128,18 @@ export default function DmChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: WeatherBoardColors.screenBackground }}>
-      <Stack.Screen options={{ title: otherUser?.nickname ?? 'DM' }} />
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <Pressable
+              onPress={() => otherUser && navigateToProfile(otherUser.id)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ fontSize: 15 }}>{otherUser?.avatar_emoji}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#000000' }}>{otherUser?.nickname ?? 'DM'}</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
