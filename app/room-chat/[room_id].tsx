@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WeatherBoardColors } from '@/constants/theme';
 import { useRoom } from '@/context/RoomContext';
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
+import { useSupabaseRealtimeSync } from '@/hooks/useSupabaseRealtimeSync';
 import useUserProfileNavigation from '@/hooks/useUserProfileNavigation';
 import { supabase } from '@/lib/supabase';
 import { RoomMessageItem } from '@/lib/types';
@@ -96,7 +98,7 @@ export default function RoomChatScreen() {
   const memberSheetRef = useRef<BottomSheetModal>(null);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [inputText, setInputText] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const sendAction = usePendingAction();
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -105,47 +107,19 @@ export default function RoomChatScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
-  useEffect(() => {
-    if (!roomId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    const setUp = async () => {
-      const channelName = `room-members-count-${roomId}`;
-      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      await fetchMemberCount(roomId, setMemberCount);
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'room_members', filter: `room_id=eq.${roomId}` }, async () => {
-          await fetchMemberCount(roomId, setMemberCount);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [roomId]);
+  useSupabaseRealtimeSync({
+    channelName: `room-members-count-${roomId ?? 'none'}`,
+    table: 'room_members',
+    filter: roomId ? `room_id=eq.${roomId}` : undefined,
+    callback: () => (roomId ? fetchMemberCount(roomId, setMemberCount) : Promise.resolve()),
+  });
 
-  useEffect(() => {
-    if (!roomId) return;
-    let channel: ReturnType<typeof supabase.channel>;
-    const setUp = async () => {
-      const channelName = `room-messages-${roomId}`;
-      const existing = supabase.getChannels().find((ch) => ch.topic === `realtime:${channelName}`);
-      if (existing) await supabase.removeChannel(existing);
-      await fetchRoomMessages(roomId, setMessages);
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}` }, async () => {
-          await fetchRoomMessages(roomId, setMessages);
-        })
-        .subscribe();
-    };
-    setUp();
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [roomId]);
+  useSupabaseRealtimeSync({
+    channelName: `room-messages-${roomId ?? 'none'}`,
+    table: 'room_messages',
+    filter: roomId ? `room_id=eq.${roomId}` : undefined,
+    callback: () => (roomId ? fetchRoomMessages(roomId, setMessages) : Promise.resolve()),
+  });
 
   useEffect(() => {
     if (!userId) return;
@@ -163,12 +137,11 @@ export default function RoomChatScreen() {
     }
   };
 
-  const handleSend = async () => {
-    if (isSending || !roomId || !userId) return;
-    const body = inputText.trim();
-    if (body === '') return;
-    setIsSending(true);
-    try {
+  const handleSend = () =>
+    sendAction.preventDuplicateRun(async () => {
+      if (!roomId || !userId) return;
+      const body = inputText.trim();
+      if (body === '') return;
       const { error } = await supabase.from('room_messages').insert({ room_id: roomId, sender_id: userId, body });
       if (error) {
         console.error('[room-chat] handleSend', error.message);
@@ -196,10 +169,7 @@ export default function RoomChatScreen() {
         );
         if (notifyError) console.error('[room-chat] handleSend notify', notifyError.message);
       }
-    } finally {
-      setIsSending(false);
-    }
-  };
+    });
 
   const handleOpenMembers = () => {
     memberSheetRef.current?.present();
@@ -319,7 +289,7 @@ export default function RoomChatScreen() {
           </View>
           <Pressable
             onPress={handleSend}
-            disabled={isSending || inputText.trim() === ''}
+            disabled={sendAction.isPending || inputText.trim() === ''}
             style={{
               width: 44,
               height: 44,
@@ -327,7 +297,7 @@ export default function RoomChatScreen() {
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: WeatherBoardColors.buttonBackground,
-              opacity: isSending || inputText.trim() === '' ? 0.5 : 1,
+              opacity: sendAction.isPending || inputText.trim() === '' ? 0.5 : 1,
             }}>
             <Ionicons name="send" size={18} color="#FFFFFF" />
           </Pressable>
