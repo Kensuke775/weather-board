@@ -11,11 +11,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthHeader } from '@/components/AuthHeader';
 import { EulaContent } from '@/components/EulaContent';
 import { CardStyle, Fonts, WeatherBoardColors } from '@/constants/theme';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 const redirectTo = makeRedirectUri();
-
-type SubmittingName = 'password' | 'google' | 'apple' | null;
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -45,7 +44,7 @@ export default function AuthSignUp() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState<SubmittingName>(null);
+  const submitAction = usePendingAction();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -61,10 +60,8 @@ export default function AuthSignUp() {
     setErrorMessage(null);
   };
 
-  const handleGoogleSignUp = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting('google');
-    try {
+  const handleGoogleSignUp = () =>
+    submitAction.preventDuplicateRun(async () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo, skipBrowserRedirect: true },
@@ -80,39 +77,31 @@ export default function AuthSignUp() {
         await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
         router.replace('/(tabs)');
       }
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
-  const handleAppleSignUp = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting('apple');
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
-      });
-      if (!credential.identityToken) return;
-      const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: credential.identityToken });
-      if (error) {
-        console.error('[signup] handleAppleSignUp', error.message);
-        return;
+  const handleAppleSignUp = () =>
+    submitAction.preventDuplicateRun(async () => {
+      try {
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+        });
+        if (!credential.identityToken) return;
+        const { error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: credential.identityToken });
+        if (error) {
+          console.error('[signup] handleAppleSignUp', error.message);
+          return;
+        }
+        router.replace('/(tabs)');
+      } catch (e: any) {
+        if (e.code !== 'ERR_REQUEST_CANCELED') {
+          console.error('[signup] handleAppleSignUp', e);
+        }
       }
-      router.replace('/(tabs)');
-    } catch (e: any) {
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
-        console.error('[signup] handleAppleSignUp', e);
-      }
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
-  const handleSignUp = async () => {
-    if (isSubmitting) return;
-    setErrorMessage(null);
-    setIsSubmitting('password');
-    try {
+  const handleSignUp = () =>
+    submitAction.preventDuplicateRun(async () => {
+      setErrorMessage(null);
       if (!emailValid) {
         setErrorMessage('正しいメールアドレスを入力してください。');
         return;
@@ -146,10 +135,7 @@ export default function AuthSignUp() {
       } else {
         setSignUpSuccess(true);
       }
-    } finally {
-      setIsSubmitting(null);
-    }
-  };
+    });
 
   if (!fontsLoaded) return null;
 
@@ -347,7 +333,7 @@ export default function AuthSignUp() {
               )}
 
               {/* 新規登録ボタン */}
-              <Pressable onPress={handleSignUp} disabled={isSubmitting !== null} style={{ marginBottom: 20, opacity: isSubmitting !== null ? 0.7 : 1 }}>
+              <Pressable onPress={handleSignUp} disabled={submitAction.isPending} style={{ marginBottom: 20, opacity: submitAction.isPending ? 0.7 : 1 }}>
                 <View style={{ backgroundColor: WeatherBoardColors.buttonBackground, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons name="person-add-outline" size={20} color="white" style={{ marginLeft: 16 }} />
                   <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '700', marginRight: 36 }}>新規登録</Text>
@@ -363,7 +349,7 @@ export default function AuthSignUp() {
 
               <View style={{ gap: 10, marginBottom: 16 }}>
                 {/* Google */}
-                <Pressable onPress={handleGoogleSignUp} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
+                <Pressable onPress={handleGoogleSignUp} disabled={submitAction.isPending} style={{ opacity: submitAction.isPending ? 0.7 : 1 }}>
                   <View style={{ backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginLeft: 16 }} />
                     <Text style={{ flex: 1, textAlign: 'center', color: WeatherBoardColors.textPrimaryDark, fontSize: 15, fontWeight: '600', marginRight: 36 }}>Google で登録</Text>
@@ -372,7 +358,7 @@ export default function AuthSignUp() {
 
                 {/* Apple (iOS のみ) */}
                 {Platform.OS === 'ios' && (
-                  <Pressable onPress={handleAppleSignUp} disabled={isSubmitting !== null} style={{ opacity: isSubmitting !== null ? 0.7 : 1 }}>
+                  <Pressable onPress={handleAppleSignUp} disabled={submitAction.isPending} style={{ opacity: submitAction.isPending ? 0.7 : 1 }}>
                     <View style={{ backgroundColor: '#000', borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' }}>
                       <Ionicons name="logo-apple" size={20} color="white" style={{ marginLeft: 16 }} />
                       <Text style={{ flex: 1, textAlign: 'center', color: 'white', fontSize: 15, fontWeight: '600', marginRight: 36 }}>Apple で登録</Text>
