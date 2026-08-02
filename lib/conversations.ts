@@ -1,8 +1,8 @@
+import { normalizeConversationUserIds } from '@/lib/normalizeConversationUserIds';
 import { supabase } from '@/lib/supabase';
 
 export const startOrOpenConversation = async (myUserId: string, otherUserId: string): Promise<string | null> => {
-  const userAId = myUserId < otherUserId ? myUserId : otherUserId;
-  const userBId = myUserId < otherUserId ? otherUserId : myUserId;
+  const { userAId, userBId } = normalizeConversationUserIds(myUserId, otherUserId);
 
   const { data: existing, error: selectError } = await supabase
     .from('conversations')
