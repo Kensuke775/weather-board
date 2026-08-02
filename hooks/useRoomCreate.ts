@@ -4,18 +4,17 @@ import { Alert } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
 import { useUser } from '@/context/UserContext';
+import usePendingAction from '@/hooks/usePendingAction';
 import { supabase } from '@/lib/supabase';
 
 export default function useRoomCreate(onSuccess?: (roomId: string) => Promise<void>) {
   const { user } = useUser();
   const [roomName, setRoomName] = useState('');
   const [iconEmoji, setIconEmoji] = useState('☀️');
-  const [isCreating, setIsCreating] = useState(false);
+  const createAction = usePendingAction();
   const userId = user?.id;
-  const handleCreateRoom = async () => {
-    if (isCreating) return;
-    setIsCreating(true);
-    try {
+  const handleCreateRoom = () =>
+    createAction.preventDuplicateRun(async () => {
       if (roomName === '') {
         Alert.alert('ルーム名が空になってます。');
         return;
@@ -38,9 +37,6 @@ export default function useRoomCreate(onSuccess?: (roomId: string) => Promise<vo
         return;
       }
       await onSuccess?.(roomId);
-    } finally {
-      setIsCreating(false);
-    }
-  };
-  return { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, isCreating };
+    });
+  return { handleCreateRoom, setRoomName, roomName, iconEmoji, setIconEmoji, isCreating: createAction.isPending };
 }
