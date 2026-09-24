@@ -2,15 +2,19 @@ name: Supabase Keep-alive
 
 on:
   schedule:
-    - cron: "0 0 */3 * *"
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping Supabase (write via RPC)
         run: |
-          curl -sf "${{ secrets.SUPABASE_URL }}/rest/v1/profiles?select=user_id&limit=1" \
+          curl -sSf --max-time 30 --retry 3 --retry-delay 10 \
+            -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/ping_keep_alive" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
